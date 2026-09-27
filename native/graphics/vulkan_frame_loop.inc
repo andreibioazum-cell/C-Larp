@@ -29,9 +29,9 @@ static int ds_vk_init_backend(ANativeWindow *window) {
     if (!window) { ds_log_err("vulkan: no window"); ds_vk_note_failure("no window", 0); return 0; }
 
     VkApplicationInfo app = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
-    app.pApplicationName = "Cubic Battle";
+    app.pApplicationName = "C-Larp Obby";
     app.applicationVersion = 1;
-    app.pEngineName = "DimScript Vulkan";
+    app.pEngineName = "C-Larp Vulkan";
     app.engineVersion = 1;
     app.apiVersion = VK_API_VERSION_1_0;
     const char *inst_exts[] = { "VK_KHR_surface", "VK_KHR_android_surface" };

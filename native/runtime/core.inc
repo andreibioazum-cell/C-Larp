@@ -80,7 +80,7 @@ typedef struct DSStringNode DSStringNode;
 struct DSStringNode { DSStringNode *next; char *string; };
 static DSStringNode *ds_strings = NULL;
 static void platform_log(int is_error, const char *format, va_list args) {
-    __android_log_vprint(is_error ? ANDROID_LOG_ERROR : ANDROID_LOG_INFO, "DimScript", format, args);
+    __android_log_vprint(is_error ? ANDROID_LOG_ERROR : ANDROID_LOG_INFO, "C-Larp", format, args);
 }
 void ds_log(const char *format, ...) {
     char tmp[DS_CONSOLE_LINE_MAX];
@@ -155,7 +155,7 @@ int ds_call_protected(DSProtectedFunction function, void *userdata, const char *
     }
     return 0;
 }
-const char *ds_runtime_error_message(void) { return ds_last_error[0] ? ds_last_error : "unknown DimScript runtime error"; }
+const char *ds_runtime_error_message(void) { return ds_last_error[0] ? ds_last_error : "unknown native runtime error"; }
 int ds_script_has_error(void) { return ds_has_error; }
 void ds_clear_runtime_error(void) { ds_has_error = 0; ds_last_error[0] = '\0'; }
 void ds_request_script_restart(void) { ds_restart_requested = 1; }

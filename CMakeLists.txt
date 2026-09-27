@@ -1,39 +1,26 @@
 cmake_minimum_required(VERSION 3.16)
-project(CubicBattle C)
+project(CLarpObby C)
 set(CMAKE_C_STANDARD 99)
 
-find_package(Python3 COMPONENTS Interpreter REQUIRED)
+# The game is deliberately a handwritten C translation unit. There is no
+# generated source and no scripting language in the Android build.
 set(GAME_C "${CMAKE_CURRENT_SOURCE_DIR}/game/game.c")
-# The scripts live in modules under game/scripts (core, ui, combat, fx). Their
-# compile order comes from game/scripts/modules.txt, so finding every .ds is
-# enough here. The compiler is the dimscript/ package, one stage per module.
-file(GLOB_RECURSE DS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/game/*.ds")
-file(GLOB DS_COMPILER "${CMAKE_CURRENT_SOURCE_DIR}/dimscript/*.py")
 
-add_custom_command(
-    OUTPUT "${GAME_C}"
-    COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/gen.py"
-    DEPENDS ${DS_SOURCES} ${DS_COMPILER}
-            "${CMAKE_CURRENT_SOURCE_DIR}/game/scripts/modules.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/ds_compiler.py" "${CMAKE_CURRENT_SOURCE_DIR}/gen.py"
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    COMMENT "Generating game/game.c from DimScript"
-)
-
-# Android is the only target: the libds_game.so shared library that the APK packs
-# through game/AndroidManifest.xml. Desktop support, Windows and the Linux test
-# harness, was removed from the repository.
 if(NOT ANDROID)
     message(FATAL_ERROR
-        "Cubic Battle builds for Android only. Run CMake through the NDK toolchain "
-        "file, for example: cmake -B build -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake "
-        "-DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 -DANDROID_STL=c++_shared. "
-        "The GitHub Actions workflow is the easy way to get an APK.")
+        "C-Larp Obby builds for Android only. Run CMake through the NDK toolchain, "
+        "for example: cmake -B build "
+        "-DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake "
+        "-DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26.")
 endif()
 
-add_library(ds_game SHARED "${GAME_C}" runtime.c main.c ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
-target_include_directories(ds_game PRIVATE . game ${ANDROID_NDK}/sources/android/native_app_glue)
-# vulkan is the rendering backend: swapchain, offscreen target, prebaked SPIR-V.
-# dl brings dlsym, because ANativeWindow_setFrameRate only arrived in API 30 and
-# the pointer to it is looked up at runtime, missing on older systems.
-target_link_libraries(ds_game PRIVATE android log dl m vulkan)
+add_library(obby_game SHARED
+    "${GAME_C}"
+    runtime.c
+    main.c
+    "${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c")
+target_include_directories(obby_game PRIVATE
+    . game "${ANDROID_NDK}/sources/android/native_app_glue")
+
+# Vulkan is the sole graphics backend. There is no OpenGL or software fallback.
+target_link_libraries(obby_game PRIVATE android log dl m vulkan)

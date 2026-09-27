@@ -1,4 +1,4 @@
-name: Build DS Game (Android APK)
+name: Build C-Larp Obby (Android APK)
 
 on:
   push:
@@ -13,7 +13,7 @@ defaults:
 
 jobs:
   build-android:
-    name: Build Android APK (Android 8-15 arm64+arm32+x86_64)
+    name: Build native C obby APK (Android 8-15 arm64+arm32+x86_64)
     runs-on: ubuntu-latest
 
     steps:
@@ -21,16 +21,14 @@ jobs:
 
       - name: Check package name consistency
         run: |
-          grep -q 'package="com.cb4"' game/AndroidManifest.xml
+          grep -q 'package="com.clarp"' game/AndroidManifest.xml
           grep -q 'android:versionCode="[0-9]\+"' game/AndroidManifest.xml
           grep -q 'android:versionName="[^"]\+"' game/AndroidManifest.xml
-          grep -q 'android:name="com.cb4.GameActivity"' game/AndroidManifest.xml
-          grep -q '^package com.cb4;' game/java/com/dimscript/gamedemo/GameActivity.java
-          grep -q 'Java_com_cb4_GameActivity_nativeReplaceText' runtime.c
-          grep -q 'Java_com_cb4_GameActivity_nativeSubmitText' runtime.c
-          grep -q 'Java_com_cb4_GameActivity_nativeKeyboardHidden' runtime.c
-          ! grep -rn 'dimscript\.gamedemo\|Java_com_dimscript\|com\.CB4\|Java_com_CB4' \
-            game/AndroidManifest.xml game/java runtime.c
+          grep -q 'android:name="com.clarp.ObbyActivity"' game/AndroidManifest.xml
+          grep -q '^package com.clarp;' game/java/com/clarp/ObbyActivity.java
+          grep -q 'Java_com_clarp_ObbyActivity_nativeReplaceText' runtime.c
+          grep -q 'Java_com_clarp_ObbyActivity_nativeSubmitText' runtime.c
+          grep -q 'Java_com_clarp_ObbyActivity_nativeKeyboardHidden' runtime.c
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -105,9 +103,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Generate game.c
-        run: python3 gen.py
-
       - name: Stage assets
         run: python3 stage_assets.py game/assets staging/assets
 
@@ -123,17 +118,17 @@ jobs:
           "$TOOLCHAIN/aarch64-linux-android26-clang" -O3 -s -fPIC -shared \
             game/game.c runtime.c main.c "$GLUE/android_native_app_glue.c" \
             -I. -I"$GLUE" -landroid -llog -ldl -lm -lvulkan \
-            -o staging/lib/arm64-v8a/libds_game.so
+            -o staging/lib/arm64-v8a/libobby_game.so
 
           "$TOOLCHAIN/armv7a-linux-androideabi26-clang" -O3 -s -fPIC -shared \
             game/game.c runtime.c main.c "$GLUE/android_native_app_glue.c" \
             -I. -I"$GLUE" -landroid -llog -ldl -lm -lvulkan \
-            -o staging/lib/armeabi-v7a/libds_game.so
+            -o staging/lib/armeabi-v7a/libobby_game.so
 
           "$TOOLCHAIN/x86_64-linux-android26-clang" -O3 -s -fPIC -shared \
             game/game.c runtime.c main.c "$GLUE/android_native_app_glue.c" \
             -I. -I"$GLUE" -landroid -llog -ldl -lm -lvulkan \
-            -o staging/lib/x86_64/libds_game.so
+            -o staging/lib/x86_64/libobby_game.so
 
       - name: Package and align APK
         run: |
@@ -189,6 +184,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Game-APK-Android8-15-arm64-arm32-x86_64
+          name: C-Larp-Obby-APK-Android8-15-arm64-arm32-x86_64
           path: Game.apk
           if-no-files-found: error

@@ -1,6 +1,6 @@
-/* Public graphics API for the scripts and main.c: texture and font loading,
+/* Public graphics API for the native game and main.c: texture and font loading,
  * the draw commands (rect, roundrect, rect_rot, circle, ring, line, tex,
- * tex_tint, text), begin/end/cancel of a frame and the DimScript error screen.
+ * tex_tint, text), begin/end/cancel of a frame and the native error screen.
  *
  * The commands are only collected; the Vulkan backend (vulkan_backend.inc)
  * draws them at the end of the frame. Nothing is rasterised on the CPU. */
@@ -195,21 +195,11 @@ void tex_tint(float x, float y, const char *name, float a, float s, uint32_t c) 
     DSCmd *p = push(DS_CMD_TEX_TINT); if (!p) return;
     p->v.tx2.x=x; p->v.tx2.y=y; p->v.tx2.a=a; p->v.tx2.sc=s; p->v.tx2.tx=t; p->v.tx2.c=pack_c(c);
 }
-/* All text in the game is pure white (255,255,255). Scripts still pass a
- * colour, but only its alpha survives, which the smooth fades of labels need
- * (fade_color in core/ui.ds, the admin banner, the warning screen). The RGB is
- * replaced by white, so no tinted achievement labels or coloured admin nicks
- * appear: one rule for the whole game instead of editing every call. */
+/* Native C UI text keeps the colour requested by the scene. The old battle
+ * renderer forced most labels to white, which made the light nickname card
+ * unreadable; the obby uses dark ink, accent yellow and white button text. */
 static uint32_t text_force_white(uint32_t c) {
-    // Preserve admin nickname colors (red for Dimasi4ek229, blue for qwetyuiopaj1234)
-    if (c == 0xFFFF4444u || c == 0xFF4FC3F7u || c == 0xFFFF3333u || c == 0xFF33A8FFu)
-        return c;
-    /* Dark ink of the chat bubble (chat_bubble_ink from config.ds): white text
-     * on a white bubble cannot be read, so the dark RGB is kept while the fade
-     * alpha survives. Only the RGB is compared. */
-    if ((c & 0x00ffffffu) == 0x00202020u)
-        return c;
-    return (c & 0xff000000u) | 0x00ffffffu;
+    return c;
 }
 void text_scaled(const char *s, float x, float y, uint32_t c, float sc) {
     if (!frame_open || !s || !ensure_font()) return;

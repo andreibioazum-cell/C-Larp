@@ -1,17 +1,11 @@
-/* sound.c holds the sounds and the music of DimScript.
+/* sound.c holds the sounds and the music of the native game.
  *
  * The files sit in game/sounds, and in assets/sounds inside the APK. Uncompressed
  * PCM WAV is supported (8, 16, 24 or 32 bits, mono or stereo, any sample rate),
  * since the mixer resamples to 44100 Hz stereo with linear interpolation.
  *
- * Script builtins:
- *   snd_load name      - load a WAV from the sound folder (1 = ok, 0 = no);
- *   snd_play name      - play once;
- *   snd_loop name      - play in a loop, for music;
- *   snd_stop name      - stop;
- *   snd_playing name   - 1 while the sound plays;
- *   snd_volume name, v - volume of that sound (0..1);
- *   snd_stop_all       - stop everything.
+ * The native API loads WAVs from the sound folder and exposes play/loop/stop,
+ * volume and playback-state helpers to the C game.
  *
  * Output: on Android it is AudioTrack through JNI, with no extra libraries.
  */

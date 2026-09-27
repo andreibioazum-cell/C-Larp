@@ -205,7 +205,7 @@ void keyboard_type(const char *text) {
 /* A whole UTF-8 character is erased rather than a single byte.
  * Held Backspace: calls that follow each other closely are key auto-repeat, and
  * after six of them in a row everything is erased at once, the same trick as in
- * GameActivity.java for the on-screen keyboard). */
+ * ObbyActivity.java for the on-screen keyboard). */
 #define KB_DEL_STREAK_GAP_MS 150
 #define KB_DEL_STREAK_CLEAR 6
 static long long kb_del_last_ms = 0;
@@ -297,10 +297,10 @@ int keyboard_handle_key(int keycode, int action, int meta) {
 
 void keyboard_commit_utf8(const char *utf8) { keyboard_type(utf8); }
 
-/* Callbacks from GameActivity's EditText. UTF-16 is converted to valid UTF-8,
+/* Callbacks from ObbyActivity's EditText. UTF-16 is converted to valid UTF-8,
  * including surrogate pairs, instead of relying on JNI modified UTF-8. */
 JNIEXPORT void JNICALL
-Java_com_cb4_GameActivity_nativeReplaceText(JNIEnv *env, jobject self, jstring value) {
+Java_com_clarp_ObbyActivity_nativeReplaceText(JNIEnv *env, jobject self, jstring value) {
     (void)self;
     pthread_mutex_lock(&kb_mutex);
     kb_text[0]='\0'; kb_len=0;
@@ -322,13 +322,13 @@ Java_com_cb4_GameActivity_nativeReplaceText(JNIEnv *env, jobject self, jstring v
 }
 
 JNIEXPORT void JNICALL
-Java_com_cb4_GameActivity_nativeSubmitText(JNIEnv *env, jobject self) {
+Java_com_clarp_ObbyActivity_nativeSubmitText(JNIEnv *env, jobject self) {
     (void)env; (void)self;
     pthread_mutex_lock(&kb_mutex); kb_enter=1; pthread_mutex_unlock(&kb_mutex);
 }
 
 JNIEXPORT void JNICALL
-Java_com_cb4_GameActivity_nativeKeyboardHidden(JNIEnv *env, jobject self) {
+Java_com_clarp_ObbyActivity_nativeKeyboardHidden(JNIEnv *env, jobject self) {
     (void)env; (void)self;
     pthread_mutex_lock(&kb_mutex); kb_show=0; pthread_mutex_unlock(&kb_mutex);
 }

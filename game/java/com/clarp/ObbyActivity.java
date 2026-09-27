@@ -1,17 +1,15 @@
 /*
- * The package is com.cb4, in AndroidManifest.xml and in the JNI names of
- * runtime.c (Java_com_cb4_GameActivity_*). All three must agree: if one of them
+ * The package is com.clarp, in AndroidManifest.xml and in the JNI names of
+ * runtime.c (Java_com_clarp_ObbyActivity_*). All three must agree: if one of them
  * differs, System.loadLibrary still works, but the native editor methods
  * (nativeReplaceText, nativeSubmitText, nativeKeyboardHidden) are not found,
  * nativeReady stays false, and the keyboard opens while nothing reaches the input
  * field.
  *
- * The file deliberately sits in the old com/dimscript/gamedemo directory, whose
- * path is baked into the build step of .github/workflows/main.yml. javac does not
- * care: the class is compiled by its declared package, into
- * classes/com/cb4/GameActivity.class.
+ * The source path is kept independent from the declared package; javac places
+ * the class in classes/com/clarp/ObbyActivity.class.
  */
-package com.cb4;
+package com.clarp;
 
 import android.app.NativeActivity;
 import android.content.Context;
@@ -43,7 +41,7 @@ import android.widget.FrameLayout;
  * nowhere. wantKeyboard stays true until the game hides the IME, and we
  * reclaim focus whenever the native surface takes it away.
  */
-public final class GameActivity extends NativeActivity {
+public final class ObbyActivity extends NativeActivity {
     /*
      * NativeActivity loads the game .so with dlopen(), which does not register
      * it with the Java runtime: without an explicit System.loadLibrary the
@@ -53,14 +51,14 @@ public final class GameActivity extends NativeActivity {
     private static boolean nativeReady;
     static {
         try {
-            System.loadLibrary("ds_game");
+            System.loadLibrary("obby_game");
             nativeReady = true;
         } catch (UnsatisfiedLinkError error) {
             nativeReady = false;
         }
     }
 
-    private EditText chatEditor;
+    private EditText nicknameEditor;
     private boolean syncingFromNative;
     private boolean keyboardWasVisible;
     /* Game asked for the IME. Stays true across transient focus losses. */
@@ -115,24 +113,24 @@ public final class GameActivity extends NativeActivity {
          * for exactly 60 only gets in the way of Android picking a panel mode. */
         enterImmersiveMode();
 
-        chatEditor = new EditText(this);
-        chatEditor.setSingleLine(true);
+        nicknameEditor = new EditText(this);
+        nicknameEditor.setSingleLine(true);
         // Transparent text with alpha=1: at alpha=0 Gboard and the system IME
         // treat the field as dead and hand over no characters at all.
-        chatEditor.setTextColor(Color.TRANSPARENT);
-        chatEditor.setHintTextColor(Color.TRANSPARENT);
-        chatEditor.setBackgroundColor(Color.TRANSPARENT);
-        chatEditor.setCursorVisible(false);
-        chatEditor.setAlpha(1f);
-        chatEditor.setGravity(Gravity.TOP | Gravity.START);
-        chatEditor.setFocusable(true);
-        chatEditor.setFocusableInTouchMode(true);
-        chatEditor.setClickable(false);
-        chatEditor.setLongClickable(false);
+        nicknameEditor.setTextColor(Color.TRANSPARENT);
+        nicknameEditor.setHintTextColor(Color.TRANSPARENT);
+        nicknameEditor.setBackgroundColor(Color.TRANSPARENT);
+        nicknameEditor.setCursorVisible(false);
+        nicknameEditor.setAlpha(1f);
+        nicknameEditor.setGravity(Gravity.TOP | Gravity.START);
+        nicknameEditor.setFocusable(true);
+        nicknameEditor.setFocusableInTouchMode(true);
+        nicknameEditor.setClickable(false);
+        nicknameEditor.setLongClickable(false);
         /* While the editor is visible it covers the thin strip of the native
          * surface, so a tap there counts as a tap outside the game field and closes
          * the IME instead of returning focus to it. */
-        chatEditor.setOnTouchListener(new View.OnTouchListener() {
+        nicknameEditor.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View view, android.view.MotionEvent event) {
                 if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
@@ -146,14 +144,14 @@ public final class GameActivity extends NativeActivity {
         // password layout with a number row the user does not get elsewhere. The
         // text filter gives the same direct committing without composing and keeps
         // the ordinary layout.
-        chatEditor.setInputType(InputType.TYPE_CLASS_TEXT
+        nicknameEditor.setInputType(InputType.TYPE_CLASS_TEXT
                 | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
                 | InputType.TYPE_TEXT_VARIATION_FILTER);
-        chatEditor.setImeOptions(EditorInfo.IME_ACTION_DONE
+        nicknameEditor.setImeOptions(EditorInfo.IME_ACTION_DONE
                 | EditorInfo.IME_FLAG_NO_EXTRACT_UI
                 | EditorInfo.IME_FLAG_NO_FULLSCREEN);
-        chatEditor.setFilters(new InputFilter[] { new InputFilter.LengthFilter(95) });
-        chatEditor.setVisibility(View.INVISIBLE);
+        nicknameEditor.setFilters(new InputFilter[] { new InputFilter.LengthFilter(95) });
+        nicknameEditor.setVisibility(View.INVISIBLE);
 
         /* A full-width strip at the top: a tiny 1x1 field or one in a corner reads
          * as dead and receives nothing. Touches still reach the native InputQueue. */
@@ -161,9 +159,9 @@ public final class GameActivity extends NativeActivity {
         int editorH = Math.max(48, (int) (48f * density));
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, editorH, Gravity.TOP);
-        addContentView(chatEditor, params);
+        addContentView(nicknameEditor, params);
 
-        chatEditor.addTextChangedListener(new TextWatcher() {
+        nicknameEditor.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {
                 // A real deletion from the keyboard: the text got shorter rather
                 // than replaced wholesale by a sync from the native side.
@@ -181,11 +179,11 @@ public final class GameActivity extends NativeActivity {
                     /* A held Backspace: after six deletions in a row, no slower
                      * than 200 ms apart, the rest is cleared at once. Ordinary quick
                      * taps remove one character and never reach the threshold. */
-                    if (deleteStreak >= 6 && chatEditor.length() > 0) {
+                    if (deleteStreak >= 6 && nicknameEditor.length() > 0) {
                         deleteStreak = 0;
-                        chatEditor.post(new Runnable() {
+                        nicknameEditor.post(new Runnable() {
                             @Override public void run() {
-                                if (chatEditor.length() > 0) chatEditor.setText("");
+                                if (nicknameEditor.length() > 0) nicknameEditor.setText("");
                             }
                         });
                     }
@@ -194,20 +192,20 @@ public final class GameActivity extends NativeActivity {
                 }
             }
         });
-        chatEditor.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+        nicknameEditor.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View view, boolean focused) {
                 if (focused) {
                     editorActive = nativeReady && wantKeyboard
-                            && chatEditor.getVisibility() == View.VISIBLE;
+                            && nicknameEditor.getVisibility() == View.VISIBLE;
                     return;
                 }
                 /* Native surface often steals focus after adjustResize.
                  * If the game still wants the keyboard, take focus back
                  * instead of marking the editor dead — otherwise the IME
                  * stays up and typed characters never reach the field. */
-                if (wantKeyboard && chatEditor.getVisibility() == View.VISIBLE) {
-                    chatEditor.post(new Runnable() {
+                if (wantKeyboard && nicknameEditor.getVisibility() == View.VISIBLE) {
+                    nicknameEditor.post(new Runnable() {
                         @Override public void run() { claimEditorFocus(); }
                     });
                 } else {
@@ -215,7 +213,7 @@ public final class GameActivity extends NativeActivity {
                 }
             }
         });
-        chatEditor.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+        nicknameEditor.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView view, int actionId, KeyEvent event) {
                 boolean enter = actionId == EditorInfo.IME_ACTION_SEND
@@ -238,11 +236,11 @@ public final class GameActivity extends NativeActivity {
         // stuck on "open": a second tap on the field thought the IME was already up,
         // never reopened it, and input went nowhere, which is what broke the nick
         // field.
-        chatEditor.getRootView().getViewTreeObserver().addOnGlobalLayoutListener(
+        nicknameEditor.getRootView().getViewTreeObserver().addOnGlobalLayoutListener(
                 new ViewTreeObserver.OnGlobalLayoutListener() {
                     @Override
                     public void onGlobalLayout() {
-                        View root = chatEditor.getRootView();
+                        View root = nicknameEditor.getRootView();
                         Rect visible = new Rect();
                         root.getWindowVisibleDisplayFrame(visible);
                         boolean keyboardVisible = root.getHeight() - visible.bottom
@@ -260,9 +258,9 @@ public final class GameActivity extends NativeActivity {
     }
 
     private void claimEditorFocus() {
-        if (chatEditor == null || !wantKeyboard) return;
-        if (chatEditor.getVisibility() != View.VISIBLE) chatEditor.setVisibility(View.VISIBLE);
-        if (!chatEditor.hasFocus()) chatEditor.requestFocus();
+        if (nicknameEditor == null || !wantKeyboard) return;
+        if (nicknameEditor.getVisibility() != View.VISIBLE) nicknameEditor.setVisibility(View.VISIBLE);
+        if (!nicknameEditor.hasFocus()) nicknameEditor.requestFocus();
         editorActive = nativeReady;
     }
 
@@ -271,10 +269,10 @@ public final class GameActivity extends NativeActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (chatEditor == null) return;
+                if (nicknameEditor == null) return;
                 wantKeyboard = true;
-                chatEditor.setVisibility(View.VISIBLE);
-                chatEditor.bringToFront();
+                nicknameEditor.setVisibility(View.VISIBLE);
+                nicknameEditor.bringToFront();
                 replaceEditorText(currentText);
                 claimEditorFocus();
                 getWindow().setSoftInputMode(
@@ -297,19 +295,19 @@ public final class GameActivity extends NativeActivity {
      * therefore delayed, and while the keyboard has not really appeared, judged by
      * the shrunken screen in onGlobalLayout, the request repeats. */
     private void requestShowWhenReady() {
-        if (chatEditor == null) return;
+        if (nicknameEditor == null) return;
         final int attempt = showAttempts++;
         if (attempt >= 10) return;
-        chatEditor.postDelayed(new Runnable() {
+        nicknameEditor.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (chatEditor == null || !wantKeyboard || imeLooksVisible) return;
+                if (nicknameEditor == null || !wantKeyboard || imeLooksVisible) return;
                 claimEditorFocus();
                 InputMethodManager input = (InputMethodManager)
                         getSystemService(Context.INPUT_METHOD_SERVICE);
                 if (input != null) {
-                    if (!input.isActive(chatEditor)) chatEditor.requestFocus();
-                    input.showSoftInput(chatEditor, InputMethodManager.SHOW_FORCED);
+                    if (!input.isActive(nicknameEditor)) nicknameEditor.requestFocus();
+                    input.showSoftInput(nicknameEditor, InputMethodManager.SHOW_FORCED);
                 }
                 requestShowWhenReady();
             }
@@ -335,25 +333,25 @@ public final class GameActivity extends NativeActivity {
         return wantKeyboard;
     }
 
-    /** Called from native code when chat is closed or the online game is left. */
+    /** Called from native code when the nickname screen is closed. */
     public void hideGameKeyboard() {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (chatEditor == null) return;
+                if (nicknameEditor == null) return;
                 wantKeyboard = false;
                 InputMethodManager input = (InputMethodManager)
                         getSystemService(Context.INPUT_METHOD_SERVICE);
                 if (input != null) {
-                    input.hideSoftInputFromWindow(chatEditor.getWindowToken(), 0);
+                    input.hideSoftInputFromWindow(nicknameEditor.getWindowToken(), 0);
                 }
                 editorActive = false;
                 imeLooksVisible = false;
                 showAttempts = 10; /* stop the pending show retries */
                 getWindow().setSoftInputMode(
                         WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-                chatEditor.clearFocus();
-                chatEditor.setVisibility(View.INVISIBLE);
+                nicknameEditor.clearFocus();
+                nicknameEditor.setVisibility(View.INVISIBLE);
                 /* The text lives in the native buffer, which closing the IME must
                  * not wipe: the game clears it itself after sending or leaving the
                  * screen. */
@@ -363,20 +361,20 @@ public final class GameActivity extends NativeActivity {
     }
 
     private void replaceEditorText(String text) {
-        if (chatEditor == null) return;
+        if (nicknameEditor == null) return;
         String safe = text == null ? "" : text;
-        if (safe.contentEquals(chatEditor.getText())) return;
-        boolean shrinking = safe.length() < chatEditor.length();
+        if (safe.contentEquals(nicknameEditor.getText())) return;
+        boolean shrinking = safe.length() < nicknameEditor.length();
         syncingFromNative = true;
-        chatEditor.setText(safe);
-        chatEditor.setSelection(chatEditor.length());
+        nicknameEditor.setText(safe);
+        nicknameEditor.setSelection(nicknameEditor.length());
         syncingFromNative = false;
         // restartInput only on a deletion or a clear: otherwise the IME drops the
         // Latin letter just typed and the nick field stays empty.
         if (shrinking) {
             InputMethodManager input = (InputMethodManager)
                     getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (input != null) input.restartInput(chatEditor);
+            if (input != null) input.restartInput(nicknameEditor);
         }
     }
 
@@ -387,7 +385,7 @@ public final class GameActivity extends NativeActivity {
          * again; without hiding them the window shrinks and resizes once more
          * right after the return. */
         if (hasFocus) enterImmersiveMode();
-        if (hasFocus && wantKeyboard && chatEditor != null) {
+        if (hasFocus && wantKeyboard && nicknameEditor != null) {
             claimEditorFocus();
             if (!imeLooksVisible) {
                 showAttempts = 0;

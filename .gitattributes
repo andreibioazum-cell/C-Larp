@@ -1,1 +1,2 @@
-*.ds linguist-language=dscript
+# The project is a native C Android game. Player models are binary assets.
+*.gltf linguist-language=JSON

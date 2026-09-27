@@ -1,15 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.cb4"
+    package="com.clarp"
     android:versionCode="3"
     android:versionName="1.2">
 
     <!-- Android 8 (API 26) through Android 15 (API 35), arm64, arm32 and x86_64 -->
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35" />
-
-    <!-- The online mode talks to the Firebase Realtime Database over HTTPS. -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Rendering is Vulkan only: without 1.0 support the game has no fallback,
          so a store must not install it on such devices. -->
@@ -17,7 +13,7 @@
     <uses-feature android:name="android.hardware.vulkan.level" android:required="false" />
 
     <application
-        android:label="Cubic Battle 4"
+        android:label="C-Larp Obby"
         android:icon="@mipmap/ic_launcher"
         android:hasCode="true"
         android:extractNativeLibs="true">
@@ -28,7 +24,7 @@
              Android 14 then destroyed and re-created the NativeActivity right
              in the middle of the return. -->
         <activity
-            android:name="com.cb4.GameActivity"
+            android:name="com.clarp.ObbyActivity"
             android:configChanges="orientation|keyboard|keyboardHidden|screenSize|smallestScreenSize|screenLayout|navigation|uiMode|density|fontScale|layoutDirection|locale"
             android:screenOrientation="landscape"
             android:windowSoftInputMode="adjustResize"
@@ -36,7 +32,7 @@
 
             <meta-data
                 android:name="android.app.lib_name"
-                android:value="ds_game" />
+                android:value="obby_game" />
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

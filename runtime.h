@@ -51,10 +51,7 @@ void arr_free(DSArray* a);
 double clamp(double v, double lo, double hi);
 double lerp(double a, double b, double t);
 double dist(double x1, double y1, double x2, double y2);
-/* Maths for scripts, implemented in native/runtime/core.inc: minimum, maximum,
- * absolute value, rounding to whole, sign, remainder and truncation. DimScript
- * writes them without the ds_ prefix: min, max, abs, round, sign, mod and trunc
- * (see BUILTINS in ds_compiler.py and LANGUAGE.md). */
+/* Small math helpers used by the native game. */
 double ds_min(double a, double b);
 double ds_max(double a, double b);
 double ds_abs(double v);

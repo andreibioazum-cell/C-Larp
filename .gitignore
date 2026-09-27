@@ -1,7 +1,6 @@
 # Generated build output
 __pycache__/
 *.py[cod]
-**/game.c
 staging/
 *.apk
 debug.keystore
