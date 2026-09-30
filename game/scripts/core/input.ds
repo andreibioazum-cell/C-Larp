@@ -1,0 +1,123 @@
+-- Управление: джойстик слева (появляется там, где палец коснулся экрана) и
+-- кнопка удара справа - её видит только убийца, выжившему бить нечем.
+
+public function layout_controls()
+    joy_home_x = 160
+    joy_home_y = screen_h - 170
+    joy.r = joy_r
+    atk_x = screen_w - btn_margin
+    atk_y = screen_h - btn_margin
+    if joy_id == -1 then
+        joy.x = joy_home_x
+        joy.y = joy_home_y
+    end
+end
+
+public function drop_joy()
+    joy_id = -1
+    joy.dx = 0
+    joy.dy = 0
+    joy.ox = 0
+    joy.oy = 0
+    joy.x = joy_home_x
+    joy.y = joy_home_y
+end
+
+public function joy_touch(number x, number y, number action, number id)
+    if action == 1 then
+        if id == joy_id then
+            drop_joy()
+        end
+        return
+    end
+    if action == 0 then
+        if joy_id != -1 || x > screen_w * joy_grab then
+            return
+        end
+        joy_id = id
+        joy.x = x
+        joy.y = y
+        joy.dx = 0
+        joy.dy = 0
+        joy.ox = 0
+        joy.oy = 0
+        return
+    end
+    if id != joy_id then
+        return
+    end
+    local number dx = x - joy.x
+    local number dy = y - joy.y
+    local number d = sqrt(dx * dx + dy * dy)
+    if d < 14 then
+        joy.dx = 0
+        joy.dy = 0
+        joy.ox = dx
+        joy.oy = dy
+        return
+    end
+    if d > joy.r then
+        joy.dx = dx / d
+        joy.dy = dy / d
+        joy.ox = joy.dx * joy.r
+        joy.oy = joy.dy * joy.r
+        return
+    end
+    joy.dx = dx / joy.r
+    joy.dy = dy / joy.r
+    joy.ox = dx
+    joy.oy = dy
+end
+
+-- Кнопка удара есть только у убийцы и только в самом раунде.
+public function hero_has_button()
+    if phase == PH_ROUND && hero.role == ROLE_KILLER then
+        return 1
+    end
+    return 0
+end
+
+public function hero_control()
+    if phase == PH_RESULT then
+        hero.moving = 0
+        return
+    end
+    if joy_id == -1 then
+        hero.moving = 0
+        return
+    end
+    if killer_frozen() == 1 && hero.role == ROLE_KILLER then
+        hero.moving = 0
+        return
+    end
+    move_fighter(hero, joy.dx, joy.dy)
+end
+
+public function touch(number x, number y, number action, number id)
+    if action == 3 then
+        drop_joy()
+        atk_id = -1
+        atk_press = 0
+        return
+    end
+    if hero_has_button() == 1 then
+        if action == 0 && hit_circle(x, y, atk_x, atk_y, btn_r) == 1 then
+            atk_id = id
+            atk_press = 1
+            start_punch(hero)
+            return
+        end
+        if action == 1 && id == atk_id then
+            atk_id = -1
+            atk_press = 0
+            return
+        end
+    end
+    joy_touch(x, y, action, id)
+end
+
+-- Системная "назад" не нужна игре: выхода в меню нет, пусть Android сворачивает
+-- приложение сам.
+public function back_pressed()
+    return 0
+end

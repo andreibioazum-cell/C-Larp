@@ -35,7 +35,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CC = shlex.split(__import__("os").environ.get("CC", "cc"))
-SCREENS = ("classes", "settings", "warn", "warn_fade")
+SCREENS = ("lobby", "announce", "round_survivor", "round_killer", "windup",
+           "hit", "result_survivors", "result_killer")
 
 STUBS = r"""
 #include <assert.h>
@@ -112,39 +113,6 @@ void keyboard_clear(void) { keyboard_buf[0] = 0; }
 int keyboard_visible(void) { return keyboard_up; }
 int keyboard_enter_pressed(void) { return 0; }
 
-/* ---------- network mock ---------- */
-double net_slot(void) { return 0; }
-double net_login_status(void) { return 0; }
-const char *net_login_nick(void) { return "Tester"; }
-const char *net_login_pass(void) { return ""; }
-double net_event(void) { return 0; }
-void net_event_set(double mode) { (void)mode; }
-double net_banned(void) { return 0; }
-void net_ban_set(const char *nick, double banned) { (void)nick; (void)banned; }
-double net_chat_is_ban(const char *msg) { (void)msg; return 0; }
-double net_chat_is_unban(const char *msg) { (void)msg; return 0; }
-const char *net_chat_ban_target(const char *msg) { (void)msg; return ""; }
-const char *net_chat_unban_target(const char *msg) { (void)msg; return ""; }
-double net_chat_is_text_cmd(const char *msg) { (void)msg; return 0; }
-const char *net_chat_text_cmd_text(const char *msg) { (void)msg; return ""; }
-const char *net_chat_text_cmd_color(const char *msg) { (void)msg; return ""; }
-void net_banner_send(const char *text, const char *color) { (void)text; (void)color; }
-double net_banner_ts(void) { return 0; }
-const char *net_banner_text(void) { return ""; }
-const char *net_banner_color(void) { return ""; }
-static const char *chat_msgs[16];
-static int chat_msg_count;
-static char sent_buf[16][128];
-static int sent_count;
-void net_chat_send(const char *text) {
-    assert(sent_count < 16 && strlen(text) < 128);
-    strcpy(sent_buf[sent_count++], text);
-}
-void net_chat_trim(double keep) { (void)keep; }
-double net_chat_count(void) { return chat_msg_count; }
-const char *net_chat_text(double idx) { return idx >= 0 && idx < chat_msg_count ? chat_msgs[(int)idx] : ""; }
-const char *net_chat_uid(double idx) { (void)idx; return "Tester"; }
-const char *net_chat_key(double idx) { (void)idx; return "key"; }
 /* Input variables from runtime.h, nothing moves them on a host. */
 int mouse_clicked = 0;
 double ds_mouse_x = 0, ds_mouse_y = 0;
@@ -179,14 +147,6 @@ int AAsset_close(AAsset *a) { if (!a) return 0; fclose(a->fp); free(a); return 0
 
 static Buffer g_buf;
 void ds_set_asset_manager(AAssetManager *a) { amgr = a ? a : (AAssetManager *)&dummy_amgr_storage; }
-
-/* All in-game text is white except admin nicks and the dark chat ink, the same
- * rule as in native/graphics/lifecycle.inc. */
-static uint32_t prev_text_force_white(uint32_t c) {
-    if (c == 0xFFFF4444u || c == 0xFF4FC3F7u || c == 0xFFFF3333u || c == 0xFF33A8FFu) return c;
-    if ((c & 0x00ffffffu) == 0x00202020u) return c;
-    return (c & 0xff000000u) | 0x00ffffffu;
-}
 
 void rect(float x, float y, float w, float h, uint32_t c) { render_rect(&g_buf, x, y, w, h, pack_c(c)); }
 void roundrect(float x, float y, float w, float h, float r, uint32_t c) { render_roundrect(&g_buf, x, y, w, h, r, pack_c(c)); }
@@ -246,7 +206,7 @@ void tex_tint(float x, float y, const char *name, float a, float sc, uint32_t c)
 }
 void text_scaled(const char *s, float x, float y, uint32_t c, float sc) {
     if (!s || !ensure_font()) return;
-    render_text_now(&g_buf, s, x, y, pack_c(prev_text_force_white(c)), sc);
+    render_text_now(&g_buf, s, x, y, pack_c(c), sc);
 }
 void text(const char *s, float x, float y, uint32_t c) { text_scaled(s, x, y, c, 1.0f); }
 
@@ -371,13 +331,37 @@ static int write_png(const char *path, const Buffer *b) {
 }"""
 
 MAIN = r"""
-/* ================================ scene ================================
- * The screens are drawn by the real game functions (game.c), so the PNG shows
- * what a player would see: real layout, real font, real textures from
- * game/assets. Progress is set by hand so the cards are unlocked, and the
- * settings match the defaults from settings.dat. */
+/* ================================ scenes ================================
+ * Every scene is the real game: ds_fn_init() starts it in the lobby, then the
+ * loop calls the real ds_fn_update() and ds_fn_touch(), so what lands in the
+ * PNG went through the same code as on a phone. Only the clock and the touch
+ * screen are simulated. */
+static void step(double seconds) {
+    double left = seconds;
+    dt = 1.0 / 60.0;
+    while (left > 0) { ds_fn_update(); left -= dt; }
+}
+/* Holds the virtual stick towards (tx, ty) for the given time. */
+static void walk_towards(double tx, double ty, double seconds) {
+    double left = seconds;
+    dt = 1.0 / 60.0;
+    ds_fn_touch((float)joy_home_x, (float)joy_home_y, 0, 1);
+    while (left > 0) {
+        double ax = tx - hero->x, ay = ty - hero->y;
+        double len = sqrt(ax * ax + ay * ay);
+        if (len < 1) len = 1;
+        ds_fn_touch((float)(joy.x + ax / len * joy_r), (float)(joy.y + ay / len * joy_r), 2, 1);
+        ds_fn_update();
+        left -= dt;
+    }
+}
+static void force_roles(double hero_role) {
+    ds_fn_start_round();
+    hero->role = hero_role;
+    foe->role = hero_role == ROLE_KILLER ? ROLE_SURVIVOR : ROLE_KILLER;
+}
 int main(int argc, char **argv) {
-    const char *screen = argc > 1 ? argv[1] : "classes";
+    const char *screen = argc > 1 ? argv[1] : "lobby";
     const char *out = argc > 2 ? argv[2] : "ui_preview.png";
     int W = 1280, H = 720;
     screen_w = W; screen_h = H;
@@ -385,59 +369,54 @@ int main(int argc, char **argv) {
     if (!px) { fprintf(stderr, "out of memory for framebuffer\n"); return 1; }
     g_buf.width = W; g_buf.height = H; g_buf.stride = W; g_buf.pixels = px;
     amgr = (AAssetManager *)&dummy_amgr_storage;   /* assets come from disk */
+    srand(7);                                      /* the same draw every run */
     ds_main();                                     /* the global game arrays */
-    ds_fn_init();                                  /* textures, font, settings */
-    /* Defaults from settings.dat (the network stubs returned zeroes). */
-    language = 1; show_hitboxes = 1; music_volume = 70;
-    winter_theme = 1; show_fps = 1;
-    ds_fn_apply_winter_theme();
-    /* Progress: every class owned, Azum selected, as in a played account. */
-    ds_fn_set_class_owned(CLASS_AZUM, 1);
-    ds_fn_set_class_owned(CLASS_SANTA, 1);
-    ds_fn_set_class_owned(CLASS_EBUC, 1);
-    candies = 320; cups = 1200;
-    player_class = CLASS_AZUM;
-    ds_fn_sync_selected_class();
-    if (strcmp(screen, "classes") == 0) { game_state = ST_CLASSES; ds_fn_draw_classes(); }
-    else if (strcmp(screen, "settings") == 0) { game_state = ST_SETTINGS; ds_fn_draw_settings(); }
-    else if (strcmp(screen, "lobby") == 0) { game_state = ST_LOBBY; ds_fn_draw_lobby(); }
-    else if (strcmp(screen, "warn") == 0 || strcmp(screen, "warn_fade") == 0) {
-        /* The whole warning screen, consent button with its outline. warn_fade
-         * is the middle of the fade (warn_a = 0.5) and shows that the white
-         * outline does not flash on the fading translucent fill. */
-        warn_open = 1; warn_ready = 1; warn_t = warn_wait; warn_closing = 0;
-        warn_a = strcmp(screen, "warn_fade") == 0 ? 0.5 : 1;
-        ds_fn_draw_warning();
+    ds_fn_init();                                  /* sprites, font, lobby */
+    if (strcmp(screen, "lobby") == 0) {
+        step(3.0);
+        phase_t = lobby_break - 6;   /* the break as the player sees it */
+        result = RES_SURVIVORS;
+    } else if (strcmp(screen, "announce") == 0) {
+        force_roles(ROLE_SURVIVOR);
+        step(0.5);
+    } else if (strcmp(screen, "round_survivor") == 0) {
+        force_roles(ROLE_SURVIVOR);
+        step(announce_time + 0.1);
+        walk_towards(ar_x + ar_w * 0.35, ar_y + ar_h * 0.35, 3.0);
+    } else if (strcmp(screen, "round_killer") == 0) {
+        force_roles(ROLE_KILLER);
+        step(announce_time + 0.1);
+        walk_towards(foe->x, foe->y, 3.0);
+    } else if (strcmp(screen, "windup") == 0 || strcmp(screen, "hit") == 0) {
+        force_roles(ROLE_KILLER);
+        step(announce_time + 0.1);
+        /* Face to face: the wind-up telegraph, then the lunge that connects. */
+        hero->x = foe->x - 120; hero->y = foe->y; hero->angle = 0;
+        ds_fn_start_punch(hero);
+        step(strcmp(screen, "windup") == 0 ? punch_windup * 0.5 : punch_windup + punch_time * 0.5);
+    } else if (strcmp(screen, "result_survivors") == 0) {
+        force_roles(ROLE_SURVIVOR);
+        step(announce_time + 0.5);
+        round_left = 0;
+        ds_fn_finish_round(RES_SURVIVORS);
+        step(0.2);
+    } else if (strcmp(screen, "result_killer") == 0) {
+        force_roles(ROLE_SURVIVOR);
+        step(announce_time + 0.5);
+        ds_fn_finish_round(RES_KILLER);
+        step(0.2);
+    } else {
+        fprintf(stderr, "unknown scene: %s\n", screen);
+        return 2;
     }
-    else if (strcmp(screen, "promo") == 0) { game_state = ST_PROMO; ds_fn_draw_promo(); }
-    else if (strcmp(screen, "card") == 0) {
-        /* A picked up promo card over the arena, with a sample code. */
-        game_state = ST_SOLO; ds_fn_init_game();
-        ds_fn_draw_game();
-        card_open = 1; card_code = "KXM7";
-        ds_fn_draw_card_open();
-    }
-    else if (strcmp(screen, "hitboxes") == 0) {
-        /* The hitbox mode in a solo battle: our punch strip just reaches the
-         * bot's cube (turned by 30 degrees) and his snowball just touches ours.
-         * What is drawn is exactly what hits (combat/hit_geometry.ds). */
-        game_state = ST_SOLO; ds_fn_init_game(); show_hitboxes = 1;
-        enemy_class = CLASS_ORDINARY;
-        player->x = 500; player->y = 360; player->angle = 0;
-        enemy->x = 653; enemy->y = 380; enemy->angle = 0.5236;
-        punch->x = player->x; punch->y = player->y; punch->dx = 1; punch->dy = 0;
-        punch->active = 1; punch_left = punch_time; aim_a = 1;
-        enemy_gift->active = 1; enemy_gift->x = 445; enemy_gift->y = 360; enemy_gift->t = 0; esnow_ball_a = 1;
-        ds_fn_draw_game();
-    }
-    else { fprintf(stderr, "unknown screen: %s (valid: classes/settings/lobby/warn/warn_fade/promo/card/hitboxes)\n", screen); return 2; }
+    ds_fn_draw();
     if (!write_png(out, &g_buf)) { fprintf(stderr, "cannot write %s\n", out); return 1; }
     printf("%s -> %s (%dx%d)\n", screen, out, W, H);
     return 0;
 }
 """
 
-HEADER_PROTOS = (ROOT / "runtime.h", ROOT / "net.h")
+HEADER_PROTOS = (ROOT / "runtime.h",)
 VAR_DECLS = {  # variables the compiler cannot see through a function prototype
     "mouse_clicked": "int mouse_clicked = 0;",
     "ds_mouse_x": "double ds_mouse_x = 0;",
@@ -474,11 +453,16 @@ def stub_source(name: str, ret: str, args: str) -> str:
     return f"{ret} {name}({args}) {{ return 0; }}"
 
 
-def compile_preview(temp: Path) -> Path:
-    preview = temp / "preview.c"
-    stubs = temp / "stubs.c"
-    binary = temp / "ui_preview"
-    preview.write_text(STUBS + LAYER + MAIN, encoding="utf-8")
+def compile_program(temp: Path, main_src: str, name: str = "ui_preview") -> Path:
+    """Builds the host binary: the game, the rasteriser and *main_src*.
+
+    Other host tools (tools/test_rounds.py) reuse it with their own main(), so
+    the stubs and the autostub loop live in one place.
+    """
+    preview = temp / f"{name}.c"
+    stubs = temp / f"{name}_stubs.c"
+    binary = temp / name
+    preview.write_text(STUBS + LAYER + main_src, encoding="utf-8")
     stubs.write_text("#include <stdarg.h>\n#include <stdio.h>\n#include <string.h>\n", encoding="utf-8")
     protos = prototypes()
     cmd = [*CC, "-std=gnu99", "-O1", "-I", str(ROOT), "-I", str(ROOT / "game"),
@@ -491,30 +475,34 @@ def compile_preview(temp: Path) -> Path:
         if not missing:
             if run.returncode == 0:
                 return binary
-            sys.exit(f"failed to build the preview:\n{run.stderr}")
-        lines = ["/* Autostubs: signatures from runtime.h and net.h, neutral bodies. */",
+            sys.exit(f"failed to build {name}:\n{run.stderr}")
+        lines = ["/* Autostubs: signatures from runtime.h, neutral bodies. */",
                  "#include <stdarg.h>", "#include <stdio.h>"]
         unknown = []
-        for name in missing:
-            if name in done:
+        for fn in missing:
+            if fn in done:
                 continue
-            if name in VAR_DECLS:
-                lines.append(VAR_DECLS[name])
-            elif name in protos:
-                lines.append(stub_source(name, *protos[name]))
+            if fn in VAR_DECLS:
+                lines.append(VAR_DECLS[fn])
+            elif fn in protos:
+                lines.append(stub_source(fn, *protos[fn]))
             else:
-                unknown.append(name)
+                unknown.append(fn)
                 continue
-            done.add(name)
+            done.add(fn)
         if unknown:
             sys.exit("no prototypes for these stubs: " + ", ".join(unknown))
         stubs.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    sys.exit("could not link the preview in 10 rounds of auto stubs")
+    sys.exit(f"could not link {name} in 10 rounds of auto stubs")
+
+
+def compile_preview(temp: Path) -> Path:
+    return compile_program(temp, MAIN)
 
 
 def main(argv: list[str]) -> int:
     args = argv[1:]
-    known = SCREENS + ("lobby", "promo", "card", "hitboxes")
+    known = SCREENS
     # the first argument is the PNG directory unless it names a screen
     if args and args[0] not in known:
         out_dir = Path(args[0])

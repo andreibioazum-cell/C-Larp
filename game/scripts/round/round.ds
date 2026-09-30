@@ -1,0 +1,154 @@
+-- Жизненный цикл: лобби -> раунд -> итог -> снова лобби. Меню нет, игра
+-- крутится по кругу сама.
+
+public function survivor_hp_now()
+    if hero.role == ROLE_SURVIVOR then
+        return hero.hp
+    end
+    return foe.hp
+end
+
+-- Старт раунда: жеребьёвка ролей и разлёт по противоположным углам арены.
+public function start_round()
+    ensure_arena()
+    round_no = round_no + 1
+    result = RES_NONE
+    phase = PH_ROUND
+    round_left = round_time
+    announce_t = announce_time
+    reset_fighter(hero)
+    reset_fighter(foe)
+    -- Монетка, но с ограничителем: две подряд одинаковые роли - максимум,
+    -- третий раунд обязательно меняет сторону.
+    local number pick = mod(floor(rand() / 16), 2)
+    if role_streak >= 2 then
+        pick = 1
+        if last_hero_role == ROLE_KILLER then
+            pick = 0
+        end
+    end
+    if pick == 1 then
+        hero.role = ROLE_KILLER
+        foe.role = ROLE_SURVIVOR
+    else
+        hero.role = ROLE_SURVIVOR
+        foe.role = ROLE_KILLER
+    end
+    if hero.role == last_hero_role then
+        role_streak = role_streak + 1
+    else
+        role_streak = 1
+    end
+    last_hero_role = hero.role
+    hero.hp = survivor_hp
+    foe.hp = survivor_hp
+    local number sx = ar_x + ar_w * 0.16
+    local number sy = ar_y + ar_h * 0.80
+    local number kx = ar_x + ar_w * 0.84
+    local number ky = ar_y + ar_h * 0.20
+    if hero.role == ROLE_SURVIVOR then
+        place_fighter(hero, sx, sy)
+        place_fighter(foe, kx, ky)
+    else
+        place_fighter(hero, kx, ky)
+        place_fighter(foe, sx, sy)
+    end
+    hero.angle = atan2(foe.y - hero.y, foe.x - hero.x)
+    foe.angle = atan2(hero.y - foe.y, hero.x - foe.x)
+    drop_joy()
+    atk_id = -1
+    atk_press = 0
+    ds_log("раунд %d начался", round_no)
+end
+
+public function finish_round(number res)
+    result = res
+    last_win = hero_won(res)
+    phase = PH_RESULT
+    phase_t = result_time
+    announce_t = 0
+    hero.punch_t = 0
+    foe.punch_t = 0
+    hero.wind_t = 0
+    foe.wind_t = 0
+    hero.moving = 0
+    foe.moving = 0
+    drop_joy()
+    atk_id = -1
+    atk_press = 0
+end
+
+-- Перерыв: обе фигуры снова обычные жители лобби, роли раздаст новый раунд.
+public function start_lobby(number wait)
+    ensure_arena()
+    phase = PH_LOBBY
+    phase_t = wait
+    reset_fighter(hero)
+    reset_fighter(foe)
+    hero.role = ROLE_SURVIVOR
+    foe.role = ROLE_SURVIVOR
+    hero.hp = survivor_hp
+    foe.hp = survivor_hp
+    place_fighter(hero, ar_x + ar_w * 0.4, ar_y + ar_h * 0.62)
+    place_fighter(foe, ar_x + ar_w * 0.6, ar_y + ar_h * 0.44)
+    bot_pick_spot(foe)
+    drop_joy()
+    atk_id = -1
+    atk_press = 0
+end
+
+public function update_round()
+    -- Пока идёт объявление ролей, часы стоят: три минуты отсчитываются с
+    -- момента, когда убийца получает право двигаться.
+    if announce_t > 0 then
+        announce_t = tick_down(announce_t)
+    else
+        round_left = round_left - dt
+        if round_left < 0 then
+            round_left = 0
+        end
+    end
+    hero_control()
+    bot_round(foe, hero)
+    if hero.role == ROLE_SURVIVOR then
+        separate_fighters(hero, foe)
+    else
+        separate_fighters(foe, hero)
+    end
+    tick_fighter(hero)
+    tick_fighter(foe)
+    local number dead = 0
+    if hero.role == ROLE_KILLER then
+        dead = resolve_hit(hero, foe)
+    else
+        dead = resolve_hit(foe, hero)
+    end
+    if dead == 1 then
+        -- Убийца добил выжившего: раунд заканчивается моментально.
+        finish_round(RES_KILLER)
+        return
+    end
+    if round_left <= 0 then
+        finish_round(RES_SURVIVORS)
+    end
+end
+
+public function update_lobby()
+    phase_t = phase_t - dt
+    hero_control()
+    bot_wander(foe)
+    tick_fighter(hero)
+    tick_fighter(foe)
+    if phase_t <= 0 then
+        start_round()
+    end
+end
+
+public function update_result()
+    phase_t = tick_down(phase_t)
+    tick_fighter(hero)
+    tick_fighter(foe)
+    if phase_t <= 0 then
+        start_lobby(lobby_break)
+    end
+end

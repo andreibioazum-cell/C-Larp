@@ -6,9 +6,6 @@ staging/
 *.apk
 debug.keystore
 
-# Session file created by the game (saved nick)
-auth.dat
-progress.dat
-achievements.dat
-bans.dat
-settings.dat
+# Host previews and benchmarks (tools/ui_preview.py)
+preview/
+*.png.tmp

@@ -65,7 +65,6 @@ class CodegenMixin:
         self.output = []
         self.indent = 0
         self._emit('#include "runtime.h"')
-        self._emit('#include "net.h"')
         self._emit('#include <math.h>')
         self._emit('')
         for name in self.objects:

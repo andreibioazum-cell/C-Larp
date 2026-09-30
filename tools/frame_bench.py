@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Measures a battle frame on a host: commands, geometry and stage timings.
+"""Measures a round frame on a host: commands, geometry and stage timings.
 
 Why: a frame rate report gives no clue about where the time goes. The tool runs
-the real battle scripts (game/game.c) on real geometry
+the real round scripts (game/game.c) on real geometry
 (native/graphics/geometry.inc) and the real font, but instead of Vulkan it
 counts what the GPU would receive: the commands a frame draws, how many of them
 become vertices and triangles, and how long each stage takes (update, draw,
@@ -197,17 +197,12 @@ void tex_tint(float x, float y, const char *name, float a, float s, uint32_t c) 
     DSCmd *p = push(DS_CMD_TEX_TINT); if (!p) return;
     p->v.tx2.x=x; p->v.tx2.y=y; p->v.tx2.a=a; p->v.tx2.sc=s; p->v.tx2.tx=t; p->v.tx2.c=pack_c(c);
 }
-static uint32_t text_force_white(uint32_t c) {
-    if (c == 0xFFFF4444u || c == 0xFF4FC3F7u || c == 0xFFFF3333u || c == 0xFF33A8FFu) return c;
-    if ((c & 0x00ffffffu) == 0x00202020u) return c;
-    return (c & 0xff000000u) | 0x00ffffffu;
-}
 void text_scaled(const char *s, float x, float y, uint32_t c, float sc) {
     if (!frame_open || !s || !ensure_font()) return;
     DSCmd *p = push(DS_CMD_TEXT); if (!p) return;
     p->v.tt.s = strdup_safe(s);
     if (!p->v.tt.s) return;
-    p->v.tt.x=x; p->v.tt.y=y; p->v.tt.sc=sc; p->v.tt.c=pack_c(text_force_white(c));
+    p->v.tt.x=x; p->v.tt.y=y; p->v.tt.sc=sc; p->v.tt.c=pack_c(c);
 }
 void text(const char *s, float x, float y, uint32_t c) { text_scaled(s, x, y, c, 1.0f); }
 
@@ -401,19 +396,13 @@ int main(int argc, char **argv) {
     amgr = (AAssetManager *)&dummy_amgr_storage;
     ds_main();
     ds_fn_init();
-    language = 1; show_hitboxes = 1; music_volume = 70;
-    winter_theme = 1; show_fps = 1;
-    ds_fn_apply_winter_theme();
-    ds_fn_set_class_owned(CLASS_AZUM, 1);
-    ds_fn_set_class_owned(CLASS_SANTA, 1);
-    ds_fn_set_class_owned(CLASS_EBUC, 1);
-    candies = 320; cups = 1200;
-    player_class = CLASS_AZUM;
-    ds_fn_sync_selected_class();
-
-    game_state = ST_SOLO;
-    azum_skin = SKIN_NORMAL;
-    ds_fn_init_game();
+    srand(5);
+    /* The heaviest frame of the game is a round: floor tiles, pillars, both
+     * fighters, the hit zone and the whole HUD. */
+    ds_fn_start_round();
+    hero->role = ROLE_KILLER;
+    foe->role = ROLE_SURVIVOR;
+    announce_t = 0;
     dt = 1.0 / 60.0;
 
     /* Warm up: textures, font, the first battle frames. */
@@ -441,6 +430,7 @@ int main(int argc, char **argv) {
         ds_fn_touch((float)(joy.x + cos(ang) * 70.0), (float)(joy.y + sin(ang) * 70.0), 0, 1);
         if (f % 40 == 0) ds_fn_touch((float)atk_x, (float)atk_y, 0, 2);
         if (f % 40 == 2) ds_fn_touch((float)atk_x, (float)atk_y, 1, 2);
+        if (phase != PH_ROUND) { ds_fn_start_round(); hero->role = ROLE_KILLER; foe->role = ROLE_SURVIVOR; announce_t = 0; }
         if (f % 90 == 0) ds_fn_touch((float)joy.x, (float)joy.y, 0, 3);
 
         double t0 = now_ms();
@@ -516,7 +506,7 @@ def compile_bench(temp: Path) -> Path:
             if run.returncode == 0:
                 return binary
             sys.exit("benchmark build failed:\n" + run.stderr)
-        lines = ["/* Autostubs: signatures from runtime.h and net.h, neutral bodies. */",
+        lines = ["/* Autostubs: signatures from runtime.h, neutral bodies. */",
                  "#include <stdarg.h>", "#include <stdio.h>"]
         unknown = []
         for name in missing:

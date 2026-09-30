@@ -1,0 +1,185 @@
+-- Боец: сброс перед раундом, движение с оглядкой на стены и столбы, отрисовка
+-- спрайта и зоны удара. Одни и те же функции обслуживают игрока и бота.
+
+public function reset_fighter(Fighter f)
+    f.angle = 0
+    f.punch_t = 0
+    f.wind_t = 0
+    f.punch_cd = 0
+    f.punch_hit = 0
+    f.punch_a = 0
+    f.punch_x = 0
+    f.punch_y = 0
+    f.punch_a_fade = 0
+    f.inv_t = 0
+    f.hurt_a = 0
+    f.moving = 0
+    f.step_t = 0
+    f.think_t = 0
+    f.aim_err = 0
+    f.wander_t = 0
+    f.wx = 0
+    f.wy = 0
+end
+
+public function fighter_speed(Fighter f)
+    if phase != PH_ROUND then
+        return lobby_speed
+    end
+    if f.role == ROLE_KILLER then
+        return killer_speed
+    end
+    if f.inv_t > 0 then
+        return survivor_speed * hurt_speed_mult
+    end
+    return survivor_speed
+end
+
+-- Шаг бойца в направлении (dx, dy), длина вектора роли не играет: важно только
+-- направление. Замах держит на месте, чтобы удар нельзя было "провезти".
+public function move_fighter(Fighter f, number dx, number dy)
+    local number len = sqrt(dx * dx + dy * dy)
+    if len < 0.0001 then
+        f.moving = 0
+        return
+    end
+    local number nx = dx / len
+    local number ny = dy / len
+    if f.punch_t <= 0 && f.wind_t <= 0 then
+        f.angle = atan2(ny, nx)
+    end
+    f.moving = 1
+    f.step_t = f.step_t + dt
+    if f.punch_t > 0 || f.wind_t > 0 then
+        -- Замах и выпад не рулятся: удар - это обязательство.
+        return
+    end
+    local number sp = fighter_speed(f)
+    f.x = f.x + nx * sp * dt
+    f.y = f.y + ny * sp * dt
+    clamp_to_arena(f)
+    resolve_pillars(f)
+end
+
+-- Затухания и откаты: один вызов на бойца в кадре.
+-- Выпад: пока идёт замах, убийца сам едет вперёд по направлению удара. Рулить
+-- в это время нельзя - промах уводит с позиции, и это главный шанс жертвы.
+public function tick_lunge(Fighter f)
+    if f.wind_t > 0 then
+        -- Замах: стоим на месте, зона уже светится там, куда прилетит.
+        f.wind_t = tick_down(f.wind_t)
+        if f.wind_t <= 0 then
+            f.punch_t = punch_time
+            f.punch_x = f.x
+            f.punch_y = f.y
+            f.punch_a_fade = 1
+        end
+        return
+    end
+    if f.punch_t <= 0 then
+        return
+    end
+    f.x = f.x + cos(f.punch_a) * killer_speed * lunge_mult * dt
+    f.y = f.y + sin(f.punch_a) * killer_speed * lunge_mult * dt
+    clamp_to_arena(f)
+    resolve_pillars(f)
+    -- Зона удара едет вместе с ним: бьёт ровно там, где нарисовано.
+    f.punch_x = f.x
+    f.punch_y = f.y
+end
+
+public function tick_fighter(Fighter f)
+    tick_lunge(f)
+    f.punch_cd = tick_down(f.punch_cd)
+    f.inv_t = tick_down(f.inv_t)
+    f.hurt_a = clamp(f.hurt_a - dt / 0.4, 0, 1)
+    if f.punch_t > 0 then
+        f.punch_t = tick_down(f.punch_t)
+        f.punch_a_fade = 1
+    else
+        f.punch_a_fade = clamp(f.punch_a_fade - dt / punch_fade, 0, 1)
+    end
+end
+
+public function fighter_tex(Fighter f)
+    if f.role == ROLE_KILLER then
+        if (f.punch_t > 0 || f.wind_t > 0) && killer_punch_tex_ok == 1 then
+            return KILLER_PUNCH_TEX
+        end
+        return KILLER_TEX
+    end
+    if f.punch_t > 0 && surv_punch_tex_ok == 1 then
+        return SURVIVOR_PUNCH_TEX
+    end
+    return SURVIVOR_TEX
+end
+
+public function fighter_tex_ok(Fighter f)
+    if f.role == ROLE_KILLER then
+        return killer_tex_ok
+    end
+    return surv_tex_ok
+end
+
+-- Зона удара: полоса перед убийцей. Во время замаха она бледная - это
+-- предупреждение, куда прилетит; в выпаде яркая, потом гаснет на месте.
+public function lunge_len()
+    return killer_speed * lunge_mult * punch_time
+end
+
+public function draw_punch_zone(Fighter f)
+    local number a = f.punch_a_fade * 0.34
+    local number w = punch_reach
+    if f.wind_t > 0 then
+        -- Предупреждение показывает всю полосу выпада, а не только сектор:
+        -- видно ровно ту землю, по которой сейчас прокатится удар.
+        a = 0.22
+        w = punch_reach + lunge_len()
+    end
+    if a <= 0 then
+        return
+    end
+    local number h = 2 * punch_reach * sin(punch_arc)
+    if h > 150 then
+        h = 150
+    end
+    local number ox = f.punch_x
+    local number oy = f.punch_y
+    if f.wind_t > 0 then
+        ox = f.x
+        oy = f.y
+    end
+    local number cx = ox + cos(f.punch_a) * w / 2
+    local number cy = oy + sin(f.punch_a) * w / 2
+    rect_rot(cx - w / 2, cy - h / 2, w, h, f.punch_a, alpha_color(0xFF2222, a))
+end
+
+public function draw_fighter(Fighter f, string label)
+    local number half = 25 * fighter_scale
+    circle(f.x, f.y + half * 0.55, half * 0.62, col_shadow)
+    ring(f.x, f.y, half * 0.92, 3, role_color(f.role))
+    -- Мигание после попадания: кадр через кадр, пока держится неуязвимость.
+    local number blink = 0
+    if f.inv_t > 0 then
+        blink = mod(floor(f.inv_t * 12), 2)
+    end
+    if blink == 0 then
+        local number sc = fighter_scale
+        if f.moving == 1 then
+            sc = fighter_scale * (1 + 0.035 * sin(f.step_t * 15))
+        end
+        local number hw = 25 * sc
+        if fighter_tex_ok(f) == 1 then
+            tex(f.x - hw, f.y - hw, fighter_tex(f), f.angle + pi / 2, sc)
+        else
+            rect(f.x - body_r(), f.y - body_r(), body_r() * 2, body_r() * 2, role_color(f.role))
+        end
+    end
+    if f.hurt_a > 0 then
+        circle(f.x, f.y, half * 0.8, alpha_color(0xFF2222, f.hurt_a * 0.55))
+    end
+    if str_len(label) > 0 then
+        local number tw = text_ink_width(label) * 0.42
+        text_scaled(label, f.x - tw / 2, f.y - half - 26, alpha_color(0xFFFFFF, 0.85), 0.42)
+    end
+end

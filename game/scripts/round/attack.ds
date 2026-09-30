@@ -1,0 +1,87 @@
+-- Удар: бить умеет только убийца. Выживший безоружен, вся его игра - бег.
+
+public function angle_diff(number a, number b)
+    local number d = a - b
+    while d > pi do
+        d = d - 2 * pi
+    end
+    while d < -pi do
+        d = d + 2 * pi
+    end
+    return d
+end
+
+-- Пока идёт объявление ролей, выживший получает фору: убийца стоит и не бьёт.
+public function killer_frozen()
+    if phase == PH_ROUND && announce_t > 0 then
+        return 1
+    end
+    return 0
+end
+
+public function can_punch(Fighter f)
+    if phase != PH_ROUND || f.role != ROLE_KILLER then
+        return 0
+    end
+    if killer_frozen() == 1 then
+        return 0
+    end
+    if f.punch_t > 0 || f.wind_t > 0 || f.punch_cd > 0 then
+        return 0
+    end
+    return 1
+end
+
+-- Начало замаха. Направление фиксируется здесь и до конца выпада не меняется:
+-- убийца бьёт туда, куда смотрел, когда нажал.
+public function start_punch(Fighter f)
+    if can_punch(f) == 0 then
+        return
+    end
+    f.wind_t = punch_windup
+    f.punch_cd = punch_cooldown + punch_windup
+    f.punch_hit = 0
+    f.punch_a = f.angle
+    f.punch_x = f.x
+    f.punch_y = f.y
+end
+
+-- Попадание: цель внутри длины замаха и в секторе перед убийцей.
+public function punch_hits(Fighter att, Fighter def)
+    local number d = dist(att.punch_x, att.punch_y, def.x, def.y)
+    if d > punch_reach + body_r() then
+        return 0
+    end
+    local number a = atan2(def.y - att.punch_y, def.x - att.punch_x)
+    if abs(angle_diff(a, att.punch_a)) > punch_arc then
+        return 0
+    end
+    return 1
+end
+
+-- Разбор одного замаха. Возвращает 1, если выживший потерял последнюю жизнь.
+public function resolve_hit(Fighter att, Fighter def)
+    if att.role != ROLE_KILLER || def.role != ROLE_SURVIVOR then
+        return 0
+    end
+    if att.punch_t <= 0 || att.punch_hit == 1 || def.inv_t > 0 then
+        return 0
+    end
+    if punch_hits(att, def) == 0 then
+        return 0
+    end
+    att.punch_hit = 1
+    att.punch_cd = hit_cooldown
+    def.hp = def.hp - 1
+    def.inv_t = hit_invuln
+    def.hurt_a = 1
+    def.x = def.x + cos(att.punch_a) * knockback
+    def.y = def.y + sin(att.punch_a) * knockback
+    clamp_to_arena(def)
+    resolve_pillars(def)
+    if def.hp <= 0 then
+        def.hp = 0
+        return 1
+    end
+    return 0
+end

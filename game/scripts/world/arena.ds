@@ -1,0 +1,197 @@
+-- Арена: прямоугольник пола, столбы внутри, границы и столкновения.
+-- Вид строго сверху, камера не двигается: бой идёт на один экран.
+
+public function body_r()
+    return body_half * fighter_scale
+end
+
+-- Раскладка столбов от размеров экрана, пять штук "конвертом".
+public function build_pillars()
+    arr_clear(pil_x)
+    arr_clear(pil_y)
+    arr_push(pil_x, ar_x + ar_w * 0.24)
+    arr_push(pil_y, ar_y + ar_h * 0.26)
+    arr_push(pil_x, ar_x + ar_w * 0.76)
+    arr_push(pil_y, ar_y + ar_h * 0.26)
+    arr_push(pil_x, ar_x + ar_w * 0.50)
+    arr_push(pil_y, ar_y + ar_h * 0.54)
+    arr_push(pil_x, ar_x + ar_w * 0.24)
+    arr_push(pil_y, ar_y + ar_h * 0.82)
+    arr_push(pil_x, ar_x + ar_w * 0.76)
+    arr_push(pil_y, ar_y + ar_h * 0.82)
+end
+
+public function setup_arena()
+    ar_x = wall_pad
+    ar_y = wall_pad
+    ar_w = screen_w - wall_pad * 2
+    ar_h = screen_h - wall_pad * 2
+    if ar_w < 200 then
+        ar_w = 200
+    end
+    if ar_h < 200 then
+        ar_h = 200
+    end
+    build_pillars()
+    arena_ready = 1
+end
+
+-- Экран мог смениться (поворот, клавиатура, resize): арена пересобирается, а
+-- бойцы возвращаются внутрь новой рамки.
+public function ensure_arena()
+    if arena_ready == 1 && ar_w == screen_w - wall_pad * 2 && ar_h == screen_h - wall_pad * 2 then
+        return
+    end
+    setup_arena()
+    clamp_to_arena(hero)
+    clamp_to_arena(foe)
+end
+
+public function clamp_to_arena(Fighter f)
+    local number b = body_r()
+    f.x = clamp(f.x, ar_x + b, ar_x + ar_w - b)
+    f.y = clamp(f.y, ar_y + b, ar_y + ar_h - b)
+end
+
+-- Точка внутри арены с запасом margin: нужна боту, чтобы не бежать в стену.
+public function inside_arena(number x, number y, number margin)
+    if x < ar_x + margin || x > ar_x + ar_w - margin then
+        return 0
+    end
+    if y < ar_y + margin || y > ar_y + ar_h - margin then
+        return 0
+    end
+    return 1
+end
+
+-- Насколько боец прижат к стене: 0 в середине арены, 1 у самого края. Бегущему
+-- выжившему это мешает загонять себя в угол.
+public function edge_pressure(Fighter f)
+    local number d = f.x - ar_x
+    if ar_x + ar_w - f.x < d then
+        d = ar_x + ar_w - f.x
+    end
+    if f.y - ar_y < d then
+        d = f.y - ar_y
+    end
+    if ar_y + ar_h - f.y < d then
+        d = ar_y + ar_h - f.y
+    end
+    return 1 - clamp(d / 190, 0, 1)
+end
+
+-- То же давление стен, но для произвольной точки: используется зондами бота.
+public function edge_at(number x, number y)
+    local number d = x - ar_x
+    if ar_x + ar_w - x < d then
+        d = ar_x + ar_w - x
+    end
+    if y - ar_y < d then
+        d = y - ar_y
+    end
+    if ar_y + ar_h - y < d then
+        d = ar_y + ar_h - y
+    end
+    return 1 - clamp(d / 190, 0, 1)
+end
+
+public function pillar_blocked(number x, number y, number extra)
+    local number i = 0
+    while i < pillar_count do
+        if dist(x, y, arr_get(pil_x, i), arr_get(pil_y, i)) < pillar_r + extra then
+            return 1
+        end
+        i = i + 1
+    end
+    return 0
+end
+
+-- Выталкивание из столба: боец никогда не оказывается внутри препятствия.
+public function resolve_pillars(Fighter f)
+    local number i = 0
+    local number need = pillar_r + body_r()
+    while i < pillar_count do
+        local number px = arr_get(pil_x, i)
+        local number py = arr_get(pil_y, i)
+        local number d = dist(f.x, f.y, px, py)
+        if d < need then
+            if d < 0.001 then
+                f.x = px + need
+            else
+                f.x = px + (f.x - px) / d * need
+                f.y = py + (f.y - py) / d * need
+            end
+        end
+        i = i + 1
+    end
+end
+
+-- Бойцы не проходят друг сквозь друга. Выталкивается тот, кто напирает, то
+-- есть убийца: иначе он просто толкал бы жертву перед собой, и оторваться было
+-- бы нельзя. Выживший стоит там, где встал.
+public function separate_fighters(Fighter keep, Fighter push_out)
+    local number need = body_r() * 1.9
+    local number d = dist(keep.x, keep.y, push_out.x, push_out.y)
+    if d >= need then
+        return
+    end
+    if d < 0.001 then
+        push_out.x = push_out.x + need
+        return
+    end
+    push_out.x = keep.x + (push_out.x - keep.x) / d * need
+    push_out.y = keep.y + (push_out.y - keep.y) / d * need
+    clamp_to_arena(push_out)
+    resolve_pillars(push_out)
+end
+
+public function place_fighter(Fighter f, number x, number y)
+    f.x = x
+    f.y = y
+    clamp_to_arena(f)
+    resolve_pillars(f)
+end
+
+-- Пол: плитка травы по всему экрану, сверху лёгкое затемнение для контраста с
+-- интерфейсом. Плитка рисуется от нуля, tex() кладёт её левым верхним углом.
+public function draw_floor(number shade)
+    clear_screen(col_bg)
+    if grass_tex_ok == 1 then
+        local number y = 0
+        while y < screen_h do
+            local number x = 0
+            while x < screen_w do
+                tex(x, y, GRASS, 0, 1)
+                x = x + arena_tile
+            end
+            y = y + arena_tile
+        end
+    end
+    if shade > 0 then
+        rect(0, 0, screen_w, screen_h, alpha_color(0x0A0E16, shade))
+    end
+end
+
+-- Стены: рамка вокруг игрового прямоугольника, чтобы край поля читался.
+public function draw_walls()
+    rect(0, 0, screen_w, ar_y, col_veil)
+    rect(0, ar_y + ar_h, screen_w, screen_h - ar_y - ar_h, col_veil)
+    rect(0, ar_y, ar_x, ar_h, col_veil)
+    rect(ar_x + ar_w, ar_y, screen_w - ar_x - ar_w, ar_h, col_veil)
+    line(ar_x, ar_y, ar_x + ar_w, ar_y, 3, col_plate_line)
+    line(ar_x, ar_y + ar_h, ar_x + ar_w, ar_y + ar_h, 3, col_plate_line)
+    line(ar_x, ar_y, ar_x, ar_y + ar_h, 3, col_plate_line)
+    line(ar_x + ar_w, ar_y, ar_x + ar_w, ar_y + ar_h, 3, col_plate_line)
+end
+
+public function draw_pillars()
+    local number i = 0
+    while i < pillar_count do
+        local number px = arr_get(pil_x, i)
+        local number py = arr_get(pil_y, i)
+        circle(px, py + 6, pillar_r, col_shadow)
+        circle(px, py, pillar_r, col_pillar)
+        circle(px, py - 4, pillar_r - 9, col_pillar_top)
+        i = i + 1
+    end
+end

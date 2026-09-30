@@ -108,6 +108,14 @@ jobs:
       - name: Generate game.c
         run: python3 gen.py
 
+      - name: Checks (scripts, sizes, round loop)
+        run: |
+          set -euo pipefail
+          DS_LINT_STRICT=1 python3 tools/ds_lint.py
+          python3 tools/check_game_file_size.py
+          python3 tools/test_dimscript_v2.py
+          python3 tools/test_rounds.py
+
       - name: Stage assets
         run: python3 stage_assets.py game/assets staging/assets
 

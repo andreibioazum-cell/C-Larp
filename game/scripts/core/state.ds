@@ -1,0 +1,54 @@
+-- Состояние игры: боец, две его копии (игрок и бот) и глобальные поля фазы.
+-- Объявляется раньше всех модулей, которые этим пользуются.
+
+class Fighter
+    -- Положение и направление взгляда (радианы, 0 - вправо).
+    public number x=0, y=0, angle=0
+    -- Роль в текущем раунде и жизни выжившего.
+    public number role=0, hp=0
+    -- Удар: время замаха, откат, флаг "этот замах уже попал" и застывшая поза
+    -- удара, чтобы зона гасла там, где била, а не ехала за бойцом.
+    public number punch_t=0, punch_cd=0, punch_hit=0, punch_a=0, wind_t=0
+    public number punch_x=0, punch_y=0, punch_a_fade=0
+    -- Неуязвимость после попадания и алфа красной вспышки.
+    public number inv_t=0, hurt_a=0
+    -- Идёт ли боец сейчас (для лёгкого покачивания спрайта).
+    public number moving=0, step_t=0
+    -- Мозг бота: пауза до следующего решения, ошибка прицела и точка прогулки.
+    public number think_t=0, aim_err=0, wander_t=0, wx=0, wy=0
+end
+
+public Fighter hero=new Fighter()
+public Fighter foe=new Fighter()
+
+-- Фаза и её таймеры.
+public number phase=PH_LOBBY
+public number phase_t=0
+public number round_left=0
+public number round_no=0
+public number result=RES_NONE
+public number announce_t=0
+-- Победил ли игрок в последнем раунде: считается в момент финиша, потому что
+-- в лобби роли уже сброшены.
+public number last_win=0
+-- Жеребьёвка ролей помнит прошлый раунд: три раза подряд одну и ту же роль
+-- игрок не получает.
+public number last_hero_role=-1, role_streak=0
+
+-- Арена: прямоугольник пола и столбы внутри него.
+public number ar_x=0, ar_y=0, ar_w=0, ar_h=0
+public array pil_x=arr_new()
+public array pil_y=arr_new()
+public number arena_ready=0
+
+-- Ввод: джойстик слева (появляется под пальцем) и кнопка удара справа.
+public number joy_id=-1, joy_home_x=0, joy_home_y=0
+public number atk_id=-1, atk_x=0, atk_y=0, atk_press=0
+
+-- Музыка лобби.
+public number music_ok=0, music_level=0
+
+-- Загрузка спрайтов: флаги и повторы, если первая попытка не удалась.
+public number surv_tex_ok=0, surv_punch_tex_ok=0
+public number killer_tex_ok=0, killer_punch_tex_ok=0, grass_tex_ok=0
+public number tex_reload_t=0, tex_reload_left=0, tex_reload_slow=3
