@@ -38,22 +38,37 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Restore signing key from Secrets
+      - name: Prepare signing key (release secret or debug key)
         env:
           CB4_P12_BASE64: ${{ secrets.CB4_P12_BASE64 }}
           CB4_P12_PASSWORD: ${{ secrets.CB4_P12_PASSWORD }}
         run: |
           set -euo pipefail
 
-          if [[ -z "$CB4_P12_BASE64" || -z "$CB4_P12_PASSWORD" ]]; then
-            echo "::error::Add CB4_P12_BASE64 and CB4_P12_PASSWORD repository secrets."
-            exit 1
-          fi
-
           umask 077
           KEY_DIR="$RUNNER_TEMP/cb4-signing"
           mkdir -p "$KEY_DIR"
           chmod 700 "$KEY_DIR"
+
+          # Без секретов сборка больше не падает: APK подписывается
+          # сгенерированным отладочным ключом. Такой APK ставится на телефон, но
+          # в стор его отдавать нельзя - у отладочного ключа другой сертификат.
+          # Релизная подпись включается сама, как только в репозитории появятся
+          # CB4_P12_BASE64 и CB4_P12_PASSWORD.
+          if [[ -z "${CB4_P12_BASE64:-}" || -z "${CB4_P12_PASSWORD:-}" ]]; then
+            echo "::warning::CB4_P12_BASE64/CB4_P12_PASSWORD are not set - the APK is signed with a generated debug key and is not suitable for a store."
+            keytool -genkeypair \
+              -keystore "$KEY_DIR/CB4.p12" \
+              -storetype PKCS12 \
+              -storepass android \
+              -keypass android \
+              -alias androiddebugkey \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug, OU=DS Game, O=DS Game, C=US" > /dev/null
+            chmod 600 "$KEY_DIR/CB4.p12"
+            echo "CB4_SIGN_MODE=debug" >> "$GITHUB_ENV"
+            exit 0
+          fi
 
           if ! printf '%s' "$CB4_P12_BASE64" \
             | tr -d '[:space:]' \
@@ -70,6 +85,8 @@ jobs:
             echo "::error::Cannot open the P12. Check the key and its password."
             exit 1
           fi
+
+          echo "CB4_SIGN_MODE=release" >> "$GITHUB_ENV"
 
       - name: Install Android SDK packages
         # android-actions/setup-android@v3 is gone: on recent runners it rejects the
@@ -167,7 +184,17 @@ jobs:
           CB4_KEY_ALIAS: ${{ secrets.CB4_KEY_ALIAS }}
           CB4_KEY_PASSWORD: ${{ secrets.CB4_KEY_PASSWORD || secrets.CB4_P12_PASSWORD }}
         run: |
+          set -euo pipefail
           BT="$ANDROID_HOME/build-tools/34.0.0"
+
+          # Отладочный ключ сгенерирован шагом выше с известными паролем и
+          # алиасом, секреты в этом режиме пустые.
+          if [[ "${CB4_SIGN_MODE:-debug}" == "debug" ]]; then
+            CB4_P12_PASSWORD=android
+            CB4_KEY_PASSWORD=android
+            CB4_KEY_ALIAS=androiddebugkey
+            export CB4_P12_PASSWORD CB4_KEY_PASSWORD
+          fi
 
           SIGN_ARGS=(
             --ks "$RUNNER_TEMP/cb4-signing/CB4.p12"
@@ -183,6 +210,8 @@ jobs:
           "$BT/apksigner" sign "${SIGN_ARGS[@]}" \
             --out Game.apk aligned.apk
 
+          echo "signed with the ${CB4_SIGN_MODE:-debug} key"
+
       - name: Verify APK metadata and signature
         run: |
           BT="$ANDROID_HOME/build-tools/34.0.0"
@@ -197,6 +226,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Game-APK-Android8-15-arm64-arm32-x86_64
+          name: Game-APK-${{ env.CB4_SIGN_MODE }}-Android8-15-arm64-arm32-x86_64
           path: Game.apk
           if-no-files-found: error
