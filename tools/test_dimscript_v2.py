@@ -151,7 +151,6 @@ HARNESS = '''
 #include <stdlib.h>
 #include <string.h>
 #include "runtime.h"
-#include "net.h"
 
 double ds_mouse_x = 0, ds_mouse_y = 0;
 int mouse_clicked = 0;

@@ -1,0 +1,159 @@
+-- Бот: второй участник раунда. Роль ему достаётся противоположная игроку, так
+-- что он и охотится, и убегает - в зависимости от жеребьёвки.
+
+-- Общий руль. Из bot_dirs направлений выбирается то, что ближе к желаемому и
+-- при этом не ведёт в стену или в столб: так бот огибает препятствия, вместо
+-- того чтобы толкаться в них.
+public function steer_dir(Fighter f, number want_a)
+    local number best = -999
+    local number best_a = want_a
+    local number k = 0
+    while k < bot_dirs do
+        local number a = k * 2 * pi / bot_dirs
+        local number px = f.x + cos(a) * bot_probe
+        local number py = f.y + sin(a) * bot_probe
+        local number s = cos(angle_diff(a, want_a))
+        if inside_arena(px, py, body_r() + 12) == 0 then
+            s = s - 2.5
+        end
+        if pillar_blocked(px, py, body_r() + 10) == 1 then
+            s = s - 2
+        end
+        -- Мягкий штраф за близость к стене: направления вдоль края остаются
+        -- возможными, но проигрывают свободным.
+        s = s - 0.9 * edge_at(px, py)
+        if s > best then
+            best = s
+            best_a = a
+        end
+        k = k + 1
+    end
+    return best_a
+end
+
+-- Пауза между решениями и ошибка прицела: без них бот идеален и раунд теряет
+-- смысл.
+public function bot_think(Fighter f)
+    f.think_t = tick_down(f.think_t)
+    if f.think_t > 0 then
+        return
+    end
+    f.think_t = bot_think_min + mod(rand(), 100) / 100 * (bot_think_max - bot_think_min)
+    f.aim_err = (mod(rand(), 200) - 100) / 100 * bot_aim_error
+end
+
+public function bot_hunt(Fighter f, Fighter target)
+    local number to_a = atan2(target.y - f.y, target.x - f.x)
+    local number d = dist(f.x, f.y, target.x, target.y)
+    local number a = steer_dir(f, to_a + f.aim_err * 0.4)
+    move_fighter(f, cos(a), sin(a))
+    -- Вблизи убийца смотрит на жертву, а не в сторону обхода столба.
+    if d < punch_reach * 1.4 then
+        f.angle = to_a
+    end
+    -- Выпад летит дальше сектора, но между нажатием и рывком есть замах:
+    -- бить надо туда, где жертва окажется, а не туда, где она сейчас.
+    local number lunge = killer_speed * lunge_mult * punch_time
+    local number ahead = punch_windup + punch_time
+    local number tx = target.x + cos(target.angle) * survivor_speed * ahead * target.moving
+    local number ty = target.y + sin(target.angle) * survivor_speed * ahead * target.moving
+    if dist(f.x, f.y, tx, ty) < (punch_reach + lunge) * bot_punch_range then
+        f.angle = atan2(ty - f.y, tx - f.x) + f.aim_err * 0.25
+        start_punch(f)
+    end
+end
+
+-- Побег: направление выбирается не "строго от убийцы" (так упираются в угол), а
+-- по будущему расстоянию. Убийца за это время тоже добежит, поэтому в расчёт
+-- идёт его упреждённая позиция, а стены и столбы штрафуются. Так выживший сам
+-- начинает обегать столб и уходить вдоль стены, а не в тупик.
+public function flee_dir(Fighter f, Fighter hunter)
+    local number lead = 0.45
+    local number ha = atan2(f.y - hunter.y, f.x - hunter.x)
+    local number hx = hunter.x + cos(ha) * killer_speed * lead
+    local number hy = hunter.y + sin(ha) * killer_speed * lead
+    -- Убийца в замахе или уже в выпаде: считаем, куда его вынесет по
+    -- зафиксированному направлению, и уходим с этой линии.
+    if hunter.punch_t > 0 || hunter.wind_t > 0 then
+        local number run = killer_speed * lunge_mult * punch_time
+        hx = hunter.x + cos(hunter.punch_a) * run
+        hy = hunter.y + sin(hunter.punch_a) * run
+    end
+    local number best = -999999
+    local number best_a = ha
+    local number k = 0
+    while k < bot_dirs do
+        local number a = k * 2 * pi / bot_dirs
+        local number px = f.x + cos(a) * survivor_speed * lead
+        local number py = f.y + sin(a) * survivor_speed * lead
+        -- Дальше flee_enough убегать незачем: иначе выживший вжимается в стену
+        -- ради лишних ста пикселей и там его и ловят.
+        local number s = dist(px, py, hx, hy)
+        if s > flee_enough then
+            s = flee_enough
+        end
+        if inside_arena(px, py, body_r() + 12) == 0 then
+            s = s - 900
+        end
+        if pillar_blocked(px, py, body_r() + 10) == 1 then
+            s = s - 800
+        end
+        -- Прижатая к стене точка хуже открытой, даже если убийца дальше.
+        s = s - 320 * edge_at(px, py)
+        -- Награда за сохранение курса: без неё бот мечется вдоль стены.
+        s = s + 90 * cos(angle_diff(a, f.angle))
+        if s > best then
+            best = s
+            best_a = a
+        end
+        k = k + 1
+    end
+    return best_a + f.aim_err * 0.2
+end
+
+public function bot_flee(Fighter f, Fighter hunter)
+    local number a = flee_dir(f, hunter)
+    move_fighter(f, cos(a), sin(a))
+end
+
+public function bot_round(Fighter f, Fighter other)
+    bot_think(f)
+    if f.role == ROLE_KILLER then
+        if killer_frozen() == 1 then
+            f.moving = 0
+            return
+        end
+        bot_hunt(f, other)
+        return
+    end
+    bot_flee(f, other)
+end
+
+-- Лобби: бот гуляет от точки к точке, никого не трогая.
+public function bot_pick_spot(Fighter f)
+    local number k = 0
+    local number x = 0
+    local number y = 0
+    while k < 8 do
+        x = ar_x + 70 + mod(rand(), ar_w - 140)
+        y = ar_y + 70 + mod(rand(), ar_h - 140)
+        if pillar_blocked(x, y, body_r() + 20) == 0 then
+            k = 8
+        else
+            k = k + 1
+        end
+    end
+    f.wx = x
+    f.wy = y
+    f.wander_t = bot_wander_pause + mod(rand(), 200) / 100
+end
+
+public function bot_wander(Fighter f)
+    f.wander_t = tick_down(f.wander_t)
+    if f.wander_t <= 0 || dist(f.x, f.y, f.wx, f.wy) < 45 then
+        bot_pick_spot(f)
+    end
+    local number want = atan2(f.wy - f.y, f.wx - f.x)
+    local number a = steer_dir(f, want)
+    move_fighter(f, cos(a) * 0.8, sin(a) * 0.8)
+end

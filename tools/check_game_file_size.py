@@ -6,8 +6,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 MAX_LINES = 450
 ROOT_SOURCES = {
-    "graphics.c", "main.c", "net.c", "net.h", "runtime.c", "runtime.h",
-    "sound.c", "ttf_font.c",
+    "graphics.c", "main.c", "runtime.c", "runtime.h", "sound.c", "ttf_font.c",
 }
 SOURCE_SUFFIXES = {".c", ".h", ".inc", ".ds", ".java", ".xml"}
 

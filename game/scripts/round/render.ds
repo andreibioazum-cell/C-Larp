@@ -1,0 +1,119 @@
+-- Отрисовка раунда: сцена сверху, HUD с таймером и ролью, объявление ролей в
+-- начале и плашка итога в конце.
+
+-- Сцена целиком: пол, стены, столбы, зона удара и оба бойца. Кто выше по
+-- экрану, того рисуем первым, иначе дальний перекрывал бы ближнего.
+public function draw_scene(number shade)
+    draw_floor(shade)
+    draw_walls()
+    draw_pillars()
+    draw_punch_zone(hero)
+    draw_punch_zone(foe)
+    if hero.y <= foe.y then
+        draw_fighter(hero, TXT_YOU)
+        draw_fighter(foe, TXT_BOT)
+    else
+        draw_fighter(foe, TXT_BOT)
+        draw_fighter(hero, TXT_YOU)
+    end
+end
+
+public function draw_timer_plate()
+    local number w = 214
+    local number h = 74
+    local number x = (screen_w - w) / 2
+    plate(x, hud_pad, w, h, col_plate)
+    text_in_box(fmt_time(round_left), x, hud_pad, w, h, col_text, 1.15)
+end
+
+public function draw_role_plate()
+    local string s = role_title(hero.role)
+    local number w = text_ink_width(s) * 0.6 + 46
+    plate(hud_pad, hud_pad, w, plate_h, col_plate)
+    text_in_box(s, hud_pad, hud_pad, w, plate_h, role_color(hero.role), 0.6)
+end
+
+public function draw_hp_plate()
+    local number w = 150
+    local number x = screen_w - hud_pad - w
+    plate(x, hud_pad, w, plate_h, col_plate)
+    draw_hearts(x + 45, hud_pad + plate_h / 2, survivor_hp_now())
+end
+
+-- Джойстик: кольцо в углу, пока палец не лёг, и полноценная ручка под пальцем.
+public function draw_joystick()
+    if joy_id == -1 then
+        ring(joy_home_x, joy_home_y, joy_r, 3, alpha_color(0xFFFFFF, 0.18))
+        circle(joy_home_x, joy_home_y, 20, alpha_color(0xFFFFFF, 0.18))
+        return
+    end
+    circle(joy.x, joy.y, joy_r, col_joy)
+    ring(joy.x, joy.y, joy_r, 3, alpha_color(0xFFFFFF, 0.5))
+    circle(joy.x + joy.ox, joy.y + joy.oy, 30, col_joy_knob)
+end
+
+public function draw_attack_button()
+    if hero_has_button() == 0 then
+        return
+    end
+    local number c = col_btn
+    if atk_press == 1 then
+        c = col_btn_down
+    end
+    circle(atk_x, atk_y, btn_r, c)
+    -- Откат: тёмный кружок съёживается к центру, пока удар не готов.
+    if hero.punch_cd > 0 then
+        circle(atk_x, atk_y, btn_r * hero.punch_cd / punch_cooldown, alpha_color(0x000000, 0.35))
+    end
+    local number tw = text_ink_width(TXT_HIT) * 0.6
+    local number th = text_ink_height(TXT_HIT) * 0.6
+    local number tt = text_ink_top(TXT_HIT) * 0.6
+    text_scaled(TXT_HIT, atk_x - tw / 2, atk_y - th / 2 - tt, col_text, 0.6)
+end
+
+public function draw_controls()
+    draw_joystick()
+    draw_attack_button()
+end
+
+-- Объявление ролей: первые секунды раунда, пока убийца стоит на месте.
+public function draw_announce()
+    if announce_t <= 0 then
+        return
+    end
+    local number a = clamp(announce_t / 0.5, 0, 1)
+    rect(0, 0, screen_w, screen_h, alpha_color(0x070A10, a * 0.55))
+    ctext_scaled(role_title(hero.role), screen_h * 0.33, alpha_color(role_color(hero.role), a), 1.5)
+    ctext_scaled(role_task(hero.role), screen_h * 0.52, alpha_color(col_text, a), 0.72)
+    ctext_scaled(TXT_ROUND + " " + round_no, screen_h * 0.63, alpha_color(col_dim, a * 0.9), 0.5)
+end
+
+public function result_subtitle()
+    if last_win == 1 then
+        return TXT_YOU_WON
+    end
+    return TXT_YOU_LOST
+end
+
+public function draw_result()
+    rect(0, 0, screen_w, screen_h, col_veil)
+    local number c = col_survivor
+    if result == RES_KILLER then
+        c = col_killer
+    end
+    ctext_scaled(result_title(result), screen_h * 0.34, c, 1.4)
+    ctext_scaled(result_subtitle(), screen_h * 0.53, col_text, 0.8)
+    ctext_scaled(TXT_NEXT + " " + fmt_time(phase_t + lobby_break), screen_h * 0.66, col_dim, 0.5)
+end
+
+public function draw_round()
+    draw_scene(0.1)
+    draw_timer_plate()
+    draw_role_plate()
+    draw_hp_plate()
+    draw_controls()
+    draw_announce()
+    if phase == PH_RESULT then
+        draw_result()
+    end
+end

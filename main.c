@@ -3,7 +3,6 @@
 #endif
 #include <android_native_app_glue.h>
 #include "runtime.h"
-#include "net.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <time.h>
@@ -257,9 +256,7 @@ void android_main(struct android_app *app) {
  * would follow one and the same sequence every run. */
     srand((unsigned)(time(NULL) * 2654435761u) ^ ((unsigned)getpid() * 0x9E3779B9u));
     app->onAppCmd = handle_cmd; app->onInputEvent = handle_input;
-    net_set_java_vm(app->activity->vm);
     ds_sound_set_java_vm((void *)app->activity->vm);
-    net_set_data_path(app->activity->internalDataPath);
     ds_set_activity(app->activity);
     ds_log("DimScript Android + Vulkan renderer + system keyboard (JNI)");
     for (;;) {
@@ -273,9 +270,8 @@ void android_main(struct android_app *app) {
             if (source && source->process) source->process(app, source);
             if (app->destroyRequested) {
                 /* The activity itself ends. A new one in the same process gets
-                 * a fresh script start (with reset()), so the room threads of
-                 * this one are stopped here as well. */
-                init_done = 0; script_active = 0; keyboard_hide(); net_disconnect();
+                 * a fresh script start (with reset()). */
+                init_done = 0; script_active = 0; keyboard_hide();
                 ds_graphics_shutdown(); ds_sound_shutdown(); return;
             }
             timeout = 0; /* drain the rest of the queued events at once */
@@ -327,5 +323,4 @@ void android_main(struct android_app *app) {
     }
 }
 #include "graphics.c"
-#include "net.c"
 #include "sound.c"

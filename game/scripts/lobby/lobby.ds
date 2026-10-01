@@ -1,0 +1,42 @@
+-- Лобби: перерыв между раундами. Ходить можно, бить нельзя, сверху висит
+-- обратный отсчёт до следующего раунда и итог прошлого.
+
+public function last_result_line()
+    if result == RES_NONE then
+        return TXT_RULES
+    end
+    local string out = TXT_LAST + " " + result_title(result)
+    return out
+end
+
+public function draw_lobby_header()
+    local number w = 420
+    local number h = 108
+    local number x = (screen_w - w) / 2
+    plate(x, hud_pad, w, h, col_plate)
+    ctext_scaled(TXT_LOBBY, hud_pad + 14, col_dim, 0.52)
+    text_in_box(TXT_NEXT + " " + fmt_time(phase_t), x, hud_pad + 26, w, h - 26, col_text, 1.1)
+end
+
+public function draw_lobby_footer()
+    local string s = last_result_line()
+    local number sc = 0.56
+    local number w = text_ink_width(s) * sc + 54
+    local number x = (screen_w - w) / 2
+    local number y = screen_h - hud_pad - plate_h
+    plate(x, y, w, plate_h, col_plate)
+    local number c = col_dim
+    if result == RES_KILLER then
+        c = col_killer
+    else if result == RES_SURVIVORS then
+        c = col_survivor
+    end
+    text_in_box(s, x, y, w, plate_h, c, sc)
+end
+
+public function draw_lobby()
+    draw_scene(0.35)
+    draw_lobby_header()
+    draw_lobby_footer()
+    draw_joystick()
+end
