@@ -49,8 +49,10 @@ python3 tools/check_game_file_size.py
 
 Проще всего запустить GitHub Actions workflow **Build Cubic Battle 4 (Pure C)**.
 Он собирает `arm64-v8a`, `armeabi-v7a` и `x86_64`, упаковывает и подписывает APK.
-Для подписи используются существующие secrets `CB4_P12_BASE64`,
+Для релизной подписи используются secrets `CB4_P12_BASE64`,
 `CB4_P12_PASSWORD` и, при необходимости, `CB4_KEY_ALIAS`/`CB4_KEY_PASSWORD`.
+Если secrets не настроены, workflow создаёт временный debug-ключ, чтобы тестовая
+сборка всё равно завершилась и APK появился в артефактах.
 
 Локальная конфигурация через Android NDK:
 

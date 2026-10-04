@@ -35,28 +35,34 @@ jobs:
         run: python3 tools/test_game.py
 
       - name: Setup Java for Android build tools
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Restore signing key from Secrets
+      - name: Prepare signing key
         env:
           CB4_P12_BASE64: ${{ secrets.CB4_P12_BASE64 }}
           CB4_P12_PASSWORD: ${{ secrets.CB4_P12_PASSWORD }}
         run: |
           set -euo pipefail
-          if [[ -z "$CB4_P12_BASE64" || -z "$CB4_P12_PASSWORD" ]]; then
-            echo "::error::Add CB4_P12_BASE64 and CB4_P12_PASSWORD repository secrets."
-            exit 1
-          fi
           umask 077
           KEY_DIR="$RUNNER_TEMP/cb4-signing"
           mkdir -p "$KEY_DIR"
-          printf '%s' "$CB4_P12_BASE64" | tr -d '[:space:]' | base64 --decode > "$KEY_DIR/CB4.p12"
-          chmod 600 "$KEY_DIR/CB4.p12"
-          keytool -list -storetype PKCS12 -keystore "$KEY_DIR/CB4.p12" \
-            -storepass:env CB4_P12_PASSWORD > /dev/null
+          if [[ -n "$CB4_P12_BASE64" && -n "$CB4_P12_PASSWORD" ]]; then
+            printf '%s' "$CB4_P12_BASE64" | tr -d '[:space:]' | base64 --decode > "$KEY_DIR/CB4.p12"
+            chmod 600 "$KEY_DIR/CB4.p12"
+            keytool -list -storetype PKCS12 -keystore "$KEY_DIR/CB4.p12" \
+              -storepass:env CB4_P12_PASSWORD > /dev/null
+            echo "Using release signing key"
+          else
+            keytool -genkeypair -v \
+              -keystore "$KEY_DIR/debug.keystore" \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Cubic Battle,C=DE"
+            echo "Release secrets are absent; using a temporary debug key"
+          fi
 
       - name: Install Android SDK packages
         run: |
@@ -120,9 +126,15 @@ jobs:
         run: |
           set -euo pipefail
           BT="$ANDROID_HOME/build-tools/34.0.0"
-          SIGN_ARGS=(--ks "$RUNNER_TEMP/cb4-signing/CB4.p12" --ks-type PKCS12 \
-                     --ks-pass env:CB4_P12_PASSWORD --key-pass env:CB4_KEY_PASSWORD)
-          if [[ -n "$CB4_KEY_ALIAS" ]]; then SIGN_ARGS+=(--ks-key-alias "$CB4_KEY_ALIAS"); fi
+          KEY_DIR="$RUNNER_TEMP/cb4-signing"
+          if [[ -f "$KEY_DIR/CB4.p12" ]]; then
+            SIGN_ARGS=(--ks "$KEY_DIR/CB4.p12" --ks-type PKCS12 \
+                       --ks-pass env:CB4_P12_PASSWORD --key-pass env:CB4_KEY_PASSWORD)
+            if [[ -n "$CB4_KEY_ALIAS" ]]; then SIGN_ARGS+=(--ks-key-alias "$CB4_KEY_ALIAS"); fi
+          else
+            SIGN_ARGS=(--ks "$KEY_DIR/debug.keystore" --ks-type JKS \
+                       --ks-pass pass:android --ks-key-alias androiddebugkey --key-pass pass:android)
+          fi
           "$BT/apksigner" sign "${SIGN_ARGS[@]}" --out Game.apk aligned.apk
 
       - name: Verify APK
