@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""Enforce the 450-line limit for maintained native game source files."""
+"""Проверяет ограничение размера нативных исходников."""
 
 from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_LINES = 450
-ROOT_SOURCES = {"graphics.c", "main.c", "runtime.c", "runtime.h", "ttf_font.c"}
-SOURCE_SUFFIXES = {".c", ".h", ".inc", ".xml"}
+ROOT_SOURCES = {
+    "graphics.c", "main.c", "net.c", "net.h", "runtime.c", "runtime.h",
+    "sound.c", "ttf_font.c",
+}
+SOURCE_SUFFIXES = {".c", ".h", ".inc", ".java", ".xml"}
 
 
 def game_sources():
@@ -31,11 +34,11 @@ def main() -> int:
         if count > MAX_LINES:
             oversized.append((path.relative_to(ROOT), count))
     if oversized:
-        print(f"Game source files must not exceed {MAX_LINES} lines:", file=sys.stderr)
+        print(f"Исходники игры не должны превышать {MAX_LINES} строк:", file=sys.stderr)
         for path, count in oversized:
             print(f"  {path}: {count}", file=sys.stderr)
         return 1
-    print(f"Game source size check: ok (maximum {MAX_LINES} lines)")
+    print(f"Размер исходников: норма, не более {MAX_LINES} строк")
     return 0
 
 

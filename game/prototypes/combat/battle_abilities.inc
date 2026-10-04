@@ -1,0 +1,10 @@
+static void universe_collapse(double dmg);
+static void universe_collapse_remote(double dmg);
+static void tick_universe(void);
+static void update_remote_station(void);
+static void update_remote_universe(void);
+static void update_remote_dashes(void);
+static void flush_queued_action(void);
+static void tick_dash(void);
+static void tick_candies(void);
+static void update_game(void);

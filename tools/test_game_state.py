@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile and run the pure-C menu/arena/punch flow on the host."""
+"""Собирает и проверяет создание и сброс игрового состояния."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def main() -> int:
     compiler = os.environ.get("CC", "cc")
-    with tempfile.TemporaryDirectory(prefix="cb4-test-") as directory:
-        executable = Path(directory) / "test_game"
+    with tempfile.TemporaryDirectory(prefix="cb4-state-") as directory:
+        executable = Path(directory) / "test_game_state"
         subprocess.run(
             [
                 compiler,
@@ -23,20 +23,22 @@ def main() -> int:
                 "-Wextra",
                 "-Werror",
                 "-pedantic",
+                "-ffunction-sections",
+                "-fdata-sections",
                 "-I",
                 str(ROOT),
                 "-I",
                 str(ROOT / "tools/host_test/stub"),
-                str(ROOT / "tools/test_game.c"),
-                str(ROOT / "game/game.c"),
+                str(ROOT / "tools/test_game_state.c"),
+                "-Wl,--gc-sections",
                 "-lm",
                 "-o",
                 str(executable),
             ],
-            check=True,
             cwd=ROOT,
+            check=True,
         )
-        subprocess.run([str(executable)], check=True)
+        subprocess.run([str(executable)], cwd=ROOT, check=True)
     return 0
 
 

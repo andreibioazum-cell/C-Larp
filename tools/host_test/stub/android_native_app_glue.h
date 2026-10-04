@@ -1,5 +1,3 @@
-/* android_native_app_glue stub for the host tests: the minimum main.c
- * needs. */
 #ifndef HOST_STUB_NATIVE_APP_GLUE_H
 #define HOST_STUB_NATIVE_APP_GLUE_H
 #include <stdint.h>

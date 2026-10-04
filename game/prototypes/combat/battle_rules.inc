@@ -1,0 +1,17 @@
+static const char *punch_tex_or_idle(const char *punch_tex, double ok, double cls);
+static double azum_tex_pair_ok(void);
+static const char *azum_idle_tex(void);
+static const char *azum_punch_tex(void);
+static double zombie_tex_ok(void);
+static const char *zombie_idle_tex(void);
+static const char *zombie_punch_tex(void);
+static const char *class_idle_tex(double cls);
+static const char *class_punch_tex(double cls);
+static double class_punch_damage_for(double cls, double lv);
+static double player_max_hp_for(double cls);
+static double ebuc_station_hp_for(double lv);
+static double ebuc_universe_damage_for(double lv);
+static double class_punch_damage(double cls);
+static double santa_poison_time_for(double lv);
+static double santa_poison_damage_for(double lv);
+static double santa_freeze_time_for(double lv);

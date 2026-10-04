@@ -1,4 +1,4 @@
-# Generated build output
+# Результаты сборки
 __pycache__/
 *.py[cod]
 build/
@@ -9,3 +9,10 @@ staging/
 aligned.apk
 unsigned.apk
 debug.keystore
+
+# Локальные сохранения игры
+auth.dat
+progress.dat
+achievements.dat
+bans.dat
+settings.dat

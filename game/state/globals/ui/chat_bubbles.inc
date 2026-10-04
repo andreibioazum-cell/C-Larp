@@ -1,0 +1,15 @@
+double chat_bubble_time = 4;
+double chat_bubble_fade = 0.6;
+double chat_bubble_alpha = 235;
+double chat_bubble_pad = 10;
+double chat_bubble_h = 30;
+double chat_bubble_ink = 0x00202020;
+const char *chat_seen_key = "";
+const char *bubble_msg0 = "";
+const char *bubble_msg1 = "";
+const char *bubble_msg2 = "";
+const char *bubble_msg3 = "";
+double bubble_t0 = 0;
+double bubble_t1 = 0;
+double bubble_t2 = 0;
+double bubble_t3 = 0;

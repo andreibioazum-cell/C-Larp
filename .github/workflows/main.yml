@@ -23,16 +23,26 @@ jobs:
         run: |
           set -euo pipefail
           test -f game/game.c
-          grep -q 'android:name="android.app.NativeActivity"' game/AndroidManifest.xml
+          grep -q 'android:name="com.cb4.GameActivity"' game/AndroidManifest.xml
           grep -q 'android:value="cb_game"' game/AndroidManifest.xml
           grep -q 'android:versionCode="[0-9]\+"' game/AndroidManifest.xml
+          grep -q '^package com.cb4;' game/java/com/cb4/GameActivity.java
+          grep -q 'Java_com_cb4_GameActivity_nativeReplaceText' native/runtime/android_keyboard.inc
           if find . -type f -name '*.ds' -print -quit | grep -q .; then
-            echo "::error::Script source remains in the pure-C game"
+            echo "::error::The C port must not contain script sources"
             exit 1
           fi
 
-      - name: Test game flow on host
-        run: python3 tools/test_game.py
+      - name: Check native game sources
+        run: |
+          cc -std=c99 -Wall -Wextra -Werror -pedantic \
+            -I. -Itools/host_test/stub -fsyntax-only game/game.c
+          python3 tools/check_game_file_size.py
+          python3 tools/test_resources.py
+          python3 tools/test_game_state.py
+          python3 tools/test_settings_storage.py
+          python3 tools/test_cloud_progress.py
+          python3 tools/test_promo.py
 
       - name: Setup Java for Android build tools
         uses: actions/setup-java@v5
@@ -150,6 +160,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Cubic-Battle-4-Pure-C-APK
+          name: Cubic-Battle-4-Full-C-APK
           path: Game.apk
           if-no-files-found: error

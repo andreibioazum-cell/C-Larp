@@ -1,7 +1,3 @@
-/* Shared types and state of the graphics side: the render command, textures, the
- * shader vertex fields and the common statics. The parts of the renderer
- * (geometry, vulkan_backend, lifecycle) are included into one translation unit
- * from graphics.c and rely on what is declared here. */
 #include "runtime.h"
 #define STBI_ONLY_PNG
 #define STBI_NO_STDIO
@@ -40,79 +36,121 @@ const uint8_t *ds_font_alpha(const DSFont *font);
 float ds_font_lineh(const DSFont *font);
 float ds_font_ascent(const DSFont *font);
 
-/* The GPU half of a texture, filled in by vulkan_backend. It stays zero when
- * Vulkan is unavailable, and the CPU pixels are kept anyway so they can be
- * uploaded again when the window is created anew. */
 typedef struct {
-    long long image;   /* VkImage */
-    long long memory;  /* VkDeviceMemory */
-    long long view;    /* VkImageView */
-    long long desc;    /* VkDescriptorSet */
-    int uploaded;      /* the copy already sits on the GPU */
+    long long image;
+    long long memory;
+    long long view;
+    long long desc;
+    int uploaded;
 } TexGpu;
 
 struct Texture {
     Texture *next;
     char *name;
     int w, h, opaque;
-    /* Failed GPU uploads so far: the retry is silent after the first log line,
-     * so a texture that cannot upload does not flood the log every frame. */
+
     int upload_tries;
     uint32_t *pixels;
     TexGpu gpu;
 };
 
 typedef enum {
-    DS_CMD_RECT, DS_CMD_ROUND, DS_CMD_CIRCLE, DS_CMD_RING, DS_CMD_LINE,
-    DS_CMD_TEX, DS_CMD_TEXT, DS_CMD_TEX_TINT, DS_CMD_RECT_ROT
+    DS_CMD_RECT,
+    DS_CMD_ROUND,
+    DS_CMD_CIRCLE,
+    DS_CMD_RING,
+    DS_CMD_LINE,
+    DS_CMD_TEX,
+    DS_CMD_TEXT,
+    DS_CMD_TEX_TINT,
+    DS_CMD_RECT_ROT
 } DSCommand;
 typedef struct {
     DSCommand t;
     union {
-        struct { float x, y, w, h; uint32_t c; } rc;
-        struct { float x, y, w, h, r; uint32_t c; } rr;
-        struct { float x, y, r; uint32_t c; } ci;
-        struct { float x, y, r, th; uint32_t c; } rg;
-        struct { float x1, y1, x2, y2, th; uint32_t c; } ln;
-        struct { float x, y, a, sc; Texture *tx; } tx;
-        struct { float x, y, a, sc; Texture *tx; uint32_t c; } tx2;
-        /* Rotated rectangle: x and y are the top left corner of the unrotated
-         * rectangle and ang turns it around its centre, as a texture does. The
-         * hitboxes need it, since the punch zones and the dash strip must be
-         * straight rectangles with sharp corners rather than line() capsules. It
-         * goes through the ordinary blending pipeline, so the colour alpha works
-         * just as it does for rect. */
-        struct { float x, y, w, h, ang; uint32_t c; } rot;
-        struct { char *s; float x, y, sc; uint32_t c; } tt;
+        struct {
+            float x, y, w, h;
+            uint32_t c;
+        } rc;
+        struct {
+            float x, y, w, h, r;
+            uint32_t c;
+        } rr;
+        struct {
+            float x, y, r;
+            uint32_t c;
+        } ci;
+        struct {
+            float x, y, r, th;
+            uint32_t c;
+        } rg;
+        struct {
+            float x1, y1, x2, y2, th;
+            uint32_t c;
+        } ln;
+        struct {
+            float x, y, a, sc;
+            Texture *tx;
+        } tx;
+        struct {
+            float x, y, a, sc;
+            Texture *tx;
+            uint32_t c;
+        } tx2;
+
+        struct {
+            float x, y, w, h, ang;
+            uint32_t c;
+        } rot;
+        struct {
+            char *s;
+            float x, y, sc;
+            uint32_t c;
+        } tt;
     } v;
 } DSCmd;
 
-/* 0xAARRGGBB becomes the in-memory RGBA bytes R|G<<8|B<<16|A<<24. */
 static uint32_t pack_c(uint32_t c) {
     uint32_t a = (c >> 24) & 0xff, r = (c >> 16) & 0xff, g = (c >> 8) & 0xff, b = c & 0xff;
-    if (!a) a = 255;
+    if (!a)
+        a = 255;
     return r | (g << 8) | (b << 16) | (a << 24);
 }
 static char *strdup_safe(const char *s) {
-    if (!s) { char *o = (char *)malloc(1); if (o) o[0] = '\0'; return o; }
+    if (!s) {
+        char *o = (char *)malloc(1);
+        if (o)
+            o[0] = '\0';
+        return o;
+    }
     size_t n = strlen(s) + 1;
     char *o = (char *)malloc(n);
-    if (o) memcpy(o, s, n);
+    if (o)
+        memcpy(o, s, n);
     return o;
 }
 static int utf8_dec(const char **c) {
     const uint8_t *p = (const uint8_t *)*c;
     int r;
-    if (!p || !*p) return -1;
-    if (*p < 0x80) r = *p++;
-    else if ((*p&0xe0)==0xc0 && (p[1]&0xc0)==0x80) { r = ((*p&0x1f)<<6)|(p[1]&0x3f); p+=2; }
-    else if ((*p&0xf0)==0xe0 && (p[1]&0xc0)==0x80 && (p[2]&0xc0)==0x80) { r=((*p&0x0f)<<12)|((p[1]&0x3f)<<6)|(p[2]&0x3f); p+=3; }
-    else if ((*p&0xf8)==0xf0 && (p[1]&0xc0)==0x80 && (p[2]&0xc0)==0x80 && (p[3]&0xc0)==0x80) { r=((*p&7)<<18)|((p[1]&0x3f)<<12)|((p[2]&0x3f)<<6)|(p[3]&0x3f); p+=4; }
-    else r = *p++;
-    *c = (const char *)p; return r;
+    if (!p || !*p)
+        return -1;
+    if (*p < 0x80)
+        r = *p++;
+    else if ((*p & 0xe0) == 0xc0 && (p[1] & 0xc0) == 0x80) {
+        r = ((*p & 0x1f) << 6) | (p[1] & 0x3f);
+        p += 2;
+    } else if ((*p & 0xf0) == 0xe0 && (p[1] & 0xc0) == 0x80 && (p[2] & 0xc0) == 0x80) {
+        r = ((*p & 0x0f) << 12) | ((p[1] & 0x3f) << 6) | (p[2] & 0x3f);
+        p += 3;
+    } else if ((*p & 0xf8) == 0xf0 && (p[1] & 0xc0) == 0x80 && (p[2] & 0xc0) == 0x80 && (p[3] & 0xc0) == 0x80) {
+        r = ((*p & 7) << 18) | ((p[1] & 0x3f) << 12) | ((p[2] & 0x3f) << 6) | (p[3] & 0x3f);
+        p += 4;
+    } else
+        r = *p++;
+    *c = (const char *)p;
+    return r;
 }
 
-/* Shared frame and resource state, used by both lifecycle and the backend. */
 static Buffer *cur_buf;
 static DSCmd *cmds;
 static size_t cmd_n, cmd_cap;

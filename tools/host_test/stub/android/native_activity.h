@@ -1,4 +1,3 @@
-/* Stub for the host tests, matching the use of the real one. */
 #ifndef HOST_STUB_ANDROID_ACTIVITY_H
 #define HOST_STUB_ANDROID_ACTIVITY_H
 #include <jni.h>

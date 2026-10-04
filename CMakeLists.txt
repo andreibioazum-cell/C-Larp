@@ -3,8 +3,7 @@ project(CubicBattle4 C)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Cubic Battle 4 is a native Android game. game/game.c is authored C source;
-# there is no code generator or scripting compiler in the build.
+# Игра собирается напрямую из C без генератора исходников.
 if(NOT ANDROID)
     message(FATAL_ERROR
         "Cubic Battle 4 builds for Android only. Configure CMake with the Android "

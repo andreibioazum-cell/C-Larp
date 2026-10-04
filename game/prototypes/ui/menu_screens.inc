@@ -1,0 +1,25 @@
+static void draw_menu_button(double row, const char *label);
+static void draw_lobby_nick(void);
+static void draw_lobby_money(void);
+static void draw_lobby(void);
+static void draw_modes(void);
+static void draw_settings(void);
+static void draw_privacy(void);
+static void draw_class_card(double vi);
+static void draw_stat_row(const char *label, double x, double y, double w, double h, double cur, double maxv,
+                          uint32_t c);
+static void draw_class_stats(void);
+static void draw_classes(void);
+static void draw_level_row(double n);
+static void draw_levels(void);
+static void draw_skin_card(double skin);
+static void draw_skins(void);
+static double achievement_count(void);
+static double achievement_bit(double i);
+static const char *achievement_title(double i);
+static const char *achievement_desc(double i);
+static void draw_achievement_card(double i);
+static void draw_achievements(void);
+static double lb_place_bg(double i);
+static void draw_lb_row(double i);
+static void draw_leaderboard(void);

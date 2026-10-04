@@ -1,0 +1,12 @@
+double promo_focus = 0;
+const char *promo_input = "";
+double promo_msg_t = 0;
+const char *promo_msg_text = "";
+double promo_msg_kind = 0;
+double card_active = 0;
+double card_x = 0;
+double card_y = 0;
+double card_t = 0;
+double card_open = 0;
+double card_open_t = 0;
+const char *card_code = "";

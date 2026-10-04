@@ -1,0 +1,25 @@
+static void draw_candies(void);
+static void draw_status_aura(double x, double y, double size, double rgb, double rim, double a);
+static void draw_remote_snow(void);
+static void finish_game(double result);
+static void draw_punch_box(double x, double y, double dx, double dy, double reach, double width, double alpha);
+static const char *fighter_sprite(double cls, double punching, double skin);
+static void draw_fighter_shadow(double x, double y, double ang, double cls, double punching, double skin);
+static void draw_fighter_body(double x, double y, double ang, double cls, double punching, double skin);
+static void draw_fighter_hurt(double x, double y, double ang, double cls, double punching, double skin, double scale,
+                              double a);
+static void draw_player_shadow(double x, double y, double ang, double punching, double skin);
+static void draw_player_body(double x, double y, double ang, double punching);
+static void draw_field(void);
+static void draw_player_shadow_layer(void);
+static void draw_player_hitbox_layer(void);
+static void draw_player_body_layer(void);
+static double enemy_punching_now(void);
+static const char *enemy_battle_tex(void);
+static void draw_enemy_shadow(void);
+static void draw_enemy_hitbox(void);
+static void draw_enemy_body(void);
+static void draw_controls(void);
+static void draw_result(const char *title);
+static void draw_fps_meter(void);
+static void draw_game(void);

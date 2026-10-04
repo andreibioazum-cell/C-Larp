@@ -1,0 +1,9 @@
+double chat_open = 0;
+double sticker_menu_open = 0;
+const char *chat_input = "";
+double STICKER_BTN = 52;
+double STICKER_TILE = 64;
+const char *STICKER_LIKE = "like.png";
+const char *STICKER_DISLIKE = "dislike.png";
+const char *STICKER_75 = "75.png";
+const char *STICKER_CMD = "/sticker ";

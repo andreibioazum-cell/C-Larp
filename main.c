@@ -1,232 +1,383 @@
+/* Главный цикл Android-приложения. */
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
 #endif
-
+#include <android_native_app_glue.h>
+#include "runtime.h"
+#include "net.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <time.h>
 #include <android/input.h>
 #include <android/keycodes.h>
 #include <android/native_activity.h>
-#include <android_native_app_glue.h>
-#include <stdint.h>
-#include <time.h>
+#include <unistd.h>
+static int init_done = 0;
+static int game_active = 0;
 
-#include "runtime.h"
-
-#define GRAPHICS_START_TRIES 4
-
-static int renderer_ready;
-static int game_initialized;
-static int physical_width;
-static int physical_height;
-static int graphics_start_tries;
-static int graphics_failure_shown;
-static int back_consumed;
-static uint64_t graphics_retry_at;
-static uint64_t previous_frame_at;
-static uint64_t previous_loop_at;
-
+static int game_started_once = 0;
+static AAssetManager *game_assets = NULL;
+static uint64_t restart_after_ns = 0;
+static unsigned int restart_failures = 0;
+static uint64_t prev_frame_ns = 0;
+static uint64_t prev_loop_ns = 0;
+static struct android_app *g_app = NULL;
 static uint64_t monotonic_ns(void) {
     struct timespec now;
-    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) return 0;
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0)
+        return 0;
     return (uint64_t)now.tv_sec * 1000000000ull + (uint64_t)now.tv_nsec;
 }
 
+static int phys_w = 0, phys_h = 0;
+
 static void apply_screen_size(void) {
-    if (physical_width > 0 && physical_height > 0) {
-        screen_w = physical_width;
-        screen_h = physical_height;
+    if (phys_w < 1 || phys_h < 1)
+        return;
+    screen_w = phys_w;
+    screen_h = phys_h;
+}
+static void protected_game_init(void *userdata) {
+    game_init((AAssetManager *)userdata);
+}
+static void protected_game_reset(void *userdata) {
+    (void)userdata;
+    game_reset();
+}
+static void protected_game_update(void *userdata) {
+    (void)userdata;
+    game_update();
+}
+static void protected_game_draw(void *userdata) {
+    game_draw((Buffer *)userdata);
+}
+typedef struct {
+    float x;
+    float y;
+    int action;
+    int id;
+} TouchCall;
+static void protected_game_touch(void *userdata) {
+    TouchCall *call = (TouchCall *)userdata;
+    game_touch(call->x, call->y, call->action, call->id);
+}
+static int back_consumed = 0;
+typedef struct {
+    int handled;
+} BackCall;
+static void protected_game_back(void *userdata) {
+    BackCall *call = (BackCall *)userdata;
+    call->handled = game_back();
+}
+static void mark_game_failed(const char *hook) {
+    const char *message = ds_runtime_error_message();
+    __android_log_print(ANDROID_LOG_ERROR, "CubicBattle", "game hook '%s' stopped: %s; scheduling a restart",
+                        hook ? hook : "unknown", message);
+    ds_console_log(1, "game error: hook '%s' stopped: %s; restarting", hook ? hook : "unknown", message);
+    unsigned int shift = restart_failures < 5 ? restart_failures : 5;
+    uint64_t delay = 1000000000ull << shift;
+    game_active = 0;
+    ds_request_game_restart();
+    restart_after_ns = monotonic_ns() + delay;
+    ++restart_failures;
+}
+static int start_game(int reset_state) {
+    int ok;
+    ds_clear_runtime_error();
+    ds_clear_game_restart();
+    ds_string_pool_reset();
+    if (reset_state) {
+        ok = ds_call_protected(protected_game_reset, NULL, "reset");
+        if (!ok) {
+            mark_game_failed("reset");
+            return 0;
+        }
     }
+    ds_clear_runtime_error();
+    ok = ds_call_protected(protected_game_init, game_assets, "init");
+    if (!ok) {
+        mark_game_failed("init");
+        return 0;
+    }
+    ds_clear_runtime_error();
+    restart_failures = 0;
+    game_active = 1;
+    game_started_once = 1;
+    return 1;
+}
+static void restart_game_if_due(void) {
+    uint64_t now;
+    if (game_active || !ds_game_restart_requested())
+        return;
+    now = monotonic_ns();
+    if (now < restart_after_ns)
+        return;
+    (void)start_game(1);
 }
 
-static void graphics_start_failed(struct android_app *app, const char *reason) {
-    renderer_ready = 0;
-    ++graphics_start_tries;
-    if (graphics_start_tries < GRAPHICS_START_TRIES) {
-        uint64_t delay = 500000000ull << (graphics_start_tries - 1);
-        graphics_retry_at = monotonic_ns() + delay;
-        ds_log_err("renderer start %d/%d failed (%s), retrying",
-                   graphics_start_tries, GRAPHICS_START_TRIES,
-                   reason ? reason : "unknown");
+#define GFX_START_TRIES 4
+static int gfx_start_tries = 0;
+static uint64_t gfx_retry_at_ns = 0;
+static int gfx_failure_shown = 0;
+static void gfx_start_failed(struct android_app *app, const char *why) {
+    init_done = 0;
+    ++gfx_start_tries;
+    if (gfx_start_tries < GFX_START_TRIES) {
+        uint64_t delay = 500000000ull << (gfx_start_tries - 1);
+        gfx_retry_at_ns = monotonic_ns() + delay;
+        ds_log_err("renderer start %d/%d failed (%s), next try in %u ms", gfx_start_tries, GFX_START_TRIES, why,
+                   (unsigned)(delay / 1000000ull));
         return;
     }
-    graphics_retry_at = 0;
-    ds_log_err("renderer could not start: %s", reason ? reason : "unknown");
-    graphics_failure_shown = ds_graphics_show_failure(app->window, graphics_start_tries);
+    gfx_retry_at_ns = 0;
+    ds_log_err("renderer start failed %d times (%s): showing the reason on screen", gfx_start_tries, why);
+    gfx_failure_shown = ds_graphics_show_failure(app->window, gfx_start_tries);
 }
-
 static void start_window(struct android_app *app) {
-    AAssetManager *assets;
-
-    if (!app || !app->window) {
-        renderer_ready = 0;
+    if (!app->window) {
+        init_done = 0;
         return;
     }
-    physical_width = ANativeWindow_getWidth(app->window);
-    physical_height = ANativeWindow_getHeight(app->window);
-    if (physical_width <= 0 || physical_height <= 0) {
-        graphics_start_failed(app, "window has no size");
+    phys_w = ANativeWindow_getWidth(app->window);
+    phys_h = ANativeWindow_getHeight(app->window);
+    if (phys_w <= 0 || phys_h <= 0) {
+        gfx_start_failed(app, "window size 0");
         return;
     }
     apply_screen_size();
-    assets = app->activity ? app->activity->assetManager : NULL;
-    if (!ds_graphics_init(assets, app->window)) {
-        graphics_start_failed(app, ds_graphics_failure());
+    game_assets = app->activity ? app->activity->assetManager : NULL;
+    ds_set_activity(app->activity);
+
+    if (!ds_graphics_init(game_assets, app->window)) {
+        gfx_start_failed(app, ds_graphics_failure());
         return;
     }
+    if (gfx_start_tries)
+        ds_log("renderer started on try %d", gfx_start_tries + 1);
+    gfx_start_tries = 0;
+    gfx_retry_at_ns = 0;
+    gfx_failure_shown = 0;
 
-    graphics_start_tries = 0;
-    graphics_retry_at = 0;
-    graphics_failure_shown = 0;
-    renderer_ready = 1;
-    previous_frame_at = 0;
-    previous_loop_at = 0;
+    ds_sound_init(game_assets);
+    ds_sound_resume();
+    init_done = 1;
 
-    if (!game_initialized) {
-        ds_clear_runtime_error();
-        game_init(assets);
-        game_initialized = 1;
+    prev_frame_ns = 0;
+    prev_loop_ns = 0;
+    if (game_active) {
+
+        ds_log("window is back (%dx%d): the game continues", phys_w, phys_h);
+        return;
     }
-    ds_log("window ready: %dx%d", physical_width, physical_height);
+    restart_failures = 0;
+    ds_clear_game_restart();
+    (void)start_game(game_started_once);
 }
-
-static void handle_command(struct android_app *app, int32_t command) {
+static void handle_cmd(struct android_app *app, int32_t command) {
+    if (!app) {
+        ds_runtime_error("no app");
+        return;
+    }
+    g_app = app;
     switch (command) {
-        case APP_CMD_INIT_WINDOW:
-            graphics_start_tries = 0;
-            graphics_retry_at = 0;
-            graphics_failure_shown = 0;
-            start_window(app);
-            break;
-        case APP_CMD_WINDOW_RESIZED:
-        case APP_CMD_CONTENT_RECT_CHANGED:
-        case APP_CMD_CONFIG_CHANGED:
-            if (app && app->window) {
-                int width = ANativeWindow_getWidth(app->window);
-                int height = ANativeWindow_getHeight(app->window);
-                if (width > 0 && height > 0) {
-                    physical_width = width;
-                    physical_height = height;
-                    apply_screen_size();
-                }
+    case APP_CMD_INIT_WINDOW:
+
+        gfx_start_tries = 0;
+        gfx_retry_at_ns = 0;
+        gfx_failure_shown = 0;
+        start_window(app);
+        break;
+    case APP_CMD_WINDOW_RESIZED:
+    case APP_CMD_CONTENT_RECT_CHANGED:
+    case APP_CMD_CONFIG_CHANGED:
+
+        if (app->window) {
+            int w = ANativeWindow_getWidth(app->window);
+            int h = ANativeWindow_getHeight(app->window);
+            if (w > 0 && h > 0) {
+                phys_w = w;
+                phys_h = h;
+                apply_screen_size();
             }
-            break;
-        case APP_CMD_TERM_WINDOW:
-            renderer_ready = 0;
-            graphics_retry_at = 0;
-            graphics_failure_shown = 0;
-            ds_graphics_window_lost();
-            break;
-        case APP_CMD_WINDOW_REDRAW_NEEDED:
-            if (graphics_failure_shown && app && app->window) {
-                (void)ds_graphics_show_failure(app->window, graphics_start_tries);
-            }
-            break;
-        default:
-            break;
+        }
+        break;
+    case APP_CMD_TERM_WINDOW:
+
+        init_done = 0;
+        keyboard_hide();
+        gfx_retry_at_ns = 0;
+        gfx_failure_shown = 0;
+        ds_graphics_window_lost();
+        ds_sound_suspend();
+        break;
+    case APP_CMD_WINDOW_REDRAW_NEEDED:
+
+        if (gfx_failure_shown && app->window)
+            (void)ds_graphics_show_failure(app->window, gfx_start_tries);
+        break;
+    case APP_CMD_GAINED_FOCUS:
+        ds_sound_resume();
+        break;
+    case APP_CMD_LOST_FOCUS:
+        ds_sound_pause();
+        break;
+    default:
+        break;
     }
 }
-
 static int32_t handle_input(struct android_app *app, AInputEvent *event) {
-    int32_t type;
     (void)app;
-    if (!event || !renderer_ready || !game_initialized) return 0;
-
-    type = AInputEvent_getType(event);
+    if (!event)
+        return 0;
+    int32_t type = AInputEvent_getType(event);
     if (type == AINPUT_EVENT_TYPE_MOTION) {
-        size_t count = AMotionEvent_getPointerCount(event);
-        int raw;
-        int action;
-        size_t index;
-        size_t first;
-        size_t end;
-        size_t i;
-
-        if (count == 0) return 0;
+        if (!game_active)
+            return 0;
+        TouchCall call;
+        size_t count, index, i;
+        int raw, action;
+        count = AMotionEvent_getPointerCount(event);
+        if (count == 0)
+            return 0;
         raw = AMotionEvent_getAction(event);
         action = raw & AMOTION_EVENT_ACTION_MASK;
-        if (action == AMOTION_EVENT_ACTION_POINTER_DOWN) action = AMOTION_EVENT_ACTION_DOWN;
-        else if (action == AMOTION_EVENT_ACTION_POINTER_UP) action = AMOTION_EVENT_ACTION_UP;
-        index = (size_t)((raw & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >>
-                         AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
-        if (index >= count) index = 0;
-        first = action == AMOTION_EVENT_ACTION_MOVE ? 0 : index;
-        end = action == AMOTION_EVENT_ACTION_MOVE ? count : index + 1;
+        if (action == AMOTION_EVENT_ACTION_POINTER_DOWN)
+            action = AMOTION_EVENT_ACTION_DOWN;
+        else if (action == AMOTION_EVENT_ACTION_POINTER_UP)
+            action = AMOTION_EVENT_ACTION_UP;
+        index = (size_t)((raw & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
+        if (index >= count)
+            index = 0;
+        i = (action == AMOTION_EVENT_ACTION_MOVE) ? 0 : index;
+        count = (action == AMOTION_EVENT_ACTION_MOVE) ? count : index + 1;
+        for (; i < count; i++) {
 
-        for (i = first; i < end; ++i) {
-            float x = AMotionEvent_getX(event, i);
-            float y = AMotionEvent_getY(event, i);
+            call.x = AMotionEvent_getX(event, i);
+            call.y = AMotionEvent_getY(event, i);
+
             if (screen_w > 0) {
-                if (x < 0.0f) x = 0.0f;
-                if (x > (float)(screen_w - 1)) x = (float)(screen_w - 1);
+                if (call.x < 0)
+                    call.x = 0;
+                if (call.x > (float)(screen_w - 1))
+                    call.x = (float)(screen_w - 1);
             }
             if (screen_h > 0) {
-                if (y < 0.0f) y = 0.0f;
-                if (y > (float)(screen_h - 1)) y = (float)(screen_h - 1);
+                if (call.y < 0)
+                    call.y = 0;
+                if (call.y > (float)(screen_h - 1))
+                    call.y = (float)(screen_h - 1);
             }
-            game_touch(x, y, action, AMotionEvent_getPointerId(event, i));
+            call.action = action;
+            call.id = AMotionEvent_getPointerId(event, i);
+            if (!ds_call_protected(protected_game_touch, &call, "touch")) {
+                mark_game_failed("touch");
+                break;
+            }
         }
         return 1;
-    }
-
-    if (type == AINPUT_EVENT_TYPE_KEY && AKeyEvent_getKeyCode(event) == AKEYCODE_BACK) {
+    } else if (type == AINPUT_EVENT_TYPE_KEY) {
         int32_t action = AKeyEvent_getAction(event);
-        if (action == AKEY_EVENT_ACTION_DOWN) {
-            back_consumed = game_back() ? 1 : 0;
+        int32_t key = AKeyEvent_getKeyCode(event);
+        int32_t meta = AKeyEvent_getMetaState(event);
+        if (key == AKEYCODE_BACK && action == AKEY_EVENT_ACTION_DOWN &&
+            (keyboard_visible() || keyboard_uses_editor())) {
+            keyboard_hide();
+            return 1;
+        }
+        if (keyboard_visible() && (action == AKEY_EVENT_ACTION_DOWN || action == AKEY_EVENT_ACTION_MULTIPLE)) {
+            if (keyboard_handle_key(key, action, meta))
+                return 1;
+        }
+        if (key == AKEYCODE_BACK) {
+
+            if (action == AKEY_EVENT_ACTION_DOWN) {
+                BackCall call = {0};
+                back_consumed = 0;
+                if (!game_active)
+                    return 0;
+                if (!ds_call_protected(protected_game_back, &call, "back_pressed")) {
+                    mark_game_failed("back_pressed");
+                    return 1;
+                }
+                back_consumed = call.handled ? 1 : 0;
+                return back_consumed;
+            }
+            if (action == AKEY_EVENT_ACTION_UP) {
+                int c = back_consumed;
+                back_consumed = 0;
+                return c;
+            }
             return back_consumed;
         }
-        if (action == AKEY_EVENT_ACTION_UP) {
-            int consumed = back_consumed;
-            back_consumed = 0;
-            return consumed;
-        }
+
+        if (keyboard_uses_editor())
+            return 0;
+        return 1;
     }
     return 0;
 }
-
 void android_main(struct android_app *app) {
     Buffer frame = {0};
+    if (!app)
+        return;
 
-    if (!app) return;
-    app_dummy();
-    renderer_ready = 0;
-    game_initialized = 0;
-    app->onAppCmd = handle_command;
+    srand((unsigned)(time(NULL) * 2654435761u) ^ ((unsigned)getpid() * 0x9E3779B9u));
+    app->onAppCmd = handle_cmd;
     app->onInputEvent = handle_input;
-    ds_log("Cubic Battle 4: pure C game with Vulkan renderer");
-
+    net_set_java_vm(app->activity->vm);
+    ds_sound_set_java_vm((void *)app->activity->vm);
+    net_set_data_path(app->activity->internalDataPath);
+    ds_set_activity(app->activity);
+    ds_log("Cubic Battle 4: C + Vulkan");
     for (;;) {
         struct android_poll_source *source = NULL;
         int ident;
-        int timeout = app->window && renderer_ready ? 0 : (graphics_retry_at ? 50 : 250);
 
+        int drawing = app->window && init_done;
+        int timeout = drawing ? (game_active ? 0 : 10) : (gfx_retry_at_ns ? 50 : 250);
         while ((ident = ALooper_pollOnce(timeout, NULL, NULL, (void **)&source)) >= 0) {
-            if (source && source->process) source->process(app, source);
+            if (source && source->process)
+                source->process(app, source);
             if (app->destroyRequested) {
-                renderer_ready = 0;
+
+                init_done = 0;
+                game_active = 0;
+                keyboard_hide();
+                net_disconnect();
                 ds_graphics_shutdown();
+                ds_sound_shutdown();
                 return;
             }
             timeout = 0;
         }
-
-        if (app->window && !renderer_ready && graphics_retry_at &&
-            monotonic_ns() >= graphics_retry_at) {
-            graphics_retry_at = 0;
+        if (app->window && !init_done && gfx_retry_at_ns && !app->destroyRequested &&
+            monotonic_ns() >= gfx_retry_at_ns) {
+            gfx_retry_at_ns = 0;
             start_window(app);
         }
-        if (!app->window || !renderer_ready || app->destroyRequested) continue;
+        if (!app->window || !init_done || app->destroyRequested)
+            continue;
+        restart_game_if_due();
+        uint64_t frame_start = monotonic_ns();
 
-        {
-            uint64_t frame_start = monotonic_ns();
-            if (previous_loop_at) {
-                ds_graphics_report_frame_interval((double)(frame_start - previous_loop_at) / 1e9);
+        if (prev_loop_ns)
+            ds_graphics_report_frame_interval((double)(frame_start - prev_loop_ns) / 1e9);
+        prev_loop_ns = frame_start;
+        apply_screen_size();
+        if (game_active) {
+            uint64_t now = frame_start;
+            dt = prev_frame_ns ? (double)(now - prev_frame_ns) / 1000000000.0 : 0.0;
+            if (dt < 0.0)
+                dt = 0.0;
+            if (dt > 0.1)
+                dt = 0.1;
+            prev_frame_ns = now;
+            if (!ds_call_protected(protected_game_update, NULL, "update"))
+                mark_game_failed("update");
+            else if (ds_game_restart_requested()) {
+                game_active = 0;
+                restart_after_ns = monotonic_ns();
             }
-            previous_loop_at = frame_start;
-            apply_screen_size();
-            dt = previous_frame_at ? (double)(frame_start - previous_frame_at) / 1e9 : 0.0;
-            if (dt < 0.0) dt = 0.0;
-            if (dt > 0.1) dt = 0.1;
-            previous_frame_at = frame_start;
-            if (!ds_runtime_has_error()) game_update();
         }
 
         frame.pixels = NULL;
@@ -234,19 +385,28 @@ void android_main(struct android_app *app) {
         frame.height = screen_h;
         frame.stride = screen_w;
         if (frame.width > 0 && frame.height > 0 && ds_graphics_begin_frame(&frame)) {
-            if (ds_runtime_has_error()) {
-                ds_graphics_error_screen(ds_runtime_error_message());
-            } else {
-                game_draw();
-                if (ds_runtime_has_error()) {
-                    ds_graphics_error_screen(ds_runtime_error_message());
+            int draw_failed = 0;
+            if (game_active) {
+                if (!ds_call_protected(protected_game_draw, &frame, "draw")) {
+                    mark_game_failed("draw");
+                    draw_failed = 1;
+                } else if (ds_game_restart_requested()) {
+                    game_active = 0;
+                    restart_after_ns = monotonic_ns();
                 }
             }
-            ds_graphics_end_frame();
+            if (!game_active) {
+                if (draw_failed || ds_game_has_error()) {
+
+                    ds_graphics_error_screen(ds_runtime_error_message());
+                    ds_graphics_end_frame();
+                } else
+                    ds_graphics_cancel_frame();
+            } else
+                ds_graphics_end_frame();
         }
     }
 }
-
-/* The renderer is included in this translation unit so its internal modules can
- * share state without exposing a large platform API. */
 #include "graphics.c"
+#include "net.c"
+#include "sound.c"

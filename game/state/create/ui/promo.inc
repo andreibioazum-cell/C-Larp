@@ -1,0 +1,12 @@
+promo_focus = 0;
+promo_input = "";
+promo_msg_t = 0;
+promo_msg_text = "";
+promo_msg_kind = 0;
+card_active = 0;
+card_x = 0;
+card_y = 0;
+card_t = 0;
+card_open = 0;
+card_open_t = 0;
+card_code = "";
