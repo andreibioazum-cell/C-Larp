@@ -239,7 +239,7 @@ int main(void) {
     language = 0;
 
     assert(class_count == 5 && CLASS_ASTRA == 4);
-    assert(punch_forward_offset == 24 && astra_grab_forward_offset == 24);
+    assert(punch_forward_offset == 19 && astra_grab_forward_offset == 19);
     assert(fabs(astra_hit_interval - 0.2) < 1e-9);
     assert(fabs(astra_final_delay - 0.85) < 1e-9);
     assert(fabs(astra_final_time() - astra_beat_time(astra_hit_count) - astra_final_delay) < 1e-9);

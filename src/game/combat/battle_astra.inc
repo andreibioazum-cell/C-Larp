@@ -369,6 +369,10 @@ static void tick_astra(void) {
     }
     if (astra_t >= astra_final_time()) {
         astra_swing_now();
+        /* astra_release() clears the active state in this frame. Keep the
+         * final damage zone visible while it fades so the finishing hit has
+         * the same hitbox feedback as the preceding beats. */
+        astra_box_a = 1;
         astra_final_solo();
         astra_release(1);
     }
