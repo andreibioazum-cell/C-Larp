@@ -19,7 +19,7 @@ static void resolve_fighter_looks(void) {
         double i = 0;
         while (i < max_players) {
             double b = i * remote_fields;
-            resolve_fighter_look(FLOOK_REMOTE + i, arr_get(remotes, b + 10), net_player_skin(i));
+            resolve_fighter_look(FLOOK_REMOTE + i, arr_get(remotes, b + 10), arr_get(remotes, b + 11));
             i = i + 1;
         }
         return;

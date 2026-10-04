@@ -359,7 +359,8 @@ dust_side_share = 0.4;
 dust_cd = 0;
 enemy_dust_cd = 0;
 dust_enemy_min_speed = 40;
-remote_fields = 11;
+/* active, position, combat state, immutable battle class and skin */
+remote_fields = 12;
 punch_fields = 6;
 snow_fields = 8;
 remote_smooth = 14;
