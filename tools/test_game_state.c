@@ -239,7 +239,7 @@ int main(void) {
     language = 0;
 
     assert(class_count == 5 && CLASS_ASTRA == 4);
-    assert(punch_forward_offset == 24 && astra_grab_forward_offset == 24);
+    assert(punch_forward_offset == 19 && astra_grab_forward_offset == 19);
     assert(fabs(astra_hit_interval - 0.2) < 1e-9);
     assert(fabs(astra_final_delay - 0.85) < 1e-9);
     assert(fabs(astra_final_time() - astra_beat_time(astra_hit_count) - astra_final_delay) < 1e-9);
@@ -259,6 +259,12 @@ int main(void) {
     azum_zombie_tex_ok = azum_zombie_punch_tex_ok = 1;
     assert(strcmp(fighter_sprite(CLASS_AZUM, 1, SKIN_NORMAL), AZUM_PUNCH_TEX) == 0);
     assert(strcmp(fighter_sprite(CLASS_AZUM, 0, SKIN_ZOMBIE), AZUM_ZOMBIE_TEX) == 0);
+    FighterSpritePair azum_pair = look_sprite_pair(LOOK_AZUM);
+    FighterSpritePair zombie_pair = look_sprite_pair(LOOK_ZOMBIE);
+    assert(strcmp(azum_pair.idle, AZUM_TEX) == 0 && strcmp(azum_pair.punch, AZUM_PUNCH_TEX) == 0);
+    assert(strcmp(zombie_pair.idle, AZUM_ZOMBIE_TEX) == 0 &&
+           strcmp(zombie_pair.punch, AZUM_ZOMBIE_PUNCH_TEX) == 0);
+    assert(remote_fields == 12);
 
     assert(rects_overlap(0, 0, 1, 0, 10, 10, 15, 0, 1, 0, 10, 10) == 1);
     assert(rects_overlap(0, 0, 1, 0, 10, 10, 25, 0, 1, 0, 10, 10) == 0);

@@ -2,6 +2,14 @@ typedef struct Player Player;
 typedef struct Enemy Enemy;
 typedef struct Punch Punch;
 typedef struct Gift Gift;
+typedef struct FighterSpritePair FighterSpritePair;
+
+/* A fighter appearance is an immutable idle/attack pair. Keeping both names
+ * together prevents a class or skin update from mixing sprites mid-frame. */
+struct FighterSpritePair {
+    const char *idle;
+    const char *punch;
+};
 
 struct Player {
     double x;

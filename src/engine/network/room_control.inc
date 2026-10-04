@@ -174,6 +174,13 @@ static void banner_split_cmd(const char *msg, char *text_out, size_t tcap, char 
         }
     }
     snprintf(text_out, tcap, "%s", t);
+    /* text "message" is the convenient admin form. Store only the contents,
+     * not the quote characters themselves. */
+    n = strlen(text_out);
+    if (n >= 2 && text_out[0] == '"' && text_out[n - 1] == '"') {
+        memmove(text_out, text_out + 1, n - 2);
+        text_out[n - 2] = 0;
+    }
 }
 const char *net_chat_text_cmd_text(const char *msg) {
     banner_split_cmd(msg, s_text_cmd_text_ret, sizeof(s_text_cmd_text_ret), s_text_cmd_color_ret,
@@ -184,6 +191,15 @@ const char *net_chat_text_cmd_color(const char *msg) {
     banner_split_cmd(msg, s_text_cmd_text_ret, sizeof(s_text_cmd_text_ret), s_text_cmd_color_ret,
                      sizeof(s_text_cmd_color_ret));
     return s_text_cmd_color_ret;
+}
+
+void net_banner_clear(void) {
+    char url[URL];
+    if (!net.started || !net.run)
+        return;
+    snprintf(url, sizeof(url), "%s/banner.json", net.base);
+    event_write_async(url, "null");
+    LOG("banner cleared");
 }
 
 void net_banner_send(const char *text, const char *color) {

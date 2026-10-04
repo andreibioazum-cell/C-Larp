@@ -41,15 +41,27 @@ static void read_remotes(void) {
                 arr_set(remotes, b + 8, y);
                 arr_set(remotes, b + 9, a);
                 arr_set(remotes, b + 6, net_player_punch(s));
+                /* Class and skin cannot change during a battle. Snapshot them
+                 * together when the remote joins instead of reading partially
+                 * updated network fields every render frame. */
+                double rcls = finite_or(net_player_class(s), CLASS_ORDINARY);
+                double rskin = finite_or(net_player_skin(s), SKIN_NORMAL);
+                if (rcls < CLASS_ORDINARY || rcls > CLASS_ASTRA) {
+                    rcls = CLASS_ORDINARY;
+                }
+                if (rskin < SKIN_NORMAL || rskin >= SKIN_COUNT) {
+                    rskin = SKIN_NORMAL;
+                }
+                arr_set(remotes, b + 10, floor(rcls));
+                arr_set(remotes, b + 11, floor(rskin));
             } else {
                 arr_set(remotes, b + 7, x);
                 arr_set(remotes, b + 8, y);
                 arr_set(remotes, b + 9, a);
             }
-            arr_set(remotes, b + 4, net_player_hp(s));
-            arr_set(remotes, b + 5, net_player_alive(s));
-            arr_set(remotes, b + 10, net_player_class(s));
-            double net_p = net_player_punch(s);
+            arr_set(remotes, b + 4, finite_or(net_player_hp(s), arr_get(remotes, b + 4)));
+            arr_set(remotes, b + 5, net_player_alive(s) == 1);
+            double net_p = finite_or(net_player_punch(s), arr_get(remotes, b + 6));
             double prev_p = arr_get(remotes, b + 6);
             if (net_p != prev_p) {
                 arr_set(remotes, b + 6, net_p);

@@ -1,3 +1,4 @@
+static FighterSpritePair look_sprite_pair(double look);
 static const char *look_idle_tex(double look);
 static const char *look_punch_tex(double look);
 static const char *look_tex(double look, double punching);

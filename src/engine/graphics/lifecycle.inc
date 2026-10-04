@@ -229,7 +229,10 @@ int tex_ready(const char *name) {
     if (t->gpu.uploaded)
         return 1;
     ds_vk_pending_texture(t);
-    return t->upload_tries == 0;
+    /* Pending is not drawable yet. Returning ready here allowed a fighter to
+     * select a texture whose Vulkan descriptor did not exist, making the cube
+     * disappear for one or more frames during upload/recreation. */
+    return 0;
 }
 
 void rect(float x, float y, float w, float h, uint32_t c) {

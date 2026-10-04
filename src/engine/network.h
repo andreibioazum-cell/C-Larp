@@ -190,6 +190,7 @@ double net_chat_is_text_cmd(const char *msg);
 const char *net_chat_text_cmd_text(const char *msg);
 const char *net_chat_text_cmd_color(const char *msg);
 void net_banner_send(const char *text, const char *color);
+void net_banner_clear(void);
 double net_banner_ts(void);
 const char *net_banner_text(void);
 const char *net_banner_color(void);

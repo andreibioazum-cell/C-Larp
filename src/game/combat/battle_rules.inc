@@ -1,46 +1,30 @@
-static const char *look_idle_tex(double look) {
+static FighterSpritePair look_sprite_pair(double look) {
+    FighterSpritePair pair = {"", ""};
     if (look == LOOK_AZUM) {
-        return AZUM_TEX;
+        pair.idle = AZUM_TEX;
+        pair.punch = AZUM_PUNCH_TEX;
+    } else if (look == LOOK_ZOMBIE) {
+        pair.idle = AZUM_ZOMBIE_TEX;
+        pair.punch = AZUM_ZOMBIE_PUNCH_TEX;
+    } else if (look == LOOK_SANTA) {
+        pair.idle = SANTA_TEX;
+        pair.punch = SANTA_PUNCH_TEX;
+    } else if (look == LOOK_EBUC) {
+        pair.idle = EBUC_TEX;
+        pair.punch = EBUC_PUNCH_TEX;
+    } else if (look == LOOK_ELF) {
+        pair.idle = EBUC_ELF_TEX;
+        pair.punch = EBUC_ELF_PUNCH_TEX;
+    } else if (look == LOOK_ORDINARY) {
+        pair.idle = ORDINARY_TEX;
+        pair.punch = PUNCH_TEX;
     }
-    if (look == LOOK_ZOMBIE) {
-        return AZUM_ZOMBIE_TEX;
-    }
-    if (look == LOOK_SANTA) {
-        return SANTA_TEX;
-    }
-    if (look == LOOK_EBUC) {
-        return EBUC_TEX;
-    }
-    if (look == LOOK_ELF) {
-        return EBUC_ELF_TEX;
-    }
-    if (look == LOOK_ORDINARY) {
-        return ORDINARY_TEX;
-    }
-    return "";
+    return pair;
 }
 
-static const char *look_punch_tex(double look) {
-    if (look == LOOK_AZUM) {
-        return AZUM_PUNCH_TEX;
-    }
-    if (look == LOOK_ZOMBIE) {
-        return AZUM_ZOMBIE_PUNCH_TEX;
-    }
-    if (look == LOOK_SANTA) {
-        return SANTA_PUNCH_TEX;
-    }
-    if (look == LOOK_EBUC) {
-        return EBUC_PUNCH_TEX;
-    }
-    if (look == LOOK_ELF) {
-        return EBUC_ELF_PUNCH_TEX;
-    }
-    if (look == LOOK_ORDINARY) {
-        return PUNCH_TEX;
-    }
-    return "";
-}
+static const char *look_idle_tex(double look) { return look_sprite_pair(look).idle; }
+
+static const char *look_punch_tex(double look) { return look_sprite_pair(look).punch; }
 
 static const char *look_tex(double look, double punching) {
     if (punching == 1) {
@@ -53,15 +37,14 @@ static double look_ready(double look) {
     if (look == LOOK_NONE) {
         return 0;
     }
-    return tex_ready(look_idle_tex(look));
+    FighterSpritePair pair = look_sprite_pair(look);
+    /* Publish an appearance only when its two sprites are ready. This makes a
+     * class+skin pair atomic and avoids switching to a different pose asset
+     * while Vulkan is still restoring textures. */
+    return tex_ready(pair.idle) == 1 && tex_ready(pair.punch) == 1;
 }
 
-static double look_swing_ready(double look) {
-    if (look == LOOK_NONE) {
-        return 0;
-    }
-    return tex_ready(look_punch_tex(look));
-}
+static double look_swing_ready(double look) { return look_ready(look); }
 
 static double look_base(double look) {
     if (look == LOOK_ZOMBIE) {

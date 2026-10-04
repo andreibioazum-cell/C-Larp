@@ -56,8 +56,7 @@ tools/                          проверки и служебные прог�
 Игровые подсистемы собираются как единый C translation unit через
 `src/game/game.c`. Это сохраняет внутренние функции закрытыми, но код остаётся
 разделённым по предметным модулям. Публичный интерфейс игры находится в
-`src/game/game.h`. Правила зависимостей подробно описаны в
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+`src/game/game.h`.
 
 `platform/android/java/com/cb4/GameActivity.java` содержит системный мост к
 `EditText` и Android-диалогу об альфа-версии. Игровой логики в Java нет.
@@ -121,4 +120,4 @@ cmake -B build \
 cmake --build build
 ```
 
-Минимальная версия — Android 8, целевая — Android 15. Требуется Vulkan 1.0.
+Минимальная версия - Android 8, целевая - Android 15. Требуется Vulkan 1.0.

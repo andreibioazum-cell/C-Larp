@@ -79,7 +79,7 @@ def check_assets() -> None:
     durations = {
         "lobbymusic.wav": 35,
         "winter_jingle.wav": 35,
-        "astra_azum_showdown.wav": 60,
+        "astra_azum_showdown.wav": 45,
     }
     for name, expected in durations.items():
         path = ROOT / "assets" / "audio" / name

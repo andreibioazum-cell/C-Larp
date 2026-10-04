@@ -2,6 +2,7 @@ static void start_transition(double target);
 static void leave_screen(double state);
 static double enter_screen(double state);
 static void update_transition(void);
+static void play_button_click(void);
 static void start_music(void);
 static void logic_init(void);
 static void update_music(void);

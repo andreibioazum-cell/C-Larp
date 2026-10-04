@@ -104,6 +104,9 @@ static double update_remote_grab(double slot) {
     }
     if (t >= astra_final_time()) {
         remote_grab_swing(slot);
+        /* remote_grab_stop() clears the grab immediately, so explicitly pulse
+         * the final damage zone and let the normal fade-out render it. */
+        arr_set(rgrab_box_a, slot, 1);
         double dead = take_damage(astra_final_damage(player->max_hp));
         remote_grab_stop(slot);
         if (dead == 1) {
