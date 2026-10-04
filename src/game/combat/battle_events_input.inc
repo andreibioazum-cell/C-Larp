@@ -319,11 +319,13 @@ static void touch_game(double x, double y, double action, double id) {
         }
     }
     if (back_hit(x, y) == 1 && action == 0) {
+        play_button_click();
         start_transition(0);
         return;
     }
     if (class_has_super(player_class) == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE)) {
         if (action == 0 && sqrt((x - atk2_x) * (x - atk2_x) + (y - atk2_y) * (y - atk2_y)) <= 96) {
+            play_button_click();
             super_id = id;
             return;
         }
@@ -334,6 +336,7 @@ static void touch_game(double x, double y, double action, double id) {
         }
     }
     if (action == 0 && sqrt((x - atk_x) * (x - atk_x) + (y - atk_y) * (y - atk_y)) <= 96) {
+        play_button_click();
         aim_id = id;
         return;
     }

@@ -77,6 +77,14 @@ static void update_transition(void) {
     }
 }
 
+static void play_button_click(void) {
+    if (button_click_ok == 1) {
+        /* The sample is preloaded and starts at frame zero, so touch feedback
+         * never waits for file decoding or for the finger to be released. */
+        snd_play(BUTTON_CLICK_SOUND);
+    }
+}
+
 static void start_music(void) {
     music_ok = snd_load(LOBBY_MUSIC);
     if (music_ok == 0) {
@@ -92,6 +100,10 @@ static void start_music(void) {
 static void logic_init(void) {
     ds_log("init: loading textures");
     load_textures();
+    button_click_ok = snd_load(BUTTON_CLICK_SOUND);
+    if (button_click_ok == 1) {
+        snd_volume(BUTTON_CLICK_SOUND, 0.7);
+    }
     net_set_firebase_key(FB_KEY);
     net_autologin(FIREBASE);
     start_music();

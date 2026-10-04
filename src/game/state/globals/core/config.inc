@@ -401,3 +401,5 @@ double login_btn_gap;
 const char *login_nick;
 const char *login_pass;
 const char *LOBBY_MUSIC;
+const char *BUTTON_CLICK_SOUND;
+double button_click_ok;
