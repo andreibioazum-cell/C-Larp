@@ -93,6 +93,33 @@ static void reset_battle(void) {
     enemy_punch_dx = 1;
     enemy_punch_dy = 0;
     dash_box_a = 0;
+    astra_state = 0;
+    astra_t = 0;
+    astra_hits_done = 0;
+    astra_caught = 0;
+    astra_x = 0;
+    astra_y = 0;
+    astra_dx = 1;
+    astra_dy = 0;
+    astra_cd = 0;
+    astra_seq = 0;
+    astra_pub = 0;
+    astra_box_a = 0;
+    pgrab_active = 0;
+    pgrab_slot = -1;
+    pgrab_t = 0;
+    pgrab_hits = 0;
+    pthrow_t = 0;
+    pthrow_dx = 0;
+    pthrow_dy = 0;
+    pthrow_speed = 0;
+    enemy_throw_t = 0;
+    enemy_throw_dx = 0;
+    enemy_throw_dy = 0;
+    enemy_throw_speed = 0;
+    astra_punch_t = 0;
+    player_grab_quiet = 0;
+    enemy_grab_quiet = 0;
     snow_ball_a = 0;
     snow_boom_a = 0;
     universe_box_a = 0;
@@ -154,6 +181,11 @@ static void reset_battle(void) {
     arr_clear(remote_station);
     arr_clear(remote_universe);
     arr_clear(remote_dash);
+    arr_clear(remote_grab);
+    arr_clear(rgrab_box_a);
+    arr_clear(rgrab_punch_t);
+    arr_clear(fighter_looks);
+    arr_clear(fighter_swings);
     arr_clear(rpunch_a);
     arr_clear(rdash_box_a);
     arr_clear(rsnow_ball_a);
@@ -192,6 +224,11 @@ static void reset_battle(void) {
         i = i + 1;
     }
     i = 0;
+    while (i < max_players * grab_fields) {
+        arr_push(remote_grab, 0);
+        i = i + 1;
+    }
+    i = 0;
     while (i < max_players) {
         arr_push(rpunch_a, 0);
         arr_push(rdash_box_a, 0);
@@ -199,6 +236,14 @@ static void reset_battle(void) {
         arr_push(rsnow_boom_a, 0);
         arr_push(runiverse_box_a, 0);
         arr_push(runiverse_fx_a, 0);
+        arr_push(rgrab_box_a, 0);
+        arr_push(rgrab_punch_t, 0);
+        i = i + 1;
+    }
+    i = 0;
+    while (i < max_players + FLOOK_REMOTE) {
+        arr_push(fighter_looks, LOOK_NONE);
+        arr_push(fighter_swings, 0);
         i = i + 1;
     }
     i = 0;

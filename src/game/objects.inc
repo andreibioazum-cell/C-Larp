@@ -12,6 +12,7 @@ static Player *player_new(void) {
     self->max_hp = 10;
     return self;
 }
+
 static void player_free(Player *self) {
     free(self);
 }
@@ -63,6 +64,7 @@ static Enemy *enemy_new(void) {
     self->feint = 0;
     return self;
 }
+
 static void enemy_free(Enemy *self) {
     free(self);
 }
@@ -82,6 +84,7 @@ static Punch *punch_new(void) {
     self->hit = 0;
     return self;
 }
+
 static void punch_free(Punch *self) {
     free(self);
 }
@@ -102,6 +105,7 @@ static Gift *gift_new(void) {
     self->pierce = 0;
     return self;
 }
+
 static void gift_free(Gift *self) {
     free(self);
 }

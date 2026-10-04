@@ -5,6 +5,7 @@ static void draw_lobby(void);
 static void draw_modes(void);
 static void draw_settings(void);
 static void draw_privacy(void);
+static void draw_card_look(double look, double x, double y, double scale);
 static void draw_class_card(double vi);
 static void draw_stat_row(const char *label, double x, double y, double w, double h, double cur, double maxv,
                           uint32_t c);

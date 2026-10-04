@@ -13,3 +13,4 @@ static void draw_hit_dash(void);
 static void draw_hit_universe_zone(double env);
 static void draw_hit_universe(void);
 static void draw_ability_hitboxes(void);
+static void draw_hit_astra(void);

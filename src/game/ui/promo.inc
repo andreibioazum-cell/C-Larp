@@ -22,8 +22,9 @@ static void card_spawn(void) {
     card_x = cx;
     card_y = cy;
     card_t = 0;
+    card_ang = (rand() % 360) * pi / 180;
     card_active = 1;
-    ds_log("card dropped at %g %g", cx, cy);
+    ds_log("card dropped at %g %g, flying in from %g deg", cx, cy, card_ang * 180 / pi);
 }
 
 static void card_collect(void) {
@@ -62,15 +63,29 @@ static void draw_card_item(void) {
     if (card_active == 0) {
         return;
     }
+    double p = clamp(card_t / card_pop_time, 0, 1);
+    double pop = 1 - (1 - p) * (1 - p);
+    double travel = (1 - pop) * card_fly_dist;
+    double cx = card_x - cos(card_ang) * travel;
+    double cy = card_y - sin(card_ang) * travel;
     double bob = 4 * sin(card_t * 3);
-    double x = card_x - 22;
-    double y = card_y - 30 + bob;
+    double ccy = cy + bob;
+    double sc = pop;
+    if (sc <= 0.02) {
+        return;
+    }
     double a = 110 + 95 * sin(card_t * 5);
-    double aa = floor(clamp(a, 0, 255));
-    ring(card_x, card_y + bob, 44, 3, (((unsigned)(int)aa) << 24) | 0xFFB388FF);
-    roundrect(x - 3, y - 3, 50, 66, 10, 0xFFB388FF);
-    roundrect(x, y, 44, 60, 8, 0xFFF7F3FF);
-    text_in_box("?", x, y + 8, 44, 44, 0xFF5F10A0, 1.1);
+    double aa = floor(clamp(a * pop, 0, 255));
+    ring(cx, ccy, 44 * sc, 3, (((unsigned)(int)aa) << 24) | ((unsigned)(int)card_ring_rgb));
+    double bw = 50 * sc;
+    double bh = 66 * sc;
+    roundrect(cx - bw / 2, ccy - bh / 2, bw, bh, 10 * sc, card_ring_rgb);
+    double iw = 44 * sc;
+    double ih = 60 * sc;
+    double ix = cx - iw / 2;
+    double iy = ccy - ih / 2;
+    roundrect(ix, iy, iw, ih, 8 * sc, card_body_rgb);
+    text_in_box("?", ix, iy + 8 * sc, iw, iw, card_glyph_rgb, 1.1 * sc);
 }
 
 static void draw_card_open(void) {
@@ -84,7 +99,7 @@ static void draw_card_open(void) {
     double y = screen_h / 2 - h / 2;
     roundrect(x - 8, y - 8, w + 16, h + 16, 36, card_ring);
     roundrect(x, y, w, h, 30, card_bg);
-    ctext_scaled(tr_card_title(), y + 36, 0xFFB388FF, 1.05);
+    ctext_scaled(tr_card_title(), y + 36, card_ring_rgb, 1.05);
     ctext_scaled(tr_card_sub(), y + 88, text_color, 0.55);
     double sc = 0.85;
     if (text_ink_width(card_code) * sc > w - 56) {

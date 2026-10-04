@@ -131,74 +131,105 @@ static void update_remote_universe(void) {
     }
 }
 
+static double remote_dash_get(double slot, double field) {
+    return arr_get(remote_dash, slot * dash_fields + field);
+}
+
+static void remote_dash_set(double slot, double field, double value) {
+    arr_set(remote_dash, slot * dash_fields + field, value);
+}
+
+static void remote_dash_begin(double slot) {
+    remote_dash_set(slot, DASH_ACTIVE, 1);
+    remote_dash_set(slot, DASH_TIME_LEFT, azum_dash_time);
+    remote_dash_set(slot, DASH_HIT_DONE, 0);
+}
+
+static void remote_dash_stop(double slot) {
+    remote_dash_set(slot, DASH_ACTIVE, 0);
+    remote_dash_set(slot, DASH_HIT_DONE, 0);
+}
+
+static double remote_dash_track(double slot) {
+    double ox = net_player_dash_x(slot) * screen_w;
+    double oy = net_player_dash_y(slot) * screen_h;
+    double vx = net_player_x(slot) * screen_w - ox;
+    double vy = net_player_y(slot) * screen_h - oy;
+    double leg = sqrt(vx * vx + vy * vy);
+    if (leg < 1) {
+        leg = 0;
+        remote_dash_set(slot, DASH_DIR_X, 0);
+        remote_dash_set(slot, DASH_DIR_Y, 0);
+    } else {
+        remote_dash_set(slot, DASH_DIR_X, vx / leg);
+        remote_dash_set(slot, DASH_DIR_Y, vy / leg);
+    }
+    remote_dash_set(slot, DASH_X, ox);
+    remote_dash_set(slot, DASH_Y, oy);
+    remote_dash_set(slot, DASH_TRAVELLED, leg);
+    return leg;
+}
+
+static double remote_dash_apply_hit(double slot, double leg) {
+    double target = dash_resolve_target(remote_dash_get(slot, DASH_X), remote_dash_get(slot, DASH_Y),
+                                        remote_dash_get(slot, DASH_DIR_X), remote_dash_get(slot, DASH_DIR_Y), leg);
+    if (target == 0) {
+        remote_dash_set(slot, DASH_HIT_DONE, 1);
+        if (revive_prot <= 0) {
+            take_damage(azum_dash_damage);
+            stun_player(azum_dash_stun);
+            ds_log("remote dash hit player");
+            if (finished != 0) {
+                return 1;
+            }
+        }
+    } else if (target >= 1 && target <= turret_max) {
+        remote_dash_set(slot, DASH_HIT_DONE, 1);
+        damage_turret(target - 1, azum_dash_damage);
+    }
+    return 0;
+}
+
+static double update_remote_dash(double slot) {
+    double gen = net_player_dash(slot);
+    if (gen != remote_dash_get(slot, DASH_GEN)) {
+        remote_dash_set(slot, DASH_GEN, gen);
+        if (gen > 0) {
+            remote_dash_begin(slot);
+        } else {
+            remote_dash_set(slot, DASH_ACTIVE, 0);
+        }
+    }
+    if (remote_dash_get(slot, DASH_ACTIVE) != 1) {
+        return 0;
+    }
+    double leg = remote_dash_track(slot);
+    double time_left = remote_dash_get(slot, DASH_TIME_LEFT) - dt;
+    if (time_left < 0) {
+        time_left = 0;
+    }
+    remote_dash_set(slot, DASH_TIME_LEFT, time_left);
+    if (time_left <= 0) {
+        remote_dash_stop(slot);
+        return 0;
+    }
+    if (remote_dash_get(slot, DASH_HIT_DONE) == 0 && finished == 0 && leg > 0) {
+        return remote_dash_apply_hit(slot, leg);
+    }
+    return 0;
+}
+
 static void update_remote_dashes(void) {
     if (net_slot() < 0) {
         return;
     }
-    double s = 0;
-    while (s < max_players) {
-        double b = s * dash_fields;
-        if (s == net_slot() || net_player_online(s) != 1) {
-            arr_set(remote_dash, b, 0);
-            arr_set(remote_dash, b + 1, 0);
-        } else {
-            double gen = net_player_dash(s);
-            if (gen != arr_get(remote_dash, b)) {
-                arr_set(remote_dash, b, gen);
-                if (gen > 0) {
-                    arr_set(remote_dash, b + 1, 1);
-                    arr_set(remote_dash, b + 6, azum_dash_time);
-                    arr_set(remote_dash, b + 7, 0);
-                } else {
-                    arr_set(remote_dash, b + 1, 0);
-                }
-            }
-            if (arr_get(remote_dash, b + 1) == 1) {
-                double ox = net_player_dash_x(s) * screen_w;
-                double oy = net_player_dash_y(s) * screen_h;
-                double vx = net_player_x(s) * screen_w - ox;
-                double vy = net_player_y(s) * screen_h - oy;
-                double leg = sqrt(vx * vx + vy * vy);
-                if (leg < 1) {
-                    leg = 0;
-                    arr_set(remote_dash, b + 4, 0);
-                    arr_set(remote_dash, b + 5, 0);
-                } else {
-                    arr_set(remote_dash, b + 4, vx / leg);
-                    arr_set(remote_dash, b + 5, vy / leg);
-                }
-                arr_set(remote_dash, b + 2, ox);
-                arr_set(remote_dash, b + 3, oy);
-                arr_set(remote_dash, b + 8, leg);
-                double t = arr_get(remote_dash, b + 6) - dt;
-                if (t < 0) {
-                    t = 0;
-                }
-                arr_set(remote_dash, b + 6, t);
-                if (t <= 0) {
-                    arr_set(remote_dash, b + 1, 0);
-                    arr_set(remote_dash, b + 7, 0);
-                } else if (arr_get(remote_dash, b + 7) == 0 && finished == 0 && leg > 0) {
-                    double target = dash_resolve_target(arr_get(remote_dash, b + 2), arr_get(remote_dash, b + 3),
-                                                        arr_get(remote_dash, b + 4), arr_get(remote_dash, b + 5), leg);
-                    if (target == 0) {
-                        arr_set(remote_dash, b + 7, 1);
-                        if (revive_prot <= 0) {
-                            take_damage(azum_dash_damage);
-                            stun_player(azum_dash_stun);
-                            ds_log("remote dash hit player");
-                            if (finished != 0) {
-                                return;
-                            }
-                        }
-                    } else if (target >= 1 && target <= turret_max) {
-                        arr_set(remote_dash, b + 7, 1);
-                        damage_turret(target - 1, azum_dash_damage);
-                    }
-                }
-            }
+    for (double slot = 0; slot <= max_players - 1; slot += 1) {
+        if (slot == net_slot() || net_player_online(slot) != 1) {
+            remote_dash_set(slot, DASH_GEN, 0);
+            remote_dash_set(slot, DASH_ACTIVE, 0);
+        } else if (update_remote_dash(slot) == 1) {
+            return;
         }
-        s = s + 1;
     }
 }
 
@@ -210,7 +241,13 @@ static void flush_queued_action(void) {
         return;
     }
     if (queued_super == 1) {
-        if (player_class == CLASS_AZUM) {
+        if (player_class == CLASS_ASTRA) {
+            if (astra_cd <= 0 && astra_state == 0) {
+                queued_super = 0;
+                fire_super();
+                return;
+            }
+        } else if (player_class == CLASS_AZUM) {
             if (dash_cd <= 0) {
                 queued_super = 0;
                 fire_super();
@@ -282,6 +319,7 @@ static void update_game(void) {
     tick_player_poison();
     tick_turrets();
     tick_universe();
+    tick_astra();
     tick_enemy_class();
     tick_hitbox_fades();
     tick_status_fades();

@@ -20,6 +20,13 @@ static void enemy_reset_class_state(void) {
     enemy_dash_cd = 0;
     enemy_dash_x0 = 0;
     enemy_dash_y0 = 0;
+    enemy_grab_clear();
+    egrab_x = 0;
+    egrab_y = 0;
+    egrab_dx = 1;
+    egrab_dy = 0;
+    egrab_punch_t = 0;
+    egrab_box_a = 0;
     enemy_last_turret_slot = 0;
     arr_clear(enemy_turret_x);
     arr_clear(enemy_turret_y);
@@ -44,12 +51,15 @@ static void enemy_pick_random_class(void) {
     double azum_to = enemy_class_azum_chance;
     double ebuc_to = azum_to + enemy_class_ebuc_chance;
     double santa_to = ebuc_to + enemy_class_santa_chance;
+    double astra_to = santa_to + enemy_class_astra_chance;
     if (roll < azum_to) {
         enemy_class = CLASS_AZUM;
     } else if (roll < ebuc_to) {
         enemy_class = CLASS_EBUC;
     } else if (roll < santa_to) {
         enemy_class = CLASS_SANTA;
+    } else if (roll < astra_to) {
+        enemy_class = CLASS_ASTRA;
     } else {
         enemy_class = CLASS_ORDINARY;
     }
@@ -61,6 +71,7 @@ static void enemy_pick_random_class(void) {
     enemy_super_kind = 0;
     enemy_dash_cd = enemy_first_super_min + (rand() % 100) / 100.0 * 2.0;
     enemy_dash_active = 0;
+    enemy_grab_clear();
     enemy->max_hp = player_max_hp_for(enemy_class);
     enemy->hp = enemy->max_hp;
     ds_log("enemy class %g hp %g", enemy_class, enemy->max_hp);

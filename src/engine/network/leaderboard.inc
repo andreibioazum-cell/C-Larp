@@ -192,9 +192,10 @@ static int actor_same(const Actor *x, const Actor *y) {
            x->station2_x == y->station2_x && x->station2_y == y->station2_y && x->station2_hp == y->station2_hp &&
            x->station3_x == y->station3_x && x->station3_y == y->station3_y && x->station3_hp == y->station3_hp &&
            x->dash_x == y->dash_x && x->dash_y == y->dash_y && x->dash_dx == y->dash_dx && x->dash_dy == y->dash_dy &&
-           x->dash == y->dash && x->universe_x == y->universe_x && x->universe_y == y->universe_y &&
-           x->universe == y->universe && x->thud == y->thud && x->cls == y->cls && x->level == y->level &&
-           x->skin == y->skin && !strcmp(x->nick, y->nick);
+           x->dash == y->dash && x->grab_x == y->grab_x && x->grab_y == y->grab_y && x->grab_dx == y->grab_dx &&
+           x->grab_dy == y->grab_dy && x->grab == y->grab && x->universe_x == y->universe_x &&
+           x->universe_y == y->universe_y && x->universe == y->universe && x->thud == y->thud && x->cls == y->cls &&
+           x->level == y->level && x->skin == y->skin && !strcmp(x->nick, y->nick);
 }
 
 static double clamp01(double v) {

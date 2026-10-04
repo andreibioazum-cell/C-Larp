@@ -85,6 +85,7 @@ static double quest_w(void);
 static double quest_x(void);
 static double quest_top(void);
 static double quest_row_y(double i);
+static double hit_quest_row(double px, double py, double i);
 static double warn_btn_w(void);
 static double warn_btn_y(void);
 static double hit_warn_btn(double px, double py);

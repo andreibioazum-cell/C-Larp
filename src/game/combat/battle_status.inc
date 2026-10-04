@@ -43,6 +43,12 @@ static void tick_status_fades(void) {
     double pfreeze = player_freeze > 0;
     double ppoison = player_poison > 0;
     double pstun = player_stun > 0;
+    if (enemy_grab_quiet > 0) {
+        estun = 0;
+    }
+    if (player_grab_quiet > 0) {
+        pstun = 0;
+    }
     if (finished != 0) {
         efreeze = 0;
         epoison = 0;

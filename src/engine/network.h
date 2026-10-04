@@ -40,6 +40,8 @@ void net_publish_turrets(double x1, double y1, double hp1, double x2, double y2,
                          double hp3, double count);
 
 void net_publish_dash(double x, double y, double dx, double dy, double dash);
+
+void net_publish_grab(double x, double y, double dx, double dy, double grab);
 void net_publish_universe(double x, double y, double counter);
 
 void net_publish_thud(double counter);
@@ -77,6 +79,11 @@ double net_player_station3_y(double slot);
 double net_player_station3_hp(double slot);
 
 double net_player_station(double slot);
+double net_player_grab_x(double slot);
+double net_player_grab_y(double slot);
+double net_player_grab_dx(double slot);
+double net_player_grab_dy(double slot);
+double net_player_grab(double slot);
 double net_player_universe_x(double slot);
 double net_player_universe_y(double slot);
 double net_player_universe(double slot);
@@ -113,6 +120,11 @@ double net_load_ebuc_levels_unlocked(void);
 
 double net_load_bp_level(void);
 double net_load_azum_skin(void);
+
+double net_load_astra(void);
+double net_load_astra_level(void);
+double net_load_astra_levels_unlocked(void);
+void net_save_astra(double owned, double level, double levels_unlocked);
 void net_save_progress(double cups, double candies, double cls, double azum, double santa, double ebuc, double level,
                        double levels_unlocked);
 void net_save_progress_all(double cups, double candies, double cls, double azum, double santa, double ebuc,

@@ -57,6 +57,20 @@ void net_publish_dash(double x, double y, double dx, double dy, double dash) {
     }
     unlock();
 }
+
+void net_publish_grab(double x, double y, double dx, double dy, double grab) {
+    lock();
+    net.me.grab_x = x;
+    net.me.grab_y = y;
+    net.me.grab_dx = dx;
+    net.me.grab_dy = dy;
+    net.me.grab = grab;
+    if (net.slot >= 0) {
+        net.players[net.slot] = net.me;
+        net.players[net.slot].online = 1;
+    }
+    unlock();
+}
 void net_publish_universe(double x, double y, double counter) {
     lock();
     net.me.universe_x = x;
@@ -274,6 +288,11 @@ READER(net_player_dash_y, net.players[i].dash_y)
 READER(net_player_dash_dx, net.players[i].dash_dx)
 READER(net_player_dash_dy, net.players[i].dash_dy)
 READER(net_player_dash, net.players[i].dash)
+READER(net_player_grab_x, net.players[i].grab_x)
+READER(net_player_grab_y, net.players[i].grab_y)
+READER(net_player_grab_dx, net.players[i].grab_dx)
+READER(net_player_grab_dy, net.players[i].grab_dy)
+READER(net_player_grab, net.players[i].grab)
 READER(net_player_universe_x, net.players[i].universe_x)
 READER(net_player_universe_y, net.players[i].universe_y)
 READER(net_player_universe, net.players[i].universe)

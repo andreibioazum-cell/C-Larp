@@ -129,6 +129,7 @@ static void draw_online(void) {
         draw_chat();
         return;
     }
+    resolve_fighter_looks();
     draw_arena_background();
     draw_disco();
     draw_field();
@@ -142,7 +143,6 @@ static void draw_online(void) {
     double rx = 0;
     double ry = 0;
     double ra = 0;
-    double rcls = 0;
     double punching = 0;
     while (i < max_players) {
         b = i * remote_fields;
@@ -151,13 +151,15 @@ static void draw_online(void) {
             rx = arr_get(remotes, b + 1);
             ry = arr_get(remotes, b + 2);
             ra = arr_get(remotes, b + 3);
-            rcls = arr_get(remotes, b + 10);
             punching = 0;
             if (arr_get(remote_punches, rb) == 1) {
                 punching = 1;
                 ra = atan2(arr_get(remote_punches, rb + 4), arr_get(remote_punches, rb + 3));
+            } else if (remote_grab_punching(i) == 1) {
+                punching = 1;
             }
-            draw_fighter_shadow(rx, ry, ra, rcls, punching, net_player_skin(i));
+            draw_fighter_shadow(rx, ry, ra, fighter_look_of(FLOOK_REMOTE + i),
+                                fighter_pose_of(FLOOK_REMOTE + i, punching));
         }
         i = i + 1;
     }
@@ -198,13 +200,15 @@ static void draw_online(void) {
             rx = arr_get(remotes, b + 1);
             ry = arr_get(remotes, b + 2);
             ra = arr_get(remotes, b + 3);
-            rcls = arr_get(remotes, b + 10);
             punching = 0;
             if (arr_get(remote_punches, rb) == 1) {
                 punching = 1;
                 ra = atan2(arr_get(remote_punches, rb + 4), arr_get(remote_punches, rb + 3));
+            } else if (remote_grab_punching(i) == 1) {
+                punching = 1;
             }
-            draw_fighter_body(rx, ry, ra, rcls, punching, net_player_skin(i));
+            draw_fighter_body(rx, ry, ra, fighter_look_of(FLOOK_REMOTE + i),
+                              fighter_pose_of(FLOOK_REMOTE + i, punching));
             const char *rn = net_player_nick(i);
             if (str_len(rn) > 0) {
                 uint32_t rncol = admin_head_color_of(rn, 0xFFFFFF);
@@ -318,8 +322,7 @@ static void touch_game(double x, double y, double action, double id) {
         start_transition(0);
         return;
     }
-    if ((player_class == CLASS_AZUM || player_class == CLASS_SANTA || player_class == CLASS_EBUC) &&
-        (game_state == ST_SOLO || game_state == ST_ONLINE)) {
+    if (class_has_super(player_class) == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE)) {
         if (action == 0 && sqrt((x - atk2_x) * (x - atk2_x) + (y - atk2_y) * (y - atk2_y)) <= 96) {
             super_id = id;
             return;

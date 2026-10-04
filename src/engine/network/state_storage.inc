@@ -12,12 +12,12 @@
 #include <android/log.h>
 #define LOG(...)                                                                                                       \
     do {                                                                                                               \
-        __android_log_print(ANDROID_LOG_INFO, "CubicBattleNet", __VA_ARGS__);                                          \
+        __android_log_print(ANDROID_LOG_INFO, "CubicBattleNet", __VA_ARGS__);                                            \
         ds_console_log(0, __VA_ARGS__);                                                                                \
     } while (0)
 #define LOGERR(...)                                                                                                    \
     do {                                                                                                               \
-        __android_log_print(ANDROID_LOG_ERROR, "CubicBattleNet", __VA_ARGS__);                                         \
+        __android_log_print(ANDROID_LOG_ERROR, "CubicBattleNet", __VA_ARGS__);                                           \
         ds_console_log(1, __VA_ARGS__);                                                                                \
     } while (0)
 #define URL 512
@@ -80,6 +80,8 @@ typedef struct {
     double station2_x, station2_y, station2_hp;
     double station3_x, station3_y, station3_hp;
     double dash_x, dash_y, dash_dx, dash_dy, dash;
+
+    double grab_x, grab_y, grab_dx, grab_dy, grab;
     double universe_x, universe_y, universe;
     double thud;
     double cls, level, skin;
@@ -173,11 +175,17 @@ typedef struct {
     int santa_level, santa_levels_unlocked;
     int ebuc_level, ebuc_levels_unlocked;
     int bp_level, azum_skin;
+
+    int astra, astra_level, astra_levels_unlocked;
 } Progress;
 static Progress pg = {.lock = DS_MUTEX_INIT};
 #define LEVEL_MAX 3
 #define BP_MAX 5
 #define SKIN_MAX 1
+
+#define SKIN_FLAGS_MAX 3
+
+#define SKIN_OF_CLASS(flags, cls) (((cls) == 3) ? (((flags) >> 1) & 1) : (((cls) == 4) ? 0 : ((flags) & 1)))
 static int pending_cls = 0;
 static int pending_level = 0;
 
@@ -236,7 +244,8 @@ static void file_write_atomic(const char *path, const char *text) {
 static void progress_write(int cups, int candies, int cls, int azum, int santa, int ebuc, int level,
                            int levels_unlocked, int ordinary_level, int ordinary_levels_unlocked, int azum_level,
                            int azum_levels_unlocked, int santa_level, int santa_levels_unlocked, int ebuc_level,
-                           int ebuc_levels_unlocked, int bp_level, int azum_skin);
+                           int ebuc_levels_unlocked, int bp_level, int azum_skin, int astra, int astra_level,
+                           int astra_levels_unlocked);
 static void progress_read(void);
 
 typedef struct {

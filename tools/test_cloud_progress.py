@@ -30,6 +30,10 @@ static const char *CLOUD_FRESH =
     "{\"nick\":\"tester\",\"cups\":120,\"candies\":50,\"cls\":1,\"azum\":1,\"santa\":0,"
     "\"ebuc\":1,\"level\":0,\"levels\":0}";
 
+static const char *CLOUD_NO_ASTRA =
+    "{\"nick\":\"tester\",\"cups\":100,\"candies\":20,\"cls\":0,\"azum\":0,\"santa\":0,"
+    "\"ebuc\":0,\"level\":0,\"levels\":0}";
+
 static int run_first_save(const char *dir) {
     net_set_data_path(dir);
 
@@ -69,11 +73,29 @@ static int run_clean(const char *dir) {
     return 0;
 }
 
+static int run_astra(const char *dir) {
+    net_set_data_path(dir);
+    assert(net_load_astra() == 0);
+    net_save_astra(1, 3, 3);
+    net_save_progress_all(90, 20, 4, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert(net_load_astra() == 1);
+    assert(net_load_astra_level() == 3);
+    assert(net_load_astra_levels_unlocked() == 3);
+    assert(net_load_class() == 4);
+    assert(apply_user_json_keep_local(CLOUD_NO_ASTRA) == 1);
+    assert(net_load_astra() == 1);
+    assert(net_load_astra_level() == 3);
+    assert(net_load_class() == 4);
+    puts("astra: an offline purchase, selection and levels survive an older cloud profile");
+    return 0;
+}
+
 int main(int argc, char **argv) {
     if (argc < 3) { fprintf(stderr, "usage: test <mode> <dir>\n"); return 2; }
     if (strcmp(argv[1], "first-save") == 0) return run_first_save(argv[2]);
     if (strcmp(argv[1], "offline-buy") == 0) return run_offline_buy(argv[2]);
     if (strcmp(argv[1], "clean") == 0) return run_clean(argv[2]);
+    if (strcmp(argv[1], "astra") == 0) return run_astra(argv[2]);
     fprintf(stderr, "unknown mode '%s'\n", argv[1]);
     return 2;
 }
@@ -117,6 +139,12 @@ def main():
         clean.mkdir()
         subprocess.run([*run, "clean", str(clean)], check=True)
         assert not (clean / "progress.dirty").exists()
+
+        astra = temp / "astra"
+        astra.mkdir()
+        subprocess.run([*run, "astra", str(astra)], check=True)
+        saved = (astra / "progress.dat").read_text(encoding="utf-8").split()
+        assert len(saved) == 21 and saved[18:] == ["1", "3", "3"], saved
     return 0
 
 if __name__ == "__main__":

@@ -49,6 +49,13 @@ static const char *tr_winter_toggle(void) {
     return "Winter theme: OFF";
 }
 
+static const char *tr_newyear_banner(void) {
+    if (language == 1) {
+        return "С Новым годом!";
+    }
+    return "Happy New Year!";
+}
+
 static const char *tr_fps_meter_toggle(void) {
     if (language == 1) {
         if (show_fps == 1) {

@@ -154,19 +154,17 @@ static void draw_hit_dash(void) {
     if (net_slot() < 0) {
         return;
     }
-    double s = 0;
-    while (s < max_players) {
-        double b = s * dash_fields;
-        if (s != net_slot() && arr_get(rdash_box_a, s) > 0) {
-            double rx = arr_get(remote_dash, b + 2);
-            double ry = arr_get(remote_dash, b + 3);
-            double rdx = arr_get(remote_dash, b + 4);
-            double rdy = arr_get(remote_dash, b + 5);
-            double leg = arr_get(remote_dash, b + 8);
-            double pr = dash_hit_radius_remote();
-            draw_hit_dash_path(rx, ry, rdx, rdy, rx + rdx * leg, ry + rdy * leg, pr, arr_get(rdash_box_a, s));
+    for (double slot = 0; slot <= max_players - 1; slot += 1) {
+        if (slot != net_slot() && arr_get(rdash_box_a, slot) > 0) {
+            double start_x = remote_dash_get(slot, DASH_X);
+            double start_y = remote_dash_get(slot, DASH_Y);
+            double dir_x = remote_dash_get(slot, DASH_DIR_X);
+            double dir_y = remote_dash_get(slot, DASH_DIR_Y);
+            double travelled = remote_dash_get(slot, DASH_TRAVELLED);
+            double radius = dash_hit_radius_remote();
+            draw_hit_dash_path(start_x, start_y, dir_x, dir_y, start_x + dir_x * travelled, start_y + dir_y * travelled,
+                               radius, arr_get(rdash_box_a, slot));
         }
-        s = s + 1;
     }
 }
 
@@ -202,5 +200,36 @@ static void draw_ability_hitboxes(void) {
     }
     draw_hit_snow();
     draw_hit_dash();
+    draw_hit_astra();
     draw_hit_universe();
+}
+
+static void draw_hit_astra(void) {
+    if (show_hitboxes == 0) {
+        return;
+    }
+    if (astra_box_a > 0) {
+        draw_hit_strip(astra_x, astra_y, astra_dx, astra_dy, 0, astra_zone_reach(player_level),
+                       astra_zone_width(player_level) / 2, astra_box_a);
+    }
+    if (egrab_box_a > 0) {
+        draw_hit_strip(egrab_x, egrab_y, egrab_dx, egrab_dy, 0, astra_zone_reach(enemy_level),
+                       astra_zone_width(enemy_level) / 2, egrab_box_a);
+    }
+    if (game_state != ST_ONLINE) {
+        return;
+    }
+    if (net_slot() < 0) {
+        return;
+    }
+    double s = 0;
+    while (s < max_players) {
+        if (s != net_slot() && arr_get(rgrab_box_a, s) > 0) {
+            double lv = net_player_level(s);
+            draw_hit_strip(remote_grab_get(s, GRAB_X), remote_grab_get(s, GRAB_Y), remote_grab_get(s, GRAB_DX),
+                           remote_grab_get(s, GRAB_DY), 0, astra_zone_reach(lv), astra_zone_width(lv) / 2,
+                           arr_get(rgrab_box_a, s));
+        }
+        s = s + 1;
+    }
 }

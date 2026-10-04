@@ -30,19 +30,34 @@ static void save_progress(void) {
                           class_owned_of(CLASS_EBUC), player_level, levels_unlocked, class_level_of(CLASS_ORDINARY),
                           class_unlocked_of(CLASS_ORDINARY), class_level_of(CLASS_AZUM), class_unlocked_of(CLASS_AZUM),
                           class_level_of(CLASS_SANTA), class_unlocked_of(CLASS_SANTA), class_level_of(CLASS_EBUC),
-                          class_unlocked_of(CLASS_EBUC), bp_lv, azum_skin);
+                          class_unlocked_of(CLASS_EBUC), bp_lv, skin_flags());
+    net_save_astra(class_owned_of(CLASS_ASTRA), class_level_of(CLASS_ASTRA), class_unlocked_of(CLASS_ASTRA));
     progress_push_to_net();
+}
+
+static double skin_flags(void) {
+    double f = 0;
+    if (azum_skin == SKIN_SPECIAL) {
+        f = f + 1;
+    }
+    if (ebuc_skin == SKIN_SPECIAL) {
+        f = f + 2;
+    }
+    return f;
 }
 
 static void progress_push_to_net(void) {
     net_set_class(player_class);
     net_set_level(player_level);
-    net_set_skin(azum_skin);
+    net_set_skin(current_skin());
 }
 
 static void progress_normalize(void) {
     if (azum_skin < SKIN_NORMAL || azum_skin >= SKIN_COUNT) {
         azum_skin = SKIN_NORMAL;
+    }
+    if (ebuc_skin < SKIN_NORMAL || ebuc_skin >= SKIN_COUNT) {
+        ebuc_skin = SKIN_NORMAL;
     }
     if (azum_skin == SKIN_ZOMBIE && has_achievement(ACH_LEGENDS) == 0) {
         azum_skin = SKIN_NORMAL;
@@ -75,13 +90,21 @@ static void progress_from_storage(void) {
     set_class_owned(CLASS_AZUM, net_load_azum());
     set_class_owned(CLASS_SANTA, net_load_santa());
     set_class_owned(CLASS_EBUC, net_load_ebuc());
+    set_class_owned(CLASS_ASTRA, net_load_astra());
     player_level = net_load_level();
     levels_unlocked = net_load_levels_unlocked();
     set_class_progress(CLASS_ORDINARY, net_load_ordinary_level(), net_load_ordinary_levels_unlocked());
     set_class_progress(CLASS_AZUM, net_load_azum_level(), net_load_azum_levels_unlocked());
     set_class_progress(CLASS_SANTA, net_load_santa_level(), net_load_santa_levels_unlocked());
     set_class_progress(CLASS_EBUC, net_load_ebuc_level(), net_load_ebuc_levels_unlocked());
-    azum_skin = net_load_azum_skin();
+    set_class_progress(CLASS_ASTRA, net_load_astra_level(), net_load_astra_levels_unlocked());
+    double skins = net_load_azum_skin();
+    ebuc_skin = SKIN_NORMAL;
+    if (skins >= 2) {
+        ebuc_skin = SKIN_SPECIAL;
+        skins = skins - 2;
+    }
+    azum_skin = skins;
     if (azum_skin == SKIN_ZOMBIE && has_achievement(ACH_LEGENDS) == 0) {
         grant_achievement(ACH_LEGENDS);
     }
@@ -106,16 +129,21 @@ static void save_settings(void) {
     net_save_fps_meter(show_fps);
 }
 
-static void music_volume_cycle(void) {
-    if (music_volume <= 0) {
-        music_volume = 100;
-    } else if (music_volume >= 100) {
-        music_volume = 50;
-    } else {
-        music_volume = 0;
-    }
+static void music_volume_apply(void) {
+    music_volume = clamp(music_volume, 0, 100);
     net_save_music_volume(music_volume);
     if (music_ok == 1) {
         snd_volume(LOBBY_MUSIC, music_volume / 100 * music_level);
     }
+}
+
+static void music_volume_cycle(void) {
+    if (music_volume <= 0) {
+        music_volume = 50;
+    } else if (music_volume >= 100) {
+        music_volume = 0;
+    } else {
+        music_volume = 100;
+    }
+    music_volume_apply();
 }

@@ -9,8 +9,19 @@ static const char *arena_ground_tex(void) {
     return GRASS;
 }
 
+static double arena_ground_rgb(void) {
+    if (winter_theme_on() == 1 && snow_tex_ok == 1) {
+        return snow_ground_rgb;
+    }
+    return grass_ground_rgb;
+}
+
 static void draw_arena_background(void) {
     const char *ground = arena_ground_tex();
+    if (tex_ready(ground) == 0) {
+        rect(0, 0, screen_w, screen_h, arena_ground_rgb());
+        return;
+    }
     double y = 0;
     while (y < screen_h) {
         double x = 0;

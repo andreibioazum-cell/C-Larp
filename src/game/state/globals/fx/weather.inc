@@ -1,3 +1,5 @@
-double flake_fields = 7;
-double flake_cached = 0;
-DSArray *flake_cache = 0;
+double grass_ground_rgb;
+double snow_ground_rgb;
+double flake_fields;
+double flake_cached;
+DSArray *flake_cache;

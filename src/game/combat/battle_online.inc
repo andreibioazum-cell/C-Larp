@@ -344,6 +344,7 @@ static void push_self(void) {
             net_publish_universe(0, 0, 0);
         }
     }
+    push_astra_grab();
     if (player_class == CLASS_AZUM) {
         if (dash_active == 1 && dash_pub == 0) {
             net_publish_dash(dash_x0 / screen_w, dash_y0 / screen_h, dash_dx, dash_dy, dash_seq);
@@ -369,6 +370,7 @@ static void update_online(void) {
     tick_player_poison();
     tick_turrets();
     tick_universe();
+    tick_astra();
     tick_hitbox_fades();
     tick_status_fades();
     tick_hurt_fades();
@@ -410,6 +412,10 @@ static void update_online(void) {
         update_remote_thuds();
         update_remote_snow();
         update_remote_dashes();
+        update_remote_grabs();
+        if (finished != 0) {
+            return;
+        }
         update_remote_station();
         update_remote_universe();
         check_online_finish();

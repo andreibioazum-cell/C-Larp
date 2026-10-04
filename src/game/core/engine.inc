@@ -105,7 +105,7 @@ static void update_music(void) {
     if (music_ok == 0) {
         return;
     }
-    if (game_state == ST_SOLO || game_state == ST_ONLINE) {
+    if (game_state == ST_SOLO || game_state == ST_ONLINE || newyear_music_active() == 1) {
         music_level = clamp(music_level - dt / music_fade_out_time, 0, 1);
         snd_volume(LOBBY_MUSIC, music_volume / 100 * music_level);
         if (music_level <= 0 && snd_playing(LOBBY_MUSIC) == 1) {
@@ -162,6 +162,22 @@ static void update_studio(void) {
         studio_bg_a = 0;
         studio_open = 0;
     }
+}
+
+static void update_alpha_notice(void) {
+    if (alpha_notice_done == 1) {
+        return;
+    }
+    if (warn_open == 1 || studio_open == 1) {
+        alpha_notice_t = 0;
+        return;
+    }
+    alpha_notice_t = alpha_notice_t + dt;
+    if (alpha_notice_t < alpha_notice_delay) {
+        return;
+    }
+    alpha_notice_done = 1;
+    alpha_notice_show(language);
 }
 
 static void tick_achievement_toast(void) {
@@ -236,6 +252,7 @@ static void draw_achievement_toast(void) {
 static void logic_update(void) {
     update_warning();
     update_studio();
+    update_alpha_notice();
     update_transition();
     update_music();
     reload_textures();
@@ -251,6 +268,7 @@ static void logic_update(void) {
     } else if (game_state == ST_PROMO) {
         update_promo();
     }
+    update_newyear();
     update_weather();
 }
 
@@ -291,6 +309,7 @@ static void logic_draw(void) {
         rect(0, 0, screen_w, screen_h, 0xFF000000);
     } else {
         draw_screen();
+        draw_newyear_menu_fx();
         if (t_fade > 0) {
             rect(0, 0, screen_w, screen_h, (1 + floor(t_fade * 254)) * 0x1000000);
         }

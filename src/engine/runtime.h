@@ -73,6 +73,7 @@ const char *str_trim(const char *s);
 const char *str_lower(const char *s);
 const char *str_upper(const char *s);
 void ds_set_activity(void *activity);
+void alpha_notice_show(double russian);
 void keyboard_show(void);
 void keyboard_hide(void);
 const char *keyboard_get_text(void);
@@ -96,6 +97,7 @@ void clear_screen(uint32_t color);
 void ds_set_asset_manager(AAssetManager *assets);
 void ds_release_assets(void);
 int png_load(const char *name);
+int tex_ready(const char *name);
 void tex(float x, float y, const char *name, float angle, float scale);
 void tex_tint(float x, float y, const char *name, float angle, float scale, uint32_t color);
 

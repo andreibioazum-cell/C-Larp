@@ -134,6 +134,7 @@ static void tick_enemy_class(void) {
     enemy_tick_turrets();
     tick_enemy_gift();
     tick_enemy_dash();
+    tick_enemy_grab();
 }
 
 static double enemy_tick_class_abilities(void) {
@@ -146,6 +147,9 @@ static double enemy_tick_class_abilities(void) {
     if (enemy_dash_active == 1) {
         return 1;
     }
+    if (enemy_grab_active() == 1) {
+        return 1;
+    }
     if (enemy_super_windup > 0) {
         enemy_face_player();
         enemy_super_windup = enemy_super_windup - dt;
@@ -155,6 +159,8 @@ static double enemy_tick_class_abilities(void) {
                 enemy_start_snow();
             } else if (enemy_super_kind == 2) {
                 enemy_place_turret();
+            } else if (enemy_super_kind == 3) {
+                enemy_start_grab();
             }
             enemy_super_kind = 0;
         }
@@ -187,6 +193,15 @@ static double enemy_tick_class_abilities(void) {
             enemy->state = 0;
             enemy->state_time = 0;
             enemy_start_dash();
+            return 1;
+        }
+    } else if (enemy_class == CLASS_ASTRA) {
+        if (enemy_wants_grab() == 1) {
+            enemy_super_kind = 3;
+            enemy_super_windup = enemy_super_windup_time;
+            enemy_super_cd = enemy_astra_cd_time;
+            enemy->state = 0;
+            enemy->state_time = 0;
             return 1;
         }
     }

@@ -1,4 +1,3 @@
-/* Мост системной клавиатуры Android. Игровой логики здесь нет. */
 package com.cb4;
 
 import android.app.NativeActivity;
@@ -33,6 +32,8 @@ public final class GameActivity extends NativeActivity {
         }
     }
 
+    private boolean alphaNoticeShown;
+
     private EditText chatEditor;
     private boolean syncingFromNative;
     private boolean keyboardWasVisible;
@@ -53,33 +54,24 @@ public final class GameActivity extends NativeActivity {
     private native void nativeKeyboardHidden();
 
     private void replaceTextNative(String text) {
-        if (nativeReady)
-            try {
-                nativeReplaceText(text);
-            } catch (UnsatisfiedLinkError ignored) {
-            }
+        if (nativeReady) try { nativeReplaceText(text); } catch (UnsatisfiedLinkError ignored) { }
     }
     private void submitTextNative() {
-        if (nativeReady)
-            try {
-                nativeSubmitText();
-            } catch (UnsatisfiedLinkError ignored) {
-            }
+        if (nativeReady) try { nativeSubmitText(); } catch (UnsatisfiedLinkError ignored) { }
     }
     private void keyboardHiddenNative() {
-        if (nativeReady)
-            try {
-                nativeKeyboardHidden();
-            } catch (UnsatisfiedLinkError ignored) {
-            }
+        if (nativeReady) try { nativeKeyboardHidden(); } catch (UnsatisfiedLinkError ignored) { }
     }
 
     @SuppressWarnings("deprecation")
     private void enterImmersiveMode() {
         getWindow().getDecorView().setSystemUiVisibility(
-            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN |
-            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
     }
 
     @Override
@@ -88,6 +80,8 @@ public final class GameActivity extends NativeActivity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 
         enterImmersiveMode();
+
+        if (state != null) alphaNoticeShown = state.getBoolean("alphaNoticeShown", false);
 
         chatEditor = new EditText(this);
         chatEditor.setSingleLine(true);
@@ -113,31 +107,29 @@ public final class GameActivity extends NativeActivity {
             }
         });
 
-        chatEditor.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS |
-                                InputType.TYPE_TEXT_VARIATION_FILTER);
-        chatEditor.setImeOptions(EditorInfo.IME_ACTION_DONE | EditorInfo.IME_FLAG_NO_EXTRACT_UI |
-                                 EditorInfo.IME_FLAG_NO_FULLSCREEN);
-        chatEditor.setFilters(new InputFilter[] {new InputFilter.LengthFilter(95)});
+        chatEditor.setInputType(InputType.TYPE_CLASS_TEXT
+                | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+                | InputType.TYPE_TEXT_VARIATION_FILTER);
+        chatEditor.setImeOptions(EditorInfo.IME_ACTION_DONE
+                | EditorInfo.IME_FLAG_NO_EXTRACT_UI
+                | EditorInfo.IME_FLAG_NO_FULLSCREEN);
+        chatEditor.setFilters(new InputFilter[] { new InputFilter.LengthFilter(95) });
         chatEditor.setVisibility(View.INVISIBLE);
 
         float density = getResources().getDisplayMetrics().density;
-        int editorH = Math.max(48, (int)(48f * density));
-        FrameLayout.LayoutParams params =
-            new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, editorH, Gravity.TOP);
+        int editorH = Math.max(48, (int) (48f * density));
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, editorH, Gravity.TOP);
         addContentView(chatEditor, params);
 
         chatEditor.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {
 
                 pendingDelete = !syncingFromNative && count > 0 && after == 0;
             }
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override
-            public void afterTextChanged(Editable value) {
-                if (syncingFromNative)
-                    return;
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { }
+            @Override public void afterTextChanged(Editable value) {
+                if (syncingFromNative) return;
                 replaceTextNative(value.toString());
                 if (pendingDelete) {
                     long now = android.os.SystemClock.elapsedRealtime();
@@ -148,10 +140,8 @@ public final class GameActivity extends NativeActivity {
                     if (deleteStreak >= 6 && chatEditor.length() > 0) {
                         deleteStreak = 0;
                         chatEditor.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (chatEditor.length() > 0)
-                                    chatEditor.setText("");
+                            @Override public void run() {
+                                if (chatEditor.length() > 0) chatEditor.setText("");
                             }
                         });
                     }
@@ -164,16 +154,14 @@ public final class GameActivity extends NativeActivity {
             @Override
             public void onFocusChange(View view, boolean focused) {
                 if (focused) {
-                    editorActive = nativeReady && wantKeyboard && chatEditor.getVisibility() == View.VISIBLE;
+                    editorActive = nativeReady && wantKeyboard
+                            && chatEditor.getVisibility() == View.VISIBLE;
                     return;
                 }
 
                 if (wantKeyboard && chatEditor.getVisibility() == View.VISIBLE) {
                     chatEditor.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            claimEditorFocus();
-                        }
+                        @Override public void run() { claimEditorFocus(); }
                     });
                 } else {
                     editorActive = false;
@@ -183,9 +171,10 @@ public final class GameActivity extends NativeActivity {
         chatEditor.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView view, int actionId, KeyEvent event) {
-                boolean enter = actionId == EditorInfo.IME_ACTION_SEND || actionId == EditorInfo.IME_ACTION_DONE ||
-                                (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER &&
-                                 event.getAction() == KeyEvent.ACTION_DOWN);
+                boolean enter = actionId == EditorInfo.IME_ACTION_SEND
+                        || actionId == EditorInfo.IME_ACTION_DONE
+                        || (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER
+                            && event.getAction() == KeyEvent.ACTION_DOWN);
                 if (enter) {
                     submitTextNative();
                     return true;
@@ -195,33 +184,42 @@ public final class GameActivity extends NativeActivity {
         });
 
         chatEditor.getRootView().getViewTreeObserver().addOnGlobalLayoutListener(
-            new ViewTreeObserver.OnGlobalLayoutListener() {
-                @Override
-                public void onGlobalLayout() {
-                    View root = chatEditor.getRootView();
-                    Rect visible = new Rect();
-                    root.getWindowVisibleDisplayFrame(visible);
-                    boolean keyboardVisible = root.getHeight() - visible.bottom > root.getHeight() * 0.15f;
-                    imeLooksVisible = keyboardVisible;
-                    if (wantKeyboard)
-                        claimEditorFocus();
-                    if (keyboardVisible) {
-                        keyboardWasVisible = true;
-                    } else if (keyboardWasVisible) {
-                        keyboardWasVisible = false;
-                        keyboardHiddenNative();
+                new ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override
+                    public void onGlobalLayout() {
+                        View root = chatEditor.getRootView();
+                        Rect visible = new Rect();
+                        root.getWindowVisibleDisplayFrame(visible);
+                        boolean keyboardVisible = root.getHeight() - visible.bottom
+                                > root.getHeight() * 0.15f;
+                        imeLooksVisible = keyboardVisible;
+                        if (wantKeyboard) claimEditorFocus();
+                        if (keyboardVisible) {
+                            keyboardWasVisible = true;
+                        } else if (keyboardWasVisible) {
+                            keyboardWasVisible = false;
+                            keyboardHiddenNative();
+                        }
                     }
-                }
-            });
+                });
+    }
+
+    public void showAlphaNotice(final int russian) {
+        runOnUiThread(new Runnable() {
+            @Override public void run() {
+                if (alphaNoticeShown || isFinishing()) return;
+                alphaNoticeShown = true;
+                AlphaNotice.show(GameActivity.this, russian != 0, new Runnable() {
+                    @Override public void run() { enterImmersiveMode(); }
+                });
+            }
+        });
     }
 
     private void claimEditorFocus() {
-        if (chatEditor == null || !wantKeyboard)
-            return;
-        if (chatEditor.getVisibility() != View.VISIBLE)
-            chatEditor.setVisibility(View.VISIBLE);
-        if (!chatEditor.hasFocus())
-            chatEditor.requestFocus();
+        if (chatEditor == null || !wantKeyboard) return;
+        if (chatEditor.getVisibility() != View.VISIBLE) chatEditor.setVisibility(View.VISIBLE);
+        if (!chatEditor.hasFocus()) chatEditor.requestFocus();
         editorActive = nativeReady;
     }
 
@@ -229,15 +227,15 @@ public final class GameActivity extends NativeActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (chatEditor == null)
-                    return;
+                if (chatEditor == null) return;
                 wantKeyboard = true;
                 chatEditor.setVisibility(View.VISIBLE);
                 chatEditor.bringToFront();
                 replaceEditorText(currentText);
                 claimEditorFocus();
-                getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE |
-                                             WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+                getWindow().setSoftInputMode(
+                        WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+                                | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
                 if (imeLooksVisible) {
 
                     claimEditorFocus();
@@ -250,21 +248,18 @@ public final class GameActivity extends NativeActivity {
     }
 
     private void requestShowWhenReady() {
-        if (chatEditor == null)
-            return;
+        if (chatEditor == null) return;
         final int attempt = showAttempts++;
-        if (attempt >= 10)
-            return;
+        if (attempt >= 10) return;
         chatEditor.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (chatEditor == null || !wantKeyboard || imeLooksVisible)
-                    return;
+                if (chatEditor == null || !wantKeyboard || imeLooksVisible) return;
                 claimEditorFocus();
-                InputMethodManager input = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                InputMethodManager input = (InputMethodManager)
+                        getSystemService(Context.INPUT_METHOD_SERVICE);
                 if (input != null) {
-                    if (!input.isActive(chatEditor))
-                        chatEditor.requestFocus();
+                    if (!input.isActive(chatEditor)) chatEditor.requestFocus();
                     input.showSoftInput(chatEditor, InputMethodManager.SHOW_FORCED);
                 }
                 requestShowWhenReady();
@@ -277,8 +272,7 @@ public final class GameActivity extends NativeActivity {
             @Override
             public void run() {
                 replaceEditorText(text);
-                if (wantKeyboard)
-                    claimEditorFocus();
+                if (wantKeyboard) claimEditorFocus();
             }
         });
     }
@@ -291,17 +285,18 @@ public final class GameActivity extends NativeActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (chatEditor == null)
-                    return;
+                if (chatEditor == null) return;
                 wantKeyboard = false;
-                InputMethodManager input = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                InputMethodManager input = (InputMethodManager)
+                        getSystemService(Context.INPUT_METHOD_SERVICE);
                 if (input != null) {
                     input.hideSoftInputFromWindow(chatEditor.getWindowToken(), 0);
                 }
                 editorActive = false;
                 imeLooksVisible = false;
                 showAttempts = 10;
-                getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+                getWindow().setSoftInputMode(
+                        WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
                 chatEditor.clearFocus();
                 chatEditor.setVisibility(View.INVISIBLE);
 
@@ -311,11 +306,9 @@ public final class GameActivity extends NativeActivity {
     }
 
     private void replaceEditorText(String text) {
-        if (chatEditor == null)
-            return;
+        if (chatEditor == null) return;
         String safe = text == null ? "" : text;
-        if (safe.contentEquals(chatEditor.getText()))
-            return;
+        if (safe.contentEquals(chatEditor.getText())) return;
         boolean shrinking = safe.length() < chatEditor.length();
         syncingFromNative = true;
         chatEditor.setText(safe);
@@ -323,9 +316,9 @@ public final class GameActivity extends NativeActivity {
         syncingFromNative = false;
 
         if (shrinking) {
-            InputMethodManager input = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (input != null)
-                input.restartInput(chatEditor);
+            InputMethodManager input = (InputMethodManager)
+                    getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (input != null) input.restartInput(chatEditor);
         }
     }
 
@@ -333,8 +326,7 @@ public final class GameActivity extends NativeActivity {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
 
-        if (hasFocus)
-            enterImmersiveMode();
+        if (hasFocus) enterImmersiveMode();
         if (hasFocus && wantKeyboard && chatEditor != null) {
             claimEditorFocus();
             if (!imeLooksVisible) {
@@ -342,6 +334,12 @@ public final class GameActivity extends NativeActivity {
                 requestShowWhenReady();
             }
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        out.putBoolean("alphaNoticeShown", alphaNoticeShown);
     }
 
     @Override

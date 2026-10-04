@@ -1,4 +1,5 @@
 static double shade(double rgb, double k);
+static double blend_color(double a, double b, double t);
 static double locked_bg(void);
 static double locked_text(void);
 static double fade_color(double rgb, double t, double fade);
@@ -11,6 +12,7 @@ static void text_in_box(const char *label, double x, double y, double w, double 
 static void text_in_field(const char *label, double x, double y, double h, uint32_t c, double scale);
 static double fit_text_scale(const char *s, double w, double max_scale);
 static void centered_text(const char *label, double x, double w, double y, uint32_t c, double scale);
+static void rtext_in_box(const char *label, double x, double y, double w, double pad, uint32_t c, double scale);
 static void money_pair(const char *left, const char *right, double y, double scale, double gap);
 static void draw_nick_msg(const char *nick, const char *rest, double x, double y, uint32_t base, double scale);
 static void button(const char *label, double x, double y, double w, double h);
@@ -20,6 +22,7 @@ static void outline_arc(double cx, double cy, double rr, double t, uint32_t c, d
 static void draw_back(void);
 static double back_hit(double x, double y);
 static void screen_fill(void);
+static void draw_bottom_gradient(double top, double bottom);
 static void card_state(double x, double y, double w, double h, double selected, double locked);
 static void card(double x, double y, double w, double h, double selected);
 static void panel(double x, double y, double w, double h, double locked);

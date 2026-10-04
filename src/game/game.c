@@ -4,6 +4,12 @@
 #include "engine/network.h"
 #include <math.h>
 
+#if defined(__GNUC__) || defined(__clang__)
+#define GAME_MAYBE_UNUSED __attribute__((unused))
+#else
+#define GAME_MAYBE_UNUSED
+#endif
+
 #include "types.inc"
 #include "state.inc"
 #include "functions.inc"
@@ -12,8 +18,8 @@
 #include "ui/locale_shop.inc"
 #include "ui/locale_settings.inc"
 #include "ui/locale_progress.inc"
+#include "ui/locale_progress_part2.inc"
 #include "ui/locale_extra.inc"
-#include "core/entities.inc"
 #include "core/ui.inc"
 #include "ui/progress_classes.inc"
 #include "ui/progress_rewards.inc"
@@ -22,8 +28,8 @@
 #include "ui/chat.inc"
 #include "ui/menu_screens.inc"
 #include "ui/quests.inc"
-#include "ui/login.inc"
 #include "ui/menu_input.inc"
+#include "ui/menu_input_part2.inc"
 #include "combat/battle_rules.inc"
 #include "combat/hit_geometry.inc"
 #include "combat/battle_turrets.inc"
@@ -37,16 +43,21 @@
 #include "combat/battle_enemy_dash.inc"
 #include "combat/battle_enemy_turrets.inc"
 #include "combat/battle_shield.inc"
+#include "combat/battle_astra.inc"
+#include "combat/battle_astra_online.inc"
+#include "combat/battle_astra_bot.inc"
 #include "combat/battle_abilities.inc"
 #include "combat/battle_online.inc"
 #include "combat/battle_actions_fx.inc"
 #include "combat/battle_super_render.inc"
 #include "combat/battle_hitboxes.inc"
 #include "combat/battle_hitbox_fades.inc"
+#include "combat/battle_fighter_look.inc"
 #include "combat/battle_render.inc"
 #include "combat/battle_event_plates.inc"
 #include "combat/battle_events_input.inc"
 #include "fx/weather.inc"
+#include "fx/newyear.inc"
 #include "fx/dust.inc"
 #include "core/textures.inc"
 #include "core/engine.inc"

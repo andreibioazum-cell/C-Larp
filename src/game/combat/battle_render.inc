@@ -16,11 +16,15 @@ static void draw_candies(void) {
             pop = 1 - (1 - p) * (1 - p);
             sc = candy_scale * pop;
             if (sc > 0.02) {
+                double ang = arr_get(candy_ang, i);
+                double travel = (1 - pop) * candy_fly_dist;
+                double cx = arr_get(candy_x, i) - cos(ang) * travel;
+                double cy = arr_get(candy_y, i) - sin(ang) * travel;
                 hw = 25 * sc;
                 if (candy_tex_ok == 1) {
-                    tex(arr_get(candy_x, i) - hw, arr_get(candy_y, i) - hw, CANDY_TEX, 0, sc);
+                    tex(cx - hw, cy - hw, CANDY_TEX, ang, sc);
                 } else {
-                    circle(arr_get(candy_x, i), arr_get(candy_y, i), hw, 0xFFFF4081);
+                    circle(cx, cy, hw, 0xFFFF4081);
                 }
             }
         }
@@ -83,6 +87,7 @@ static void finish_game(double result) {
     enemy_dash_hit = 0;
     enemy_super_windup = 0;
     enemy_super_kind = 0;
+    enemy_grab_clear();
     turret_heal_t = 0;
     universe_active = 0;
     universe_a = 0;
@@ -102,9 +107,8 @@ static void finish_game(double result) {
         double ub = i * universe_fields;
         arr_set(remote_universe, ub, 0);
         arr_set(remote_universe, ub + 1, 0);
-        double db = i * dash_fields;
-        arr_set(remote_dash, db, 0);
-        arr_set(remote_dash, db + 1, 0);
+        remote_dash_set(i, DASH_GEN, 0);
+        remote_dash_set(i, DASH_ACTIVE, 0);
         clear_remote_punch(i);
         arr_set(rpunch_a, i, 0);
         i = i + 1;
@@ -136,63 +140,21 @@ static void draw_punch_box(double x, double y, double dx, double dy, double reac
     draw_hit_strip(x, y, dx, dy, 0, reach, width / 2, alpha);
 }
 
-static const char *fighter_sprite(double cls, double punching, double skin) {
-    if (skin_is_active(cls, skin) == 1) {
-        if (punching == 1) {
-            return zombie_punch_tex();
-        }
-        return zombie_idle_tex();
+static void draw_field(void) { rect(0, 0, screen_w, screen_h, 0x33000000); }
+
+static double player_punching_now(void) {
+    if (punch_left > 0) {
+        return 1;
     }
-    if (punching == 1) {
-        return class_punch_tex(cls);
+    if (astra_punch_t > 0) {
+        return 1;
     }
-    return class_idle_tex(cls);
-}
-
-static void draw_fighter_shadow(double x, double y, double ang, double cls, double punching, double skin) {
-    double hw = 25 * cube_scale * player_scale;
-    double ps = cube_scale * player_scale;
-    tex_tint(x - hw - shadow_off, y - hw + shadow_off, fighter_sprite(cls, punching, skin), sprite_a(ang), ps,
-             (((unsigned)(int)shadow_alpha) << 24));
-}
-
-static void draw_fighter_body(double x, double y, double ang, double cls, double punching, double skin) {
-    double hw = 25 * cube_scale * player_scale;
-    double ps = cube_scale * player_scale;
-    double sx = x - hw;
-    double sy = y - hw;
-    tex(sx, sy, fighter_sprite(cls, punching, skin), sprite_a(ang), ps);
-}
-
-static void draw_fighter_hurt(double x, double y, double ang, double cls, double punching, double skin, double scale,
-                              double a) {
-    if (a <= 0) {
-        return;
-    }
-    double fa = floor(a * 255 * hurt_alpha);
-    if (fa < 1) {
-        return;
-    }
-    double hw = 25 * cube_scale * scale;
-    tex_tint(x - hw, y - hw, fighter_sprite(cls, punching, skin), sprite_a(ang), cube_scale * scale,
-             (((unsigned)(int)fa) << 24) | ((unsigned)(int)hurt_rgb));
-}
-
-static void draw_player_shadow(double x, double y, double ang, double punching, double skin) {
-    draw_fighter_shadow(x, y, ang, player_class, punching, skin);
-}
-
-static void draw_player_body(double x, double y, double ang, double punching) {
-    draw_fighter_body(x, y, ang, player_class, punching, azum_skin);
-}
-
-static void draw_field(void) {
-    rect(0, 0, screen_w, screen_h, 0x33000000);
+    return 0;
 }
 
 static void draw_player_shadow_layer(void) {
-    double punching = punch_left > 0;
-    draw_player_shadow(player->x, player->y, player->angle, punching, azum_skin);
+    draw_fighter_shadow(player->x, player->y, player->angle, fighter_look_of(FLOOK_ME),
+                        fighter_pose_of(FLOOK_ME, player_punching_now()));
 }
 
 static void draw_player_hitbox_layer(void) {
@@ -205,10 +167,10 @@ static void draw_player_hitbox_layer(void) {
 }
 
 static void draw_player_body_layer(void) {
-    double punching = punch_left > 0;
-    draw_player_body(player->x, player->y, player->angle, punching);
-    draw_fighter_hurt(player->x, player->y, player->angle, player_class, punching, azum_skin, player_scale,
-                      player_hurt_a);
+    double punching = fighter_pose_of(FLOOK_ME, player_punching_now());
+    double look = fighter_look_of(FLOOK_ME);
+    draw_fighter_body(player->x, player->y, player->angle, look, punching);
+    draw_fighter_hurt(player->x, player->y, player->angle, look, punching, player_scale, player_hurt_a);
 }
 
 static double enemy_punching_now(void) {
@@ -218,20 +180,33 @@ static double enemy_punching_now(void) {
     if (enemy_super_windup > 0) {
         return 1;
     }
+    if (enemy_grab_punching() == 1) {
+        return 1;
+    }
     return 0;
 }
 
-static const char *enemy_battle_tex(void) {
-    if (enemy_punching_now() == 1) {
-        return class_punch_tex(enemy_class);
+static GAME_MAYBE_UNUSED const char *enemy_battle_tex(void) {
+    return look_tex(fighter_look_of(FLOOK_BOT), fighter_pose_of(FLOOK_BOT, enemy_punching_now()));
+}
+
+static GAME_MAYBE_UNUSED double enemy_battle_tex_visible(void) {
+    if (fighter_look_of(FLOOK_BOT) == LOOK_NONE) {
+        return 0;
     }
-    return class_idle_tex(enemy_class);
+    return 1;
 }
 
 static void draw_enemy_shadow(void) {
     double ehw = 25 * cube_scale * enemy_scale;
     double es = cube_scale * enemy_scale;
-    tex_tint(enemy->x - ehw - shadow_off, enemy->y - ehw + shadow_off, enemy_battle_tex(), sprite_a(enemy->angle), es,
+    double look = fighter_look_of(FLOOK_BOT);
+    if (look == LOOK_NONE) {
+        circle(enemy->x - shadow_off, enemy->y + shadow_off, ehw, (((unsigned)(int)shadow_alpha) << 24));
+        return;
+    }
+    tex_tint(enemy->x - ehw - shadow_off, enemy->y - ehw + shadow_off,
+             look_tex(look, fighter_pose_of(FLOOK_BOT, enemy_punching_now())), sprite_a(enemy->angle), es,
              (((unsigned)(int)shadow_alpha) << 24));
 }
 
@@ -248,9 +223,14 @@ static void draw_enemy_hitbox(void) {
 static void draw_enemy_body(void) {
     double ehw = 25 * cube_scale * enemy_scale;
     double es = cube_scale * enemy_scale;
-    double punching = enemy_punching_now();
-    tex(enemy->x - ehw, enemy->y - ehw, enemy_battle_tex(), sprite_a(enemy->angle), es);
-    draw_fighter_hurt(enemy->x, enemy->y, enemy->angle, enemy_class, punching, SKIN_NORMAL, enemy_scale, enemy_hurt_a);
+    double punching = fighter_pose_of(FLOOK_BOT, enemy_punching_now());
+    double look = fighter_look_of(FLOOK_BOT);
+    if (look == LOOK_NONE) {
+        rect(enemy->x - ehw, enemy->y - ehw, 2 * ehw, 2 * ehw, fighter_fallback_rgb);
+    } else {
+        tex(enemy->x - ehw, enemy->y - ehw, look_tex(look, punching), sprite_a(enemy->angle), es);
+    }
+    draw_fighter_hurt(enemy->x, enemy->y, enemy->angle, look, punching, enemy_scale, enemy_hurt_a);
 }
 
 static void draw_controls(void) {
@@ -259,8 +239,7 @@ static void draw_controls(void) {
     circle(atk_x, atk_y, 70, 0xE94560);
     ring(atk_x, atk_y, 70, 4, 0x000000);
     text_in_box(tr_punch(), atk_x - 70, atk_y - 70, 140, 140, 0xFFFFFF, 0.55);
-    if ((player_class == CLASS_AZUM || player_class == CLASS_SANTA || player_class == CLASS_EBUC) &&
-        (game_state == ST_SOLO || game_state == ST_ONLINE)) {
+    if (class_has_super(player_class) == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE)) {
         circle(atk2_x, atk2_y, 70, 0x5F10A0);
         ring(atk2_x, atk2_y, 70, 4, 0x000000);
         const char *sl = tr_super();
@@ -268,11 +247,15 @@ static void draw_controls(void) {
             sl = tr_super_ebuc();
         } else if (player_class == CLASS_AZUM) {
             sl = tr_super_azum();
+        } else if (player_class == CLASS_ASTRA) {
+            sl = tr_super_astra();
         }
         double sls = 0.55;
         double left = super_cd;
         if (player_class == CLASS_AZUM) {
             left = dash_cd;
+        } else if (player_class == CLASS_ASTRA) {
+            left = astra_cd;
         }
         if (left > 0) {
             sl = ds_concat(ds_num_to_string((double)(floor(left + 0.999))), "");
@@ -324,6 +307,7 @@ static void draw_fps_meter(void) {
 }
 
 static void draw_game(void) {
+    resolve_fighter_looks();
     draw_arena_background();
     draw_field();
     draw_dust();

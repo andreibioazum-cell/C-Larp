@@ -1,76 +1,132 @@
-static const char *punch_tex_or_idle(const char *punch_tex, double ok, double cls) {
-    if (ok == 1) {
-        return punch_tex;
-    }
-    return class_idle_tex(cls);
-}
-
-static double azum_tex_pair_ok(void) {
-    if (azum_tex_ok == 1 && azum_punch_tex_ok == 1) {
-        return 1;
-    }
-    return 0;
-}
-
-static const char *azum_idle_tex(void) {
-    if (azum_tex_pair_ok() == 1) {
+static const char *look_idle_tex(double look) {
+    if (look == LOOK_AZUM) {
         return AZUM_TEX;
     }
-    return ORDINARY_TEX;
+    if (look == LOOK_ZOMBIE) {
+        return AZUM_ZOMBIE_TEX;
+    }
+    if (look == LOOK_SANTA) {
+        return SANTA_TEX;
+    }
+    if (look == LOOK_EBUC) {
+        return EBUC_TEX;
+    }
+    if (look == LOOK_ELF) {
+        return EBUC_ELF_TEX;
+    }
+    if (look == LOOK_ORDINARY) {
+        return ORDINARY_TEX;
+    }
+    return "";
 }
 
-static const char *azum_punch_tex(void) {
-    if (azum_tex_pair_ok() == 1) {
+static const char *look_punch_tex(double look) {
+    if (look == LOOK_AZUM) {
         return AZUM_PUNCH_TEX;
     }
-    return punch_tex_or_idle(PUNCH_TEX, ordinary_punch_tex_ok, CLASS_ORDINARY);
+    if (look == LOOK_ZOMBIE) {
+        return AZUM_ZOMBIE_PUNCH_TEX;
+    }
+    if (look == LOOK_SANTA) {
+        return SANTA_PUNCH_TEX;
+    }
+    if (look == LOOK_EBUC) {
+        return EBUC_PUNCH_TEX;
+    }
+    if (look == LOOK_ELF) {
+        return EBUC_ELF_PUNCH_TEX;
+    }
+    if (look == LOOK_ORDINARY) {
+        return PUNCH_TEX;
+    }
+    return "";
 }
 
-static double zombie_tex_ok(void) {
-    if (azum_zombie_tex_ok == 1 && azum_zombie_punch_tex_ok == 1) {
+static const char *look_tex(double look, double punching) {
+    if (punching == 1) {
+        return look_punch_tex(look);
+    }
+    return look_idle_tex(look);
+}
+
+static double look_ready(double look) {
+    if (look == LOOK_NONE) {
+        return 0;
+    }
+    return tex_ready(look_idle_tex(look));
+}
+
+static double look_swing_ready(double look) {
+    if (look == LOOK_NONE) {
+        return 0;
+    }
+    return tex_ready(look_punch_tex(look));
+}
+
+static double look_base(double look) {
+    if (look == LOOK_ZOMBIE) {
+        return LOOK_AZUM;
+    }
+    if (look == LOOK_ELF) {
+        return LOOK_EBUC;
+    }
+    return look;
+}
+
+static double class_look(double cls, double skin) {
+    if (skin_is_active(cls, skin) == 1) {
+        if (cls == CLASS_EBUC) {
+            return LOOK_ELF;
+        }
+        return LOOK_ZOMBIE;
+    }
+    if (cls == CLASS_AZUM) {
+        return LOOK_AZUM;
+    }
+    if (cls == CLASS_SANTA) {
+        return LOOK_SANTA;
+    }
+    if (cls == CLASS_EBUC) {
+        return LOOK_EBUC;
+    }
+    return LOOK_ORDINARY;
+}
+
+static double drawable_look(double cls, double skin) {
+    double want = class_look(cls, skin);
+    if (look_ready(want) == 1) {
+        return want;
+    }
+    double base = look_base(want);
+    if (base != want && look_ready(base) == 1) {
+        return base;
+    }
+    return LOOK_NONE;
+}
+
+static double card_look(double cls, double skin) {
+    double look = class_look(cls, skin);
+    if (look_ready(look) == 1) {
+        return look;
+    }
+    return LOOK_NONE;
+}
+
+static GAME_MAYBE_UNUSED const char *class_idle_tex(double cls) { return look_idle_tex(class_look(cls, SKIN_NORMAL)); }
+
+static GAME_MAYBE_UNUSED const char *class_punch_tex(double cls) {
+    return look_punch_tex(class_look(cls, SKIN_NORMAL));
+}
+
+static GAME_MAYBE_UNUSED const char *skin_idle_tex_for(double cls, double skin) {
+    return look_idle_tex(class_look(cls, skin));
+}
+
+static double class_has_super(double cls) {
+    if (cls == CLASS_AZUM || cls == CLASS_SANTA || cls == CLASS_EBUC || cls == CLASS_ASTRA) {
         return 1;
     }
     return 0;
-}
-
-static const char *zombie_idle_tex(void) {
-    if (zombie_tex_ok() == 1) {
-        return AZUM_ZOMBIE_TEX;
-    }
-    return azum_idle_tex();
-}
-
-static const char *zombie_punch_tex(void) {
-    if (zombie_tex_ok() == 1) {
-        return AZUM_ZOMBIE_PUNCH_TEX;
-    }
-    return azum_punch_tex();
-}
-
-static const char *class_idle_tex(double cls) {
-    if (cls == CLASS_AZUM) {
-        return azum_idle_tex();
-    }
-    if (cls == CLASS_SANTA) {
-        return SANTA_TEX;
-    }
-    if (cls == CLASS_EBUC) {
-        return EBUC_TEX;
-    }
-    return ORDINARY_TEX;
-}
-
-static const char *class_punch_tex(double cls) {
-    if (cls == CLASS_AZUM) {
-        return azum_punch_tex();
-    }
-    if (cls == CLASS_SANTA) {
-        return punch_tex_or_idle(SANTA_PUNCH_TEX, santa_punch_tex_ok, cls);
-    }
-    if (cls == CLASS_EBUC) {
-        return punch_tex_or_idle(EBUC_PUNCH_TEX, ebuc_punch_tex_ok, cls);
-    }
-    return punch_tex_or_idle(PUNCH_TEX, ordinary_punch_tex_ok, cls);
 }
 
 static double class_punch_damage_for(double cls, double lv) {
@@ -93,6 +149,9 @@ static double player_max_hp_for(double cls) {
     if (cls == CLASS_AZUM) {
         return azum_hp;
     }
+    if (cls == CLASS_ASTRA) {
+        return astra_hp;
+    }
     return 10;
 }
 
@@ -112,9 +171,7 @@ static double ebuc_universe_damage_for(double lv) {
     return d;
 }
 
-static double class_punch_damage(double cls) {
-    return class_punch_damage_for(cls, player_level);
-}
+static double class_punch_damage(double cls) { return class_punch_damage_for(cls, player_level); }
 
 static double santa_poison_time_for(double lv) {
     (void)lv;

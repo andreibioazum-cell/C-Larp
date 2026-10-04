@@ -1,130 +1,262 @@
 #include "state/globals/core/config.inc"
+#include "state/globals/core/config_part2.inc"
 #include "state/globals/core/entities.inc"
+#include "state/globals/core/ui.inc"
 #include "state/globals/ui/progress_classes.inc"
 #include "state/globals/ui/promo.inc"
 #include "state/globals/ui/layout.inc"
 #include "state/globals/ui/chat.inc"
 #include "state/globals/combat/battle_turrets.inc"
 #include "state/globals/combat/battle_enemy_turrets.inc"
+#include "state/globals/combat/battle_fighter_look.inc"
 #include "state/globals/combat/battle_event_plates.inc"
 #include "state/globals/fx/weather.inc"
+#include "state/globals/fx/newyear.inc"
 #include "state/globals/ui/chat_bubbles.inc"
 
 #include "objects.inc"
 
 static void state_create(void) {
 #include "state/create/core/config.inc"
+#include "state/create/core/config_part2.inc"
 #include "state/create/core/entities.inc"
+#include "state/create/core/ui.inc"
 #include "state/create/ui/progress_classes.inc"
 #include "state/create/ui/promo.inc"
 #include "state/create/ui/layout.inc"
 #include "state/create/ui/chat.inc"
 #include "state/create/combat/battle_turrets.inc"
 #include "state/create/combat/battle_enemy_turrets.inc"
+#include "state/create/combat/battle_fighter_look.inc"
 #include "state/create/combat/battle_event_plates.inc"
 #include "state/create/fx/weather.inc"
+#include "state/create/fx/newyear.inc"
 #include "state/create/ui/chat_bubbles.inc"
 }
 
 static void state_destroy(void) {
-    if (quest_type)
+    if (quest_type) {
         arr_free(quest_type);
-    if (quest_prog)
+        quest_type = NULL;
+    }
+    if (quest_prog) {
         arr_free(quest_prog);
-    if (quest_need)
+        quest_prog = NULL;
+    }
+    if (quest_need) {
         arr_free(quest_need);
-    if (quest_next)
+        quest_need = NULL;
+    }
+    if (quest_next) {
         arr_free(quest_next);
-    if (player)
-        player_free(player);
-    if (enemy)
-        enemy_free(enemy);
-    if (punch)
-        punch_free(punch);
-    if (gift)
-        gift_free(gift);
-    if (enemy_gift)
-        gift_free(enemy_gift);
-    if (enemy_turret_x)
+        quest_next = NULL;
+    }
+    if (enemy_turret_x) {
         arr_free(enemy_turret_x);
-    if (enemy_turret_y)
+        enemy_turret_x = NULL;
+    }
+    if (enemy_turret_y) {
         arr_free(enemy_turret_y);
-    if (enemy_turret_hp)
+        enemy_turret_y = NULL;
+    }
+    if (enemy_turret_hp) {
         arr_free(enemy_turret_hp);
-    if (enemy_turret_maxhp)
+        enemy_turret_hp = NULL;
+    }
+    if (enemy_turret_maxhp) {
         arr_free(enemy_turret_maxhp);
-    if (enemy_turret_spawn_t)
+        enemy_turret_maxhp = NULL;
+    }
+    if (enemy_turret_spawn_t) {
         arr_free(enemy_turret_spawn_t);
-    if (rpunch_a)
+        enemy_turret_spawn_t = NULL;
+    }
+    if (rpunch_a) {
         arr_free(rpunch_a);
-    if (station_boom_xs)
+        rpunch_a = NULL;
+    }
+    if (remote_grab) {
+        arr_free(remote_grab);
+        remote_grab = NULL;
+    }
+    if (rgrab_box_a) {
+        arr_free(rgrab_box_a);
+        rgrab_box_a = NULL;
+    }
+    if (rgrab_punch_t) {
+        arr_free(rgrab_punch_t);
+        rgrab_punch_t = NULL;
+    }
+    if (fighter_looks) {
+        arr_free(fighter_looks);
+        fighter_looks = NULL;
+    }
+    if (fighter_swings) {
+        arr_free(fighter_swings);
+        fighter_swings = NULL;
+    }
+    if (station_boom_xs) {
         arr_free(station_boom_xs);
-    if (station_boom_ys)
+        station_boom_xs = NULL;
+    }
+    if (station_boom_ys) {
         arr_free(station_boom_ys);
-    if (station_boom_ts)
+        station_boom_ys = NULL;
+    }
+    if (station_boom_ts) {
         arr_free(station_boom_ts);
-    if (turret_x)
+        station_boom_ts = NULL;
+    }
+    if (turret_x) {
         arr_free(turret_x);
-    if (turret_y)
+        turret_x = NULL;
+    }
+    if (turret_y) {
         arr_free(turret_y);
-    if (turret_hp)
+        turret_y = NULL;
+    }
+    if (turret_hp) {
         arr_free(turret_hp);
-    if (turret_maxhp)
+        turret_hp = NULL;
+    }
+    if (turret_maxhp) {
         arr_free(turret_maxhp);
-    if (turret_spawn_t)
+        turret_maxhp = NULL;
+    }
+    if (turret_spawn_t) {
         arr_free(turret_spawn_t);
-    if (runiverse_fx_a)
+        turret_spawn_t = NULL;
+    }
+    if (runiverse_fx_a) {
         arr_free(runiverse_fx_a);
-    if (remote_station)
+        runiverse_fx_a = NULL;
+    }
+    if (remote_station) {
         arr_free(remote_station);
-    if (remote_universe)
+        remote_station = NULL;
+    }
+    if (remote_universe) {
         arr_free(remote_universe);
-    if (remotes)
+        remote_universe = NULL;
+    }
+    if (remotes) {
         arr_free(remotes);
-    if (remote_punches)
+        remotes = NULL;
+    }
+    if (remote_punches) {
         arr_free(remote_punches);
-    if (remote_snow)
+        remote_punches = NULL;
+    }
+    if (remote_snow) {
         arr_free(remote_snow);
-    if (remote_dash)
+        remote_snow = NULL;
+    }
+    if (remote_dash) {
         arr_free(remote_dash);
-    if (rdash_box_a)
+        remote_dash = NULL;
+    }
+    if (rdash_box_a) {
         arr_free(rdash_box_a);
-    if (rsnow_ball_a)
+        rdash_box_a = NULL;
+    }
+    if (rsnow_ball_a) {
         arr_free(rsnow_ball_a);
-    if (rsnow_boom_a)
+        rsnow_ball_a = NULL;
+    }
+    if (rsnow_boom_a) {
         arr_free(rsnow_boom_a);
-    if (runiverse_box_a)
+        rsnow_boom_a = NULL;
+    }
+    if (runiverse_box_a) {
         arr_free(runiverse_box_a);
-    if (rstation_box_a)
+        runiverse_box_a = NULL;
+    }
+    if (rstation_box_a) {
         arr_free(rstation_box_a);
-    if (turret_box_a)
+        rstation_box_a = NULL;
+    }
+    if (turret_box_a) {
         arr_free(turret_box_a);
-    if (enemy_turret_box_a)
+        turret_box_a = NULL;
+    }
+    if (enemy_turret_box_a) {
         arr_free(enemy_turret_box_a);
-    if (remote_thuds)
+        enemy_turret_box_a = NULL;
+    }
+    if (remote_thuds) {
         arr_free(remote_thuds);
-    if (candy_x)
+        remote_thuds = NULL;
+    }
+    if (candy_x) {
         arr_free(candy_x);
-    if (candy_y)
+        candy_x = NULL;
+    }
+    if (candy_y) {
         arr_free(candy_y);
-    if (candy_t)
+        candy_y = NULL;
+    }
+    if (candy_t) {
         arr_free(candy_t);
-    if (candy_pick)
+        candy_t = NULL;
+    }
+    if (candy_pick) {
         arr_free(candy_pick);
-    if (candy_ang)
+        candy_pick = NULL;
+    }
+    if (candy_ang) {
         arr_free(candy_ang);
-    if (dust)
+        candy_ang = NULL;
+    }
+    if (dust) {
         arr_free(dust);
-    if (remote_dust_cd)
+        dust = NULL;
+    }
+    if (remote_dust_cd) {
         arr_free(remote_dust_cd);
-    if (class_level_tbl)
+        remote_dust_cd = NULL;
+    }
+    if (class_level_tbl) {
         arr_free(class_level_tbl);
-    if (class_unlocked_tbl)
+        class_level_tbl = NULL;
+    }
+    if (class_unlocked_tbl) {
         arr_free(class_unlocked_tbl);
-    if (class_owned_tbl)
+        class_unlocked_tbl = NULL;
+    }
+    if (class_owned_tbl) {
         arr_free(class_owned_tbl);
-    if (plates_candies)
+        class_owned_tbl = NULL;
+    }
+    if (plates_candies) {
         arr_free(plates_candies);
-    if (flake_cache)
+        plates_candies = NULL;
+    }
+    if (flake_cache) {
         arr_free(flake_cache);
+        flake_cache = NULL;
+    }
+    if (newyear_flake_cache) {
+        arr_free(newyear_flake_cache);
+        newyear_flake_cache = NULL;
+    }
+    if (player) {
+        player_free(player);
+        player = NULL;
+    }
+    if (enemy) {
+        enemy_free(enemy);
+        enemy = NULL;
+    }
+    if (punch) {
+        punch_free(punch);
+        punch = NULL;
+    }
+    if (gift) {
+        gift_free(gift);
+        gift = NULL;
+    }
+    if (enemy_gift) {
+        gift_free(enemy_gift);
+        enemy_gift = NULL;
+    }
 }

@@ -59,6 +59,17 @@ static const char *tr_class_santa_desc(void) {
     return "It's 12:00 AM!";
 }
 
+static const char *tr_class_astra(void) {
+    if (language == 1) {
+        return "Астра";
+    }
+    return "Astra";
+}
+
+static const char *tr_class_astra_desc(void) {
+    return "Hold still";
+}
+
 static const char *tr_class_ebuc(void) {
     return "ebuC";
 }

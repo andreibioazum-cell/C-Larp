@@ -12,6 +12,8 @@ static const char *norm_name(const char *n) {
         n += 16;
     else if (strncmp(n, "textures/", 9) == 0)
         n += 9;
+    else if (strncmp(n, "game/assets/", 12) == 0)
+        n += 12;
     else if (strncmp(n, "assets/", 7) == 0)
         n += 7;
     if (!*n || *n == '/' || strchr(n, '\\'))
@@ -214,6 +216,22 @@ int png_load(const char *n) {
     return load_png(n) != NULL;
 }
 
+int tex_ready(const char *name) {
+    const char *n = norm_name(name);
+    if (!n)
+        return 0;
+    Texture *t = find_tx(n);
+
+    if (!t)
+        t = load_png(n);
+    if (!t || !t->pixels)
+        return 0;
+    if (t->gpu.uploaded)
+        return 1;
+    ds_vk_pending_texture(t);
+    return t->upload_tries == 0;
+}
+
 void rect(float x, float y, float w, float h, uint32_t c) {
     DSCmd *p = push(DS_CMD_RECT);
     if (!p)
@@ -313,6 +331,12 @@ void tex_tint(float x, float y, const char *name, float a, float s, uint32_t c) 
 }
 
 static uint32_t text_force_white(uint32_t c) {
+
+    if (c == 0xFFFF4444u || c == 0xFF4FC3F7u || c == 0xFFFF3333u || c == 0xFF33A8FFu)
+        return c;
+
+    if ((c & 0x00ffffffu) == 0x00202020u)
+        return c;
     return (c & 0xff000000u) | 0x00ffffffu;
 }
 void text_scaled(const char *s, float x, float y, uint32_t c, float sc) {

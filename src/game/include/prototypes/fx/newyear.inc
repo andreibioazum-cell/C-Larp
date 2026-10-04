@@ -1,0 +1,15 @@
+static double newyear_active(void);
+static double newyear_menu_active(void);
+static void update_newyear_snow(void);
+static void newyear_flake_grow(double count);
+static void newyear_flake_refresh(double b, double i, double cyc);
+static double newyear_snow_band1_lo(void);
+static double newyear_snow_band1_hi(void);
+static double newyear_snow_band2_lo(void);
+static double newyear_snow_band2_hi(void);
+static double newyear_snow_x_of(double hx);
+static void draw_newyear_snow(void);
+static double newyear_music_active(void);
+static void update_newyear_jingle(void);
+static void update_newyear(void);
+static void draw_newyear_menu_fx(void);

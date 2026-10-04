@@ -138,9 +138,7 @@ static const char *tr_hello_pre(void) {
     return "Hi, \"";
 }
 
-static const char *tr_hello_post(void) {
-    return "\"";
-}
+static const char *tr_hello_post(void) { return "\""; }
 
 static const char *tr_achievements(void) {
     if (language == 1) {
@@ -212,6 +210,20 @@ static const char *tr_achievement_first_win_desc(void) {
     return "Win your first battle";
 }
 
+static GAME_MAYBE_UNUSED const char *tr_achievement_first_buy(void) {
+    if (language == 1) {
+        return "Покупка";
+    }
+    return "First purchase";
+}
+
+static GAME_MAYBE_UNUSED const char *tr_achievement_first_buy_desc(void) {
+    if (language == 1) {
+        return "Купить первого персонажа";
+    }
+    return "Buy your first character";
+}
+
 static const char *tr_nick(void) {
     if (language == 1) {
         return "Ник";
@@ -268,6 +280,13 @@ static const char *tr_login_btn(void) {
     return "Log In / Register";
 }
 
+static GAME_MAYBE_UNUSED const char *tr_leaderboard(void) {
+    if (language == 1) {
+        return "Лидерборд";
+    }
+    return "Leaderboard";
+}
+
 static const char *tr_loading(void) {
     if (language == 1) {
         return "Загрузка...";
@@ -282,45 +301,25 @@ static const char *tr_no_data(void) {
     return "No data";
 }
 
-static const char *tr_warn_title_en(void) {
-    return "WARNING";
-}
+static const char *tr_warn_title_en(void) { return "WARNING"; }
 
-static const char *tr_warn_title_ru(void) {
-    return "ВНИМАНИЕ";
-}
+static const char *tr_warn_title_ru(void) { return "ВНИМАНИЕ"; }
 
-static const char *tr_warn_en1(void) {
-    return "This game contains bright flashes and";
-}
+static const char *tr_warn_en1(void) { return "This game contains bright flashes and"; }
 
-static const char *tr_warn_en2(void) {
-    return "fast color changes (disco mode online).";
-}
+static const char *tr_warn_en2(void) { return "fast color changes (disco mode online)."; }
 
-static const char *tr_warn_en3(void) {
-    return "If you have epilepsy or are sensitive";
-}
+static const char *tr_warn_en3(void) { return "If you have epilepsy or are sensitive"; }
 
-static const char *tr_warn_en4(void) {
-    return "to light, please play with caution.";
-}
+static const char *tr_warn_en4(void) { return "to light, please play with caution."; }
 
-static const char *tr_warn_ru1(void) {
-    return "В игре есть яркие вспышки и быстрая";
-}
+static const char *tr_warn_ru1(void) { return "В игре есть яркие вспышки и быстрая"; }
 
-static const char *tr_warn_ru2(void) {
-    return "смена цветов (диско-режим в онлайне).";
-}
+static const char *tr_warn_ru2(void) { return "смена цветов (диско-режим в онлайне)."; }
 
-static const char *tr_warn_ru3(void) {
-    return "При эпилепсии или чувствительности";
-}
+static const char *tr_warn_ru3(void) { return "При эпилепсии или чувствительности"; }
 
-static const char *tr_warn_ru4(void) {
-    return "к свету играйте осторожно.";
-}
+static const char *tr_warn_ru4(void) { return "к свету играйте осторожно."; }
 
 static const char *tr_legal_accept(void) {
     if (language == 1) {
@@ -343,70 +342,70 @@ static const char *tr_privacy_title(void) {
     return "What the game collects";
 }
 
-static const char *tr_pv1(void) {
+static const char *tr_privacy_line1(void) {
     if (language == 1) {
         return "Аккаунт: ник и пароль уходят в Firebase Auth по";
     }
     return "Account: nick and password go to Firebase Auth";
 }
 
-static const char *tr_pv2(void) {
+static const char *tr_privacy_line2(void) {
     if (language == 1) {
         return "HTTPS для входа. В облачной базе игры пароля нет;";
     }
     return "over HTTPS for sign-in. The game cloud DB stores";
 }
 
-static const char *tr_pv3(void) {
+static const char *tr_privacy_line3(void) {
     if (language == 1) {
         return "на устройстве он лежит в файле сессии (auth.dat).";
     }
     return "no password; on device it lives in auth.dat.";
 }
 
-static const char *tr_pv4(void) {
+static const char *tr_privacy_line4(void) {
     if (language == 1) {
         return "В облаке под вашим ником: прогресс, настройки,";
     }
     return "Cloud under your nick: progress, settings,";
 }
 
-static const char *tr_pv5(void) {
+static const char *tr_privacy_line5(void) {
     if (language == 1) {
         return "промокоды и сообщения чата.";
     }
     return "promo codes and chat messages.";
 }
 
-static const char *tr_pv6(void) {
+static const char *tr_privacy_line6(void) {
     if (language == 1) {
         return "На устройстве: файлы прогресса и настроек.";
     }
     return "On device: progress and settings files.";
 }
 
-static const char *tr_pv7(void) {
+static const char *tr_privacy_line7(void) {
     if (language == 1) {
         return "Нет рекламы, аналитики и сторонних трекеров;";
     }
     return "No ads, no analytics, no third-party trackers;";
 }
 
-static const char *tr_pv8(void) {
+static const char *tr_privacy_line8(void) {
     if (language == 1) {
         return "геолокация, контакты и ID устройства не нужны.";
     }
     return "no location, contacts or device IDs collected.";
 }
 
-static const char *tr_pv9(void) {
+static const char *tr_privacy_line9(void) {
     if (language == 1) {
         return "Разрешения: Интернет и состояние сети.";
     }
     return "Permissions: Internet and network state only.";
 }
 
-static const char *tr_pv10(void) {
+static const char *tr_privacy_line10(void) {
     if (language == 1) {
         return "Игра предоставляется «как есть», без гарантий.";
     }

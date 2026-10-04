@@ -138,9 +138,7 @@ static int kb_call_void_method(const char *name) {
     return ok;
 }
 
-void ds_set_activity(void *act) {
-    kb_activity = (ANativeActivity *)act;
-}
+void ds_set_activity(void *act) { kb_activity = (ANativeActivity *)act; }
 
 static void kb_sync_editor(void) {
     char copy[KB_BUF];
@@ -150,9 +148,7 @@ static void kb_sync_editor(void) {
     (void)kb_call_text_method("setGameKeyboardText", copy);
 }
 
-int keyboard_uses_editor(void) {
-    return kb_call_bool_method("gameKeyboardActive");
-}
+int keyboard_uses_editor(void) { return kb_call_bool_method("gameKeyboardActive"); }
 
 void keyboard_show(void) {
     char current[KB_BUF];
@@ -403,9 +399,7 @@ int keyboard_handle_key(int keycode, int action, int meta) {
     return 0;
 }
 
-void keyboard_commit_utf8(const char *utf8) {
-    keyboard_type(utf8);
-}
+void keyboard_commit_utf8(const char *utf8) { keyboard_type(utf8); }
 
 JNIEXPORT void JNICALL Java_com_cb4_GameActivity_nativeReplaceText(JNIEnv *env, jobject self, jstring value) {
     (void)self;

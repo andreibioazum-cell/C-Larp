@@ -1,1 +1,1 @@
-double enemy_last_turret_slot = 0;
+double enemy_last_turret_slot;

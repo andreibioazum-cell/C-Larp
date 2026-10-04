@@ -19,6 +19,13 @@ static const char *tr_super_azum(void) {
     return "Dash";
 }
 
+static const char *tr_super_astra(void) {
+    if (language == 1) {
+        return "Захват";
+    }
+    return "Grab";
+}
+
 static const char *tr_class_selected(void) {
     if (language == 1) {
         return "Выбран";
@@ -126,6 +133,24 @@ static const char *tr_class_level_effect(double cls, double n) {
         }
         return "Turret beam heals +0.1 HP/sec";
     }
+    if (cls == 4 && n == 1) {
+        if (language == 1) {
+            return "Захват: откат -2 с";
+        }
+        return "Grab: cooldown -2 s";
+    }
+    if (cls == 4 && n == 2) {
+        if (language == 1) {
+            return "Зона захвата +15%";
+        }
+        return "Grab zone +15%";
+    }
+    if (cls == 4 && n == 3) {
+        if (language == 1) {
+            return "Бросок дальше +40%, оглушение +0.3 с";
+        }
+        return "Throw +40% further, stun +0.3 s";
+    }
     if (cls == 0 && n == 1) {
         if (language == 1) {
             return "Урон атаки +5%";
@@ -170,6 +195,13 @@ static const char *tr_level_need_cups(void) {
         return "Не хватает кубков для уровня";
     }
     return "Not enough cups for this level";
+}
+
+static GAME_MAYBE_UNUSED const char *tr_levels_soon(void) {
+    if (language == 1) {
+        return "Скоро!";
+    }
+    return "Coming soon!";
 }
 
 static const char *tr_cups(void) {
@@ -222,6 +254,20 @@ static const char *tr_skin_zombie(void) {
         return "Зомби";
     }
     return "Zombie";
+}
+
+static const char *tr_skin_elf(void) {
+    if (language == 1) {
+        return "Эльф";
+    }
+    return "Elf";
+}
+
+static const char *tr_skin_elf_hint(void) {
+    if (language == 1) {
+        return "Подарок ебуКа";
+    }
+    return "ebuC's gift";
 }
 
 static const char *tr_skin_legends_hint(void) {
@@ -366,32 +412,4 @@ static const char *tr_card_sub(void) {
         return "Запомни код: больше он нигде не покажется";
     }
     return "Remember the code: it is not shown anywhere else";
-}
-
-static const char *tr_card_used1(void) {
-    if (language == 1) {
-        return "Награда за промокод уже получена";
-    }
-    return "The promo reward was already claimed";
-}
-
-static const char *tr_card_used2(void) {
-    if (language == 1) {
-        return "на этом аккаунте";
-    }
-    return "on this account";
-}
-
-static const char *tr_card_hint1(void) {
-    if (language == 1) {
-        return "Открой экран «Промокод» в меню";
-    }
-    return "Open the 'Promo code' screen in the menu";
-}
-
-static const char *tr_card_hint2(void) {
-    if (language == 1) {
-        return "и введи код, чтобы получить награду";
-    }
-    return "and enter the code to claim your reward";
 }

@@ -37,6 +37,9 @@ static void draw_lobby(void) {
     check_achievements();
     screen_fill();
     ctext("Cubic Battle 4", lobby_title_y(), text_color);
+    if (newyear_active() == 1) {
+        ctext_scaled(tr_newyear_banner(), lobby_title_y() + 34, newyear_gold + 0xFF000000, 0.6);
+    }
     draw_menu_button(0, tr_play());
     draw_menu_button(1, tr_shop());
     draw_menu_button(2, tr_settings());
@@ -80,16 +83,25 @@ static void draw_privacy(void) {
     }
     ctext_scaled(tr_privacy_title(), top, text_color, 0.9);
     double y = top + 54;
-    ctext_scaled(tr_pv1(), y, text_color, 0.5);
-    ctext_scaled(tr_pv2(), y + 26, text_color, 0.5);
-    ctext_scaled(tr_pv3(), y + 52, text_color, 0.5);
-    ctext_scaled(tr_pv4(), y + 78, text_color, 0.5);
-    ctext_scaled(tr_pv5(), y + 104, text_color, 0.5);
-    ctext_scaled(tr_pv6(), y + 130, text_color, 0.5);
-    ctext_scaled(tr_pv7(), y + 156, text_color, 0.5);
-    ctext_scaled(tr_pv8(), y + 182, text_color, 0.5);
-    ctext_scaled(tr_pv9(), y + 208, text_color, 0.5);
-    ctext_scaled(tr_pv10(), y + 234, text_color, 0.5);
+    ctext_scaled(tr_privacy_line1(), y, text_color, 0.5);
+    ctext_scaled(tr_privacy_line2(), y + 26, text_color, 0.5);
+    ctext_scaled(tr_privacy_line3(), y + 52, text_color, 0.5);
+    ctext_scaled(tr_privacy_line4(), y + 78, text_color, 0.5);
+    ctext_scaled(tr_privacy_line5(), y + 104, text_color, 0.5);
+    ctext_scaled(tr_privacy_line6(), y + 130, text_color, 0.5);
+    ctext_scaled(tr_privacy_line7(), y + 156, text_color, 0.5);
+    ctext_scaled(tr_privacy_line8(), y + 182, text_color, 0.5);
+    ctext_scaled(tr_privacy_line9(), y + 208, text_color, 0.5);
+    ctext_scaled(tr_privacy_line10(), y + 234, text_color, 0.5);
+}
+
+static void draw_card_look(double look, double x, double y, double scale) {
+    if (look != LOOK_NONE) {
+        tex(x, y, look_idle_tex(look), 0, scale);
+        return;
+    }
+    double side = 50 * scale;
+    rect(x, y, side, side, fighter_fallback_rgb);
 }
 
 static void draw_class_card(double vi) {
@@ -104,15 +116,11 @@ static void draw_class_card(double vi) {
     double scale = class_sprite_scale();
     double sprite = 50 * scale;
     double sx = x + (w - sprite) / 2;
+    double card = card_look(cls, SKIN_NORMAL);
     if (class_skin_active(cls) == 1) {
-        if (zombie_tex_ok() == 1) {
-            tex(sx, class_sprite_y(), AZUM_ZOMBIE_TEX, 0, scale);
-        } else {
-            tex(sx, class_sprite_y(), class_idle_tex(cls), 0, scale);
-        }
-    } else {
-        tex(sx, class_sprite_y(), class_idle_tex(cls), 0, scale);
+        card = card_look(cls, SKIN_SPECIAL);
     }
+    draw_card_look(card, sx, class_sprite_y(), scale);
     centered_text(class_name_of(cls), x, w, class_title_y(), text_color, class_title_scale());
     const char *motto = class_desc_of(cls);
     centered_text(motto, x, w, class_desc_y(), text_color, fit_text_scale(motto, w - 16, 0.5));
@@ -188,20 +196,16 @@ static void draw_skin_card(double skin) {
     double w = skin_card_w;
     double locked = 1 - skin_unlocked(skin);
     double selected = 0;
-    if (azum_skin == skin) {
+    if (current_skin() == skin) {
         selected = 1;
     }
     card_state(x, skins_top(), w, skin_card_h, selected, locked);
     double scale = skin_preview_scale();
     double sprite = 50 * scale;
     double sx = x + (w - sprite) / 2;
-    if (skin == SKIN_ZOMBIE) {
-        tex(sx, skin_preview_y(), zombie_idle_tex(), 0, scale);
-    } else {
-        tex(sx, skin_preview_y(), azum_idle_tex(), 0, scale);
-    }
+    draw_card_look(card_look(player_class, skin), sx, skin_preview_y(), scale);
     uint32_t c = panel_text(locked);
-    const char *status = tr_skin_legends_hint();
+    const char *status = skin_hint_for(player_class);
     if (locked == 0) {
         status = tr_class_pick();
         if (selected == 1) {

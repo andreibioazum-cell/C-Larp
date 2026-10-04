@@ -296,6 +296,8 @@ static void ds_vk_texture_gpu_release(Texture *t) {
             vkFreeMemory(vk_device, (VkDeviceMemory)(uintptr_t)t->gpu.memory, NULL);
     }
     memset(&t->gpu, 0, sizeof(t->gpu));
+
+    t->upload_tries = 0;
 }
 
 static void ds_vk_pending_reset(void) {
@@ -334,6 +336,8 @@ static void ds_vk_process_pending_uploads(void) {
             t->gpu.view = (long long)(intptr_t)view;
             t->gpu.desc = (long long)(intptr_t)desc;
             t->gpu.uploaded = 1;
+
+            t->upload_tries = 0;
         } else {
 
             if (t->upload_tries++ == 0)

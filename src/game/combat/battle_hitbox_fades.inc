@@ -13,6 +13,7 @@ static double hb_fade(double a, double live, double tin, double tout) {
 }
 
 static void tick_hitbox_fades(void) {
+    tick_astra_fades();
     dash_box_a = hb_fade(dash_box_a, hb_live(dash_active), hitbox_fade_in, hitbox_fade_out);
     snow_ball_a = hb_fade(snow_ball_a, hb_live(gift->active), hitbox_fade_in, hitbox_fade_out);
     snow_boom_a = hb_fade(snow_boom_a, hb_live(boom_t > 0), hitbox_fade_in, hitbox_fade_out);
@@ -49,11 +50,10 @@ static void tick_hitbox_fades(void) {
             arr_set(rpunch_a, s,
                     hb_fade(arr_get(rpunch_a, s), hb_live(arr_get(remote_punches, s * punch_fields) == 1), aim_fade_in,
                             aim_fade_out));
-            double b = s * dash_fields;
             arr_set(rdash_box_a, s,
-                    hb_fade(arr_get(rdash_box_a, s), hb_live(arr_get(remote_dash, b + 1)), hitbox_fade_in,
+                    hb_fade(arr_get(rdash_box_a, s), hb_live(remote_dash_get(s, DASH_ACTIVE)), hitbox_fade_in,
                             hitbox_fade_out));
-            b = s * snow_fields;
+            double b = s * snow_fields;
             arr_set(rsnow_ball_a, s,
                     hb_fade(arr_get(rsnow_ball_a, s), hb_live(arr_get(remote_snow, b + 1)), hitbox_fade_in,
                             hitbox_fade_out));
@@ -76,6 +76,31 @@ static void tick_hitbox_fades(void) {
                 k = k + 1;
             }
         }
+        s = s + 1;
+    }
+}
+
+static void tick_astra_fades(void) {
+    double live = 0;
+    if (astra_state != 0) {
+        live = astra_zone_live(astra_t, astra_caught);
+    }
+    astra_box_a = hb_fade(astra_box_a, hb_live(live), hitbox_fade_in, hitbox_fade_out);
+    double elive = 0;
+    if (egrab_state != 0) {
+        elive = astra_zone_live(egrab_t, egrab_state == 2);
+    }
+    egrab_box_a = hb_fade(egrab_box_a, hb_live(elive), hitbox_fade_in, hitbox_fade_out);
+    if (game_state != ST_ONLINE) {
+        return;
+    }
+    double s = 0;
+    while (s < max_players) {
+        double rlive = 0;
+        if (s != net_slot() && remote_grab_get(s, GRAB_ACTIVE) == 1) {
+            rlive = astra_zone_live(remote_grab_get(s, GRAB_T), remote_grab_get(s, GRAB_CAUGHT));
+        }
+        arr_set(rgrab_box_a, s, hb_fade(arr_get(rgrab_box_a, s), hb_live(rlive), hitbox_fade_in, hitbox_fade_out));
         s = s + 1;
     }
 }

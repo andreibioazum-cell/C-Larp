@@ -1,3 +1,5 @@
+static GAME_MAYBE_UNUSED double turret_zone_half(void) { return turret_half(); }
+
 static double punch_resolve_target(double px, double py, double pdx, double pdy, double reach, double width) {
     double best = -1;
     double bfw = 0;
@@ -31,13 +33,9 @@ static double punch_resolve_target(double px, double py, double pdx, double pdy,
     return best;
 }
 
-static double dash_hit_radius_solo(void) {
-    return player_half();
-}
+static double dash_hit_radius_solo(void) { return player_half(); }
 
-static double dash_hit_radius_remote(void) {
-    return player_half();
-}
+static double dash_hit_radius_remote(void) { return player_half(); }
 
 static double dash_resolve_target(double sx, double sy, double dx, double dy, double len) {
     double best = -1;

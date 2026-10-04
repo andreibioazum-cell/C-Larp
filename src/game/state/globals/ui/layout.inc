@@ -1,1 +1,1 @@
-double SETTINGS_ROWS = 7;
+double SETTINGS_ROWS;

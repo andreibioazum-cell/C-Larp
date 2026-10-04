@@ -6,6 +6,19 @@
 
 #include "game/game.c"
 
+int screen_w = 320;
+int screen_h = 180;
+double dt = 1.0 / 60.0;
+int mouse_clicked;
+double ds_mouse_x;
+double ds_mouse_y;
+Joy joy;
+
+static int ground_texture_missing;
+static int ground_tiles;
+static int ground_fills;
+static const char *last_ground;
+
 struct DSArray {
     double *data;
     size_t length;
@@ -36,7 +49,8 @@ double arr_get(DSArray *array, double index) {
 
 void arr_set(DSArray *array, double index, double value) {
     size_t position = (size_t)index;
-    while (array->length <= position) arr_push(array, 0);
+    while (array->length <= position)
+        arr_push(array, 0);
     array->data[position] = value;
 }
 
@@ -65,6 +79,127 @@ void ds_runtime_error(const char *format, ...) {
     abort();
 }
 
+void ds_log(const char *format, ...) {
+    (void)format;
+}
+double dist(double x, double y, double a, double b) {
+    return hypot(x - a, y - b);
+}
+void keyboard_hide(void) {}
+static double stub_net_slot = -1;
+static double stub_online[4];
+static double stub_level[4];
+static double stub_grab[4];
+static double stub_gx[4];
+static double stub_gy[4];
+static double stub_gdx[4];
+static double stub_gdy[4];
+double net_slot(void) {
+    return stub_net_slot;
+}
+double net_player_online(double slot) {
+    return stub_online[(int)slot];
+}
+double net_player_level(double slot) {
+    return stub_level[(int)slot];
+}
+double net_player_grab(double slot) {
+    return stub_grab[(int)slot];
+}
+double net_player_grab_x(double slot) {
+    return stub_gx[(int)slot];
+}
+double net_player_grab_y(double slot) {
+    return stub_gy[(int)slot];
+}
+double net_player_grab_dx(double slot) {
+    return stub_gdx[(int)slot];
+}
+double net_player_grab_dy(double slot) {
+    return stub_gdy[(int)slot];
+}
+void net_mark_achievement_flag(double flag) {
+    (void)flag;
+}
+void net_save_azum_revives(double value) {
+    (void)value;
+}
+double net_load_bp_level(void) {
+    return 0;
+}
+void net_set_class(double value) {
+    (void)value;
+}
+void net_set_level(double value) {
+    (void)value;
+}
+void net_set_skin(double value) {
+    (void)value;
+}
+void net_save_astra(double owned, double level, double unlocked) {
+    (void)owned;
+    (void)level;
+    (void)unlocked;
+}
+void net_save_progress_all(double a, double b, double c, double d, double e, double f, double g, double h, double i,
+                           double j, double k, double l, double m, double n, double o, double p, double q, double r) {
+    (void)a;
+    (void)b;
+    (void)c;
+    (void)d;
+    (void)e;
+    (void)f;
+    (void)g;
+    (void)h;
+    (void)i;
+    (void)j;
+    (void)k;
+    (void)l;
+    (void)m;
+    (void)n;
+    (void)o;
+    (void)p;
+    (void)q;
+    (void)r;
+}
+void net_save_quest_state(double a, double b, double c, double d, double e, double f, double g, double h, double i,
+                          double j, double k, double l) {
+    (void)a;
+    (void)b;
+    (void)c;
+    (void)d;
+    (void)e;
+    (void)f;
+    (void)g;
+    (void)h;
+    (void)i;
+    (void)j;
+    (void)k;
+    (void)l;
+}
+
+int tex_ready(const char *name) {
+    return name && *name && !ground_texture_missing;
+}
+
+void rect(float x, float y, float width, float height, uint32_t color) {
+    (void)x;
+    (void)y;
+    (void)width;
+    (void)height;
+    (void)color;
+    ground_fills++;
+}
+
+void tex(float x, float y, const char *name, float angle, float scale) {
+    (void)x;
+    (void)y;
+    (void)angle;
+    (void)scale;
+    ground_tiles++;
+    last_ground = name;
+}
+
 int main(void) {
     state_create();
     state_ready = 1;
@@ -78,9 +213,18 @@ int main(void) {
     assert(strcmp(tr_play(), "Играть") == 0);
     language = 0;
 
+    assert(class_count == 5 && CLASS_ASTRA == 4);
     assert(class_cost_of(CLASS_AZUM) == 65);
     assert(class_cost_of(CLASS_SANTA) == 100);
     assert(class_cost_of(CLASS_EBUC) == 120);
+    assert(class_cost_of(CLASS_ASTRA) == 90);
+    assert(class_has_super(CLASS_ASTRA) == 1);
+    assert(astra_cd_for(0) == 8);
+    assert(astra_cd_for(1) < astra_cd_for(0));
+    assert(astra_zone_reach(2) > astra_zone_reach(1));
+    assert(astra_throw_dist_for(3) > astra_throw_dist_for(2));
+    assert(fabs(astra_grab_total_fraction() - 0.45) < 1e-9);
+    assert(strcmp(WINTER_JINGLE, "winter_jingle.wav") == 0);
     assert(strcmp(fighter_sprite(CLASS_ORDINARY, 0, SKIN_NORMAL), ORDINARY_TEX) == 0);
     azum_tex_ok = azum_punch_tex_ok = 1;
     azum_zombie_tex_ok = azum_zombie_punch_tex_ok = 1;
@@ -92,12 +236,97 @@ int main(void) {
     assert(circle_hits_box(0, 0, 5, 8, 0, 0, 4) == 1);
     assert(circle_hits_box(0, 0, 2, 8, 0, 0, 4) == 0);
 
-    winter_theme = snow_tex_ok = 1;
+    winter_theme = 0;
+    snow_tex_ok = 1;
     game_state = ST_SOLO;
-    assert(strcmp(arena_ground_tex(), SNOW_TEX) == 0);
+    ground_tiles = ground_fills = 0;
+    draw_arena_background();
+    assert(ground_tiles > 0 && ground_fills == 0);
+    assert(strcmp(last_ground, GRASS) == 0);
+
+    ground_texture_missing = 1;
+    ground_tiles = ground_fills = 0;
+    draw_arena_background();
+    assert(ground_tiles == 0 && ground_fills == 1);
+    ground_texture_missing = 0;
+
+    winter_theme = 1;
+    ground_tiles = ground_fills = 0;
+    draw_arena_background();
+    assert(ground_tiles > 0 && ground_fills == 0);
+    assert(strcmp(last_ground, SNOW_TEX) == 0);
     assert(snow_active() == 1);
+    assert(newyear_active() == 1);
+    assert(newyear_menu_active() == 0);
     game_state = ST_LOBBY;
+    warn_open = studio_open = 0;
+    newyear_jingle_ok = 1;
     assert(snow_active() == 0);
+    assert(newyear_menu_active() == 1);
+    assert(newyear_music_active() == 1);
+
+    player_class = CLASS_ASTRA;
+    player_level = 0;
+    game_state = ST_SOLO;
+    finished = 0;
+    player->x = 400;
+    player->y = 400;
+    player->angle = 0;
+    player->hp = player->max_hp = 10;
+    enemy_class = CLASS_ORDINARY;
+    enemy->x = 470;
+    enemy->y = 400;
+    enemy->hp = enemy->max_hp = 10;
+    astra_cd = 0;
+    start_grab_now();
+    for (int frame = 0; frame < 400 && astra_state != 0; frame++)
+        tick_astra();
+    assert(fabs(enemy->hp - 5.5) < 1e-6);
+    assert(enemy_throw_t > 0);
+
+    astra_state = 0;
+    enemy_throw_t = 0;
+    player_class = CLASS_ORDINARY;
+    game_state = ST_SOLO;
+    finished = 0;
+    player->x = 470;
+    player->y = 400;
+    player->hp = player->max_hp = 10;
+    enemy_class = CLASS_ASTRA;
+    enemy_level = 0;
+    enemy->x = 400;
+    enemy->y = 400;
+    enemy->angle = 0;
+    enemy->hp = enemy->max_hp = 10;
+    pgrab_active = 0;
+    pthrow_t = 0;
+    enemy_start_grab();
+    for (int frame = 0; frame < 400 && egrab_state != 0; frame++)
+        tick_enemy_grab();
+    assert(fabs(player->hp - 5.5) < 1e-6);
+    assert(pthrow_t > 0);
+
+    egrab_state = 0;
+    pgrab_active = 0;
+    pthrow_t = 0;
+    game_state = ST_ONLINE;
+    finished = 0;
+    player->x = 470;
+    player->y = 400;
+    player->hp = player->max_hp = 10;
+    stub_net_slot = 0;
+    stub_online[1] = 1;
+    stub_level[1] = 0;
+    stub_gx[1] = 400.0 / screen_w;
+    stub_gy[1] = 400.0 / screen_h;
+    stub_gdx[1] = 1;
+    stub_gdy[1] = 0;
+    stub_grab[1] = 1;
+    for (int frame = 0; frame < 400; frame++)
+        update_remote_grabs();
+    assert(fabs(player->hp - 5.5) < 1e-6);
+    assert(pthrow_t > 0);
+    stub_net_slot = -1;
 
     player->hp = 1;
     game_state = ST_ONLINE;

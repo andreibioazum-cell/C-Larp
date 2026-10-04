@@ -29,6 +29,7 @@ def check_firebase_rules() -> None:
     room = body_keys("room_sync.inc") | body_keys("room_chat.inc") | body_keys("room_threads.inc")
     missing = room - slot
     assert not missing, f"В правилах игрового слота нет полей: {sorted(missing)}"
+    assert {"gbx", "gby", "gbdx", "gbdy", "grab"} <= room
 
     auth_only = {"email", "password", "grant_type", "refresh_token"}
     profile = (
@@ -40,6 +41,7 @@ def check_firebase_rules() -> None:
     )
     missing = profile - user
     assert not missing, f"В правилах профиля нет полей: {sorted(missing)}"
+    assert {"astra", "astra_level", "astra_levels"} <= profile
 
     missing = body_keys("player_api.inc") - message
     assert not missing, f"В правилах чата нет полей: {sorted(missing)}"
@@ -62,6 +64,7 @@ def check_assets() -> None:
 
     required = (
         ROOT / "assets" / "audio" / "lobbymusic.wav",
+        ROOT / "assets" / "audio" / "winter_jingle.wav",
         ROOT / "assets" / "fonts" / "ComicRelief-Regular.ttf",
         ROOT / "assets" / "shaders" / "sprite.vert",
         ROOT / "assets" / "shaders" / "solid.frag",

@@ -1,5 +1,12 @@
 static void move_player(void) {
+    if (pthrow_t > 0) {
+        tick_player_throw();
+        return;
+    }
     if (player_stun > 0 || plates_lock_me == 1) {
+        return;
+    }
+    if (pgrab_active == 1 || astra_locked() == 1) {
         return;
     }
     if (dash_active > 0) {

@@ -71,12 +71,3 @@ struct Gift {
     double shot;
     double pierce;
 };
-
-static Player *player_new(void);
-static void player_free(Player *self);
-static Enemy *enemy_new(void);
-static void enemy_free(Enemy *self);
-static Punch *punch_new(void);
-static void punch_free(Punch *self);
-static Gift *gift_new(void);
-static void gift_free(Gift *self);

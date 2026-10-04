@@ -1,0 +1,12 @@
+newyear_red = 0x00E53935;
+newyear_gold = 0x00FFC107;
+newyear_bg_top = 0x2E4E99;
+newyear_bg_bottom = 0x785AF5;
+newyear_snow_t = 0;
+newyear_menu_flakes = 22;
+newyear_flake_cached = 0;
+newyear_flake_cache = arr_new();
+newyear_snow_col_pad = 30;
+WINTER_JINGLE = "winter_jingle.wav";
+newyear_jingle_tried = 0;
+newyear_jingle_ok = 0;
