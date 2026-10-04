@@ -1,7 +1,3 @@
-/* Stub for the host compile checks (tools/host_test); on the device this is the
- * real NDK header. As in the real jni.h in C mode, JNIEnv and JavaVM are pointers
- * to tables of functions, and the methods cover what the game actually calls
- * (native/net, native/sound, native/runtime). */
 #ifndef HOST_STUB_JNI_H
 #define HOST_STUB_JNI_H
 #include <stdint.h>

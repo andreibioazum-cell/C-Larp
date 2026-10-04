@@ -1,28 +1,4 @@
 #!/usr/bin/env python3
-"""Native progress checks: a bought class must survive a relogin.
-
-The bug this guards: after a rules update the ebuC (and only it) vanished after
-relogging even though the other classes stayed. Two causes in native/net:
-
-  * the very first net_save_progress_all() of a launch ran before progress.dat
-    had ever been read into `pg`, so the "sticky ownership" merge saw nothing
-    and the file was overwritten with whatever the script had in memory;
-  * a cloud PATCH that failed (no network, 5xx, app killed mid-flight) was
-    simply logged; the next login then took the stale cloud record and the
-    purchase was gone. Now a failed/unfinished PATCH leaves progress.dirty on
-    the device and the next login pushes the local progress back.
-
-Compiles the REAL net.c (with temporary Android/JNI header stubs) and drives
-it against a real temporary data directory:
-
-  first-save  — save before any read: previously bought classes are kept;
-  offline-buy — buy offline (no session), then log in against a cloud record
-                without the class: class, currencies and selection come from
-                the device and the merge asks to push (returns 1);
-  clean       — no dirty mark and a fresher cloud record: the cloud wins.
-
-Requires a host C compiler (CC).
-"""
 from pathlib import Path
 import os
 import shlex
@@ -32,13 +8,13 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
-from test_settings_storage import ANDROID_LOG_H, JNI_H  # noqa: E402
+from test_settings_storage import ANDROID_LOG_H, JNI_H
 
 HARNESS = r'''
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "net.c"
+#include "engine/network.c"
 
 int __android_log_print(int prio, const char *tag, const char *fmt, ...) {
     (void)prio; (void)tag; (void)fmt;
@@ -46,20 +22,21 @@ int __android_log_print(int prio, const char *tag, const char *fmt, ...) {
 }
 void ds_console_log(int is_error, const char *format, ...) { (void)is_error; (void)format; }
 
-/* The cloud forgot the ebuC and still holds old candies. */
 static const char *CLOUD_NO_EBUC =
     "{\"nick\":\"tester\",\"cups\":100,\"candies\":200,\"cls\":0,\"azum\":1,\"santa\":0,"
     "\"level\":0,\"levels\":0}";
-/* The cloud is newer than the device: another phone picked Azum and earned cups. */
+
 static const char *CLOUD_FRESH =
     "{\"nick\":\"tester\",\"cups\":120,\"candies\":50,\"cls\":1,\"azum\":1,\"santa\":0,"
     "\"ebuc\":1,\"level\":0,\"levels\":0}";
 
-/* First run: the ebuC was bought earlier, the file is there, and the script saves
- * before anyone calls net_load_*. Ownership must survive. */
+static const char *CLOUD_NO_ASTRA =
+    "{\"nick\":\"tester\",\"cups\":100,\"candies\":20,\"cls\":0,\"azum\":0,\"santa\":0,"
+    "\"ebuc\":0,\"level\":0,\"levels\":0}";
+
 static int run_first_save(const char *dir) {
     net_set_data_path(dir);
-    /* A script with empty memory saves cups only. */
+
     net_save_progress_all(7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     assert(net_load_ebuc() == 1);
     assert(net_load_azum() == 1);
@@ -68,7 +45,6 @@ static int run_first_save(const char *dir) {
     return 0;
 }
 
-/* A purchase without a session, then a login. */
 static int run_offline_buy(const char *dir) {
     net_set_data_path(dir);
     assert(net_load_ebuc() == 0);
@@ -78,13 +54,12 @@ static int run_offline_buy(const char *dir) {
     assert(push == 1);
     assert(net_load_ebuc() == 1);
     assert(net_load_class() == 3);
-    assert(net_load_candies() == 50);   /* the candies did not come back from the cloud */
+    assert(net_load_candies() == 50);
     assert(net_load_cups() == 100);
     puts("offline buy: the ebuC, its selection and the spent candies come back from the device");
     return 0;
 }
 
-/* Clean state: the cloud is newer and no stamp is set, so the cloud wins. */
 static int run_clean(const char *dir) {
     net_set_data_path(dir);
     net_save_progress_all(100, 50, 3, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
@@ -98,16 +73,33 @@ static int run_clean(const char *dir) {
     return 0;
 }
 
+static int run_astra(const char *dir) {
+    net_set_data_path(dir);
+    assert(net_load_astra() == 0);
+    net_save_astra(1, 3, 3);
+    net_save_progress_all(90, 20, 4, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert(net_load_astra() == 1);
+    assert(net_load_astra_level() == 3);
+    assert(net_load_astra_levels_unlocked() == 3);
+    assert(net_load_class() == 4);
+    assert(apply_user_json_keep_local(CLOUD_NO_ASTRA) == 1);
+    assert(net_load_astra() == 1);
+    assert(net_load_astra_level() == 3);
+    assert(net_load_class() == 4);
+    puts("astra: an offline purchase, selection and levels survive an older cloud profile");
+    return 0;
+}
+
 int main(int argc, char **argv) {
     if (argc < 3) { fprintf(stderr, "usage: test <mode> <dir>\n"); return 2; }
     if (strcmp(argv[1], "first-save") == 0) return run_first_save(argv[2]);
     if (strcmp(argv[1], "offline-buy") == 0) return run_offline_buy(argv[2]);
     if (strcmp(argv[1], "clean") == 0) return run_clean(argv[2]);
+    if (strcmp(argv[1], "astra") == 0) return run_astra(argv[2]);
     fprintf(stderr, "unknown mode '%s'\n", argv[1]);
     return 2;
 }
 '''
-
 
 def main():
     with tempfile.TemporaryDirectory(prefix="cubic-cloud-") as directory:
@@ -124,12 +116,12 @@ def main():
             *shlex.split(os.environ.get("CC", "cc")), "-std=gnu99", "-O0",
             "-D_POSIX_C_SOURCE=200809L", "-D__ANDROID__",
             "-Werror=implicit-function-declaration",
-            "-I", str(temp), "-I", str(ROOT),
+            "-I", str(temp), "-I", str(ROOT / "src"), "-I", str(ROOT),
             str(temp / "test.c"), "-lm", "-lpthread", "-o", str(temp / "test"),
         ], check=True)
         run = [str(temp / "test")]
 
-        # progress.dat: cups cls azum santa candies level levels 8×levels ebuc bp skin
+
         first = temp / "first"
         first.mkdir()
         (first / "progress.dat").write_text(
@@ -147,8 +139,13 @@ def main():
         clean.mkdir()
         subprocess.run([*run, "clean", str(clean)], check=True)
         assert not (clean / "progress.dirty").exists()
-    return 0
 
+        astra = temp / "astra"
+        astra.mkdir()
+        subprocess.run([*run, "astra", str(astra)], check=True)
+        saved = (astra / "progress.dat").read_text(encoding="utf-8").split()
+        assert len(saved) == 21 and saved[18:] == ["1", "3", "3"], saved
+    return 0
 
 if __name__ == "__main__":
     raise SystemExit(main())

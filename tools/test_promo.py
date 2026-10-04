@@ -1,22 +1,4 @@
 #!/usr/bin/env python3
-"""Native promo checks: random card codes, promo.dat and the cloud sync.
-
-Compiles the REAL net.c (the same translation unit the Android build uses,
-with temporary Android/JNI header stubs — this is not a PC build) and runs it
-against a real temporary data directory:
-
-  write  — every card gets a fresh random code of 3 letters and 1 digit (no I,
-           O, 0 or 1), never the same code twice in a row, spread over many
-           values and digit positions; only the code of the last card redeems;
-  read   — a fresh process ("restart") still knows the code of the last card;
-           taking the reward spends it and sets the one-per-account flag;
-  cloud  — on a clean device a card code found on another phone is adopted,
-           promo_used=1 from the cloud blocks a second reward, and an old
-           profile value that is not a card code is ignored;
-  legacy — a promo.dat of an older version (streak, card_found) still reads.
-
-Requires a host C compiler (CC).
-"""
 from pathlib import Path
 import os
 import shlex
@@ -74,13 +56,11 @@ typedef const struct JNIInvokeInterface *JavaVM;
 #endif
 """
 
-# The test includes the real net.c, so it also sees the static functions of the
-# module (promo_sync_with_cloud, the lg session).
 HARNESS = r'''
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "net.c"
+#include "engine/network.c"
 
 int __android_log_print(int prio, const char *tag, const char *fmt, ...) {
     (void)prio; (void)tag; (void)fmt;
@@ -101,10 +81,10 @@ static int format_ok(const char *c) {
 
 static int run_write(const char *dir) {
     net_set_data_path(dir);
-    assert(strcmp(net_promo_code(), "") == 0);   /* no card yet, no code */
-    assert(net_promo_check("ABC7") == 0);        /* a well-formed guess is wrong */
+    assert(strcmp(net_promo_code(), "") == 0);
+    assert(net_promo_check("ABC7") == 0);
     assert(net_promo_used() == 0);
-    /* Random codes: valid, never repeated back to back, spread out. */
+
     char prev[8] = "", seen[400][8];
     int distinct = 0, pos_seen[4] = {0, 0, 0, 0};
     for (int n = 0; n < 400; n++) {
@@ -120,13 +100,13 @@ static int run_write(const char *dir) {
     }
     assert(distinct >= 390);
     assert(pos_seen[0] && pos_seen[1] && pos_seen[2] && pos_seen[3]);
-    /* Only the code of the last card redeems. */
+
     const char *last = net_promo_code();
     assert(net_promo_check(last) == 1);
     assert(net_promo_check(seen[0]) == 0 || !strcmp(seen[0], last));
     char lower[8]; snprintf(lower, sizeof(lower), "%s", last);
     for (int i = 0; i < 4; i++) if (lower[i] >= 'A' && lower[i] <= 'Z') lower[i] += 32;
-    assert(net_promo_check(lower) == 0);         /* the script upper-cases first */
+    assert(net_promo_check(lower) == 0);
     assert(net_promo_check("") == 0);
     printf("PROMO_CODE=%s\n", last);
     printf("promo write: %d distinct random codes out of 400, digit in every position\n", distinct);
@@ -135,14 +115,14 @@ static int run_write(const char *dir) {
 
 static int run_read(const char *dir, const char *code) {
     net_set_data_path(dir);
-    assert(strcmp(net_promo_code(), code) == 0); /* the restart keeps the last card */
+    assert(strcmp(net_promo_code(), code) == 0);
     assert(net_promo_check(code) == 1);
     assert(net_promo_used() == 0);
-    net_promo_mark_used();                       /* the reward is taken */
+    net_promo_mark_used();
     assert(net_promo_used() == 1);
-    assert(net_promo_check(code) == 0);          /* the code is spent */
+    assert(net_promo_check(code) == 0);
     assert(strcmp(net_promo_code(), "") == 0);
-    /* A later card still shows a new random code, the flag stays. */
+
     assert(format_ok(net_promo_new_code()));
     assert(net_promo_used() == 1);
     puts("promo read: the last card survives a restart, the reward spends it once");
@@ -156,18 +136,17 @@ static void login(const char *nick) {
     lg_unlock();
 }
 
-/* Clean device: the cloud knows the card found on another phone. */
 static int run_cloud(const char *dir) {
     net_set_data_path(dir);
-    assert(promo_sync_with_cloud("{\"nick\":\"tester\",\"promo\":\"KXM7\"}") == 0); /* no session */
+    assert(promo_sync_with_cloud("{\"nick\":\"tester\",\"promo\":\"KXM7\"}") == 0);
     login("tester");
-    /* An old profile value that is not a card code is ignored. */
+
     assert(promo_sync_with_cloud("{\"nick\":\"tester\",\"promo\":\"CB4-1A2B-3C4D-5E6F\"}") == 0);
     assert(strcmp(net_promo_code(), "") == 0);
     assert(promo_sync_with_cloud("{\"nick\":\"tester\",\"promo\":\"KXM7\",\"promo_used\":0}") == 1);
     assert(strcmp(net_promo_code(), "KXM7") == 0);
     assert(net_promo_check("KXM7") == 1);
-    /* The reward was taken on the other phone: no second one here. */
+
     assert(promo_sync_with_cloud("{\"nick\":\"tester\",\"promo\":\"KXM7\",\"promo_used\":1}") == 1);
     assert(net_promo_used() == 1);
     assert(net_promo_check("KXM7") == 0);
@@ -175,7 +154,6 @@ static int run_cloud(const char *dir) {
     return 0;
 }
 
-/* promo.dat of an older version: streak and card_found are ignored. */
 static int run_legacy(const char *dir) {
     net_set_data_path(dir);
     assert(net_promo_used() == 0);
@@ -195,7 +173,6 @@ int main(int argc, char **argv) {
 }
 '''
 
-
 def main():
     with tempfile.TemporaryDirectory(prefix="cubic-promo-") as directory:
         temp = Path(directory)
@@ -211,7 +188,7 @@ def main():
             *shlex.split(os.environ.get("CC", "cc")), "-std=gnu99", "-O0",
             "-D_POSIX_C_SOURCE=200809L", "-D__ANDROID__",
             "-Werror=implicit-function-declaration",
-            "-I", str(temp), "-I", str(ROOT),
+            "-I", str(temp), "-I", str(ROOT / "src"), "-I", str(ROOT),
             str(temp / "test.c"), "-lm", "-lpthread", "-o", str(temp / "test"),
         ], check=True)
 
@@ -241,7 +218,6 @@ def main():
         (old / "promo.dat").write_text("used 0\nstreak 7\ncard_found 1\n", encoding="utf-8")
         subprocess.run([*run, "legacy", str(old)], check=True)
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

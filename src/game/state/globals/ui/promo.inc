@@ -1,0 +1,18 @@
+double promo_focus;
+const char *promo_input;
+double promo_msg_t;
+const char *promo_msg_text;
+double promo_msg_kind;
+double card_active;
+double card_x;
+double card_y;
+double card_t;
+double card_ang;
+double card_open;
+double card_open_t;
+const char *card_code;
+double card_fly_dist;
+double card_pop_time;
+double card_ring_rgb;
+double card_body_rgb;
+double card_glyph_rgb;

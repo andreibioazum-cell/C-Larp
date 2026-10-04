@@ -1,19 +1,4 @@
 #!/usr/bin/env python3
-"""Native storage checks: settings.dat on the device and the cloud profile JSON.
-
-Compiles the REAL net.c (the same translation unit the Android build uses, with
-temporary Android/JNI header stubs — this is not a PC build) and runs it three
-times against a real temporary data directory:
-
-  write  — net_save_settings must create settings.dat;
-  read   — a fresh process must read the very same file back (a "restart");
-  cloud  — on a device without settings.dat the profile JSON is adopted, and on
-           a device that has one the local file wins (returns 1, keeps its data);
-  legacy — an old settings.dat with a mod list is read without errors and the
-           next save rewrites it without mods (the mod screen is gone).
-
-Requires a host C compiler (CC).
-"""
 from pathlib import Path
 import os
 import shlex
@@ -62,8 +47,7 @@ struct JNINativeInterface {
 };
 struct JNIInvokeInterface {
     void *reserved0;
-    /* In the real jni.h these parameters are void*, so one header works in C
-     * and in C++. */
+
     int (*AttachCurrentThread)(void *vm, void *env, void *args);
     int (*DetachCurrentThread)(void *vm);
     int (*GetEnv)(void *vm, void *env, int version);
@@ -73,14 +57,11 @@ typedef const struct JNIInvokeInterface *JavaVM;
 #endif
 """
 
-# The test includes the real net.c, so it also sees the static functions of the
-# module.
-# (settings_read/settings_write/settings_sync_with_cloud).
 HARNESS = r'''
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "net.c"
+#include "engine/network.c"
 
 int __android_log_print(int prio, const char *tag, const char *fmt, ...) {
     (void)prio; (void)tag; (void)fmt;
@@ -88,8 +69,6 @@ int __android_log_print(int prio, const char *tag, const char *fmt, ...) {
 }
 void ds_console_log(int is_error, const char *format, ...) { (void)is_error; (void)format; }
 
-/* A cloud profile with the old mod fields (mods_n, mods): the client neither
- * reads nor writes them, and an old profile must not break anything. */
 static const char *CLOUD_PROFILE =
     "{\"nick\":\"tester\",\"cups\":10,\"candies\":5,\"cls\":3,\"azum\":1,\"santa\":0,"
     "\"ebuc\":1,\"level\":1,\"levels\":1,\"lang\":1,\"hitboxes\":0,\"musicvol\":40,\"mods_n\":2,"
@@ -100,14 +79,14 @@ static int run_write(const char *dir) {
     net_save_settings(1, 0);
     assert(net_load_language() == 1);
     assert(net_load_hitboxes() == 0);
-    /* Music volume: a value out of range is clamped to 0..100. */
+
     net_save_music_volume(35);
     assert(net_load_music_volume() == 35);
     net_save_music_volume(150);
     assert(net_load_music_volume() == 100);
     net_save_music_volume(35);
     assert(net_load_music_volume() == 35);
-    /* The device already saved, so the cloud takes nothing away. */
+
     assert(settings_sync_with_cloud(CLOUD_PROFILE) == 1);
     assert(net_load_language() == 1);
     assert(net_load_hitboxes() == 0);
@@ -127,24 +106,21 @@ static int run_read(const char *dir) {
 
 static int run_cloud(const char *dir) {
     net_set_data_path(dir);
-    /* Clean device: there is no file, so the settings come from the profile and
-     * the old mod fields are ignored. */
+
     assert(settings_sync_with_cloud(CLOUD_PROFILE) == 0);
     assert(net_load_language() == 1);
     assert(net_load_hitboxes() == 0);
     assert(net_load_music_volume() == 40);
-    /* The Python wrapper of the test checks the file on the device. */
+
     puts("native cloud: profile settings adopted on a device without settings.dat");
     return 0;
 }
 
-/* An old settings.dat with a mod list reads without errors, and the next write
- * leaves only the language and the hitboxes in the file. */
 static int run_legacy(const char *dir) {
     net_set_data_path(dir);
     assert(net_load_language() == 1);
     assert(net_load_hitboxes() == 0);
-    /* The old file has no musicvol, so the default is used. */
+
     assert(net_load_music_volume() == 70);
     net_save_settings(0, 1);
     assert(net_load_language() == 0);
@@ -153,8 +129,6 @@ static int run_legacy(const char *dir) {
     return 0;
 }
 
-/* Epilepsy warning consent: there is no stamp before the press and a unix time in
- * settings.dat after it, surviving a restart of the process. */
 static int run_legal(const char *dir) {
     net_set_data_path(dir);
     assert(settings_legal_ts() == 0);
@@ -184,7 +158,6 @@ int main(int argc, char **argv) {
 }
 '''
 
-
 def main():
     with tempfile.TemporaryDirectory(prefix="cubic-settings-") as directory:
         temp = Path(directory)
@@ -199,7 +172,7 @@ def main():
             *shlex.split(os.environ.get("CC", "cc")), "-std=gnu99", "-O0",
             "-D_POSIX_C_SOURCE=200809L", "-D__ANDROID__",
             "-Werror=implicit-function-declaration",
-            "-I", str(temp), "-I", str(ROOT),
+            "-I", str(temp), "-I", str(ROOT / "src"), "-I", str(ROOT),
             str(temp / "test.c"), "-lm", "-lpthread", "-o", str(temp / "test"),
         ], check=True)
 
@@ -239,7 +212,6 @@ def main():
         assert "legal " in stamped, stamped
         subprocess.run([*run, "legal-read", str(legal)], check=True)
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

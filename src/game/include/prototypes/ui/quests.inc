@@ -1,0 +1,16 @@
+static void quest_init(void);
+static void quest_save(void);
+static void quest_restore(void);
+static void quest_load(void);
+static double quest_fill_empty(void);
+static void quest_tick(void);
+static const char *quest_title(double t);
+static const char *quest_progress_text(double i);
+static double quest_is_done(double i);
+static void quest_roll_new(double idx);
+static void quest_complete(double idx);
+static void quest_on_win(double result);
+static void quest_on_candy(void);
+static void draw_quest_card(double i);
+static void draw_quests(void);
+static void touch_quests(double x, double y, double action);

@@ -1,4 +1,3 @@
-/* Stub for the host tests. */
 #ifndef HOST_STUB_ANDROID_ASSET_H
 #define HOST_STUB_ANDROID_ASSET_H
 #include <stddef.h>

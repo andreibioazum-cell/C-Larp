@@ -1,0 +1,13 @@
+static double has_achievement(double bit);
+static void show_achievement_toast(double bit);
+static double grant_achievement(double bit);
+static void check_achievements(void);
+static void save_progress(void);
+static double skin_flags(void);
+static void progress_push_to_net(void);
+static void progress_normalize(void);
+static void progress_from_storage(void);
+static void settings_from_storage(void);
+static void save_settings(void);
+static void music_volume_apply(void);
+static void music_volume_cycle(void);

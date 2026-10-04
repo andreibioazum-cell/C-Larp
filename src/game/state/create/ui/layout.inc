@@ -1,0 +1,1 @@
+SETTINGS_ROWS = 7;
