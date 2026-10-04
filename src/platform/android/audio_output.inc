@@ -2,8 +2,10 @@
 #include <jni.h>
 #include <pthread.h>
 
-#define AT_FRAMES 1024
-#define AT_REFILL 4
+/* Small streaming blocks keep button feedback close to the touch event. The
+ * old 1024-frame writes plus a 4x buffer could queue noticeable silence. */
+#define AT_FRAMES 256
+#define AT_REFILL 1
 
 static JavaVM *snd_vm = NULL;
 static jobject snd_at_track = NULL;
@@ -97,8 +99,8 @@ static int snd_backend_start(void) {
             (*env)->ExceptionClear(env);
             minbuf = 0;
         }
-        if (minbuf < 4096)
-            minbuf = 4096;
+        if (minbuf < 2048)
+            minbuf = 2048;
         if (minbuf > SND_RATE * 8)
             minbuf = SND_RATE * 8;
         track = (*env)->NewObject(env, atc, (*env)->GetMethodID(env, atc, "<init>", "(IIIIII)V"), (jint)3,

@@ -309,11 +309,16 @@ int snd_load(const char *name) {
 }
 
 static SndVoice *snd_voice_for(SndSound *s) {
-    for (int i = 0; i < SND_VOICES; i++)
-        if (snd_voices[i].active && snd_voices[i].snd == s)
-            return &snd_voices[i];
+    /* Prefer a free voice so short UI sounds can overlap instead of repeatedly
+     * resetting the same 45 ms sample and seeming to miss every other tap. */
     for (int i = 0; i < SND_VOICES; i++)
         if (!snd_voices[i].active)
             return &snd_voices[i];
+    /* Preserve looping music where possible; replace the oldest disposable
+     * one-shot before stealing an arbitrary channel. */
+    for (int i = 0; i < SND_VOICES; i++)
+        if (!snd_voices[i].loop)
+            return &snd_voices[i];
+    (void)s;
     return &snd_voices[0];
 }
