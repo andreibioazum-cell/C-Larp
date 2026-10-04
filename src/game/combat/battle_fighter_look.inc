@@ -27,7 +27,7 @@ static void resolve_fighter_looks(void) {
     resolve_fighter_look(FLOOK_BOT, enemy_class, SKIN_NORMAL);
 }
 
-static const char *fighter_sprite(double cls, double punching, double skin) {
+static GAME_MAYBE_UNUSED const char *fighter_sprite(double cls, double punching, double skin) {
     double look = drawable_look(cls, skin);
     if (look == LOOK_NONE) {
         return "";
