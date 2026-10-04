@@ -1,8 +1,67 @@
+static double menu_button_hit(double x, double y) {
+    double i = 0;
+    if (game_state == ST_LOBBY) {
+        while (i <= 4) {
+            if (hit_menu_row(x, y, i) == 1) return 1;
+            i = i + 1;
+        }
+        return hit_lobby_quests(x, y);
+    }
+    if (game_state == ST_MODES) {
+        while (i <= 5) {
+            if (hit_modes_row(x, y, i) == 1) return 1;
+            i = i + 1;
+        }
+        return 0;
+    }
+    if (game_state == ST_SETTINGS) {
+        while (i <= 6) {
+            if (hit_settings_row(x, y, i) == 1) return 1;
+            i = i + 1;
+        }
+        return 0;
+    }
+    if (game_state == ST_CLASSES) {
+        if (back_hit(x, y) == 1 || hit_levels_btn(x, y) == 1 || hit_skins_btn(x, y) == 1) return 1;
+        while (i < classes_visible_count()) {
+            if (hit_class_card(x, y, i) == 1) return 1;
+            i = i + 1;
+        }
+        return 0;
+    }
+    if (game_state == ST_LEVELS) {
+        if (back_hit(x, y) == 1) return 1;
+        i = 1;
+        while (i <= max_level) {
+            if (hit_level_row(x, y, i) == 1) return 1;
+            i = i + 1;
+        }
+        return 0;
+    }
+    if (game_state == ST_SKINS) {
+        if (back_hit(x, y) == 1) return 1;
+        while (i < SKIN_COUNT) {
+            if (hit_skin_card(x, y, i) == 1) return 1;
+            i = i + 1;
+        }
+        return 0;
+    }
+    if (game_state == ST_LOGIN) {
+        return hit_login_btn(x, y) == 1 || back_hit(x, y) == 1;
+    }
+    if (game_state == ST_ACHIEVEMENTS || game_state == ST_LEADERBOARD || game_state == ST_PRIVACY) {
+        return back_hit(x, y);
+    }
+    return 0;
+}
+
 static void touch_menu(double x, double y, double action) {
     if (action != 0) {
         return;
     }
-    play_button_click();
+    if (menu_button_hit(x, y) == 1) {
+        play_button_click();
+    }
     if (game_state == ST_MODES) {
         touch_modes(x, y);
         return;
