@@ -1,4 +1,5 @@
 static void reset_battle(void) {
+    showdown_music_reset();
     player->x = screen_w / 2;
     player->y = screen_h / 2;
     player->angle = 0;

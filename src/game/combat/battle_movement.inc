@@ -215,7 +215,7 @@ static double enemy_would_hit(void) {
     if (sqrt(enemy->pvx * enemy->pvx + enemy->pvy * enemy->pvy) < enemy_still_speed) {
         margin = 0;
     }
-    if (fd <= enemy_punch_reach + pr - margin) {
+    if (fd <= punch_forward_offset + enemy_punch_reach + pr - margin) {
         return 1;
     }
     return 0;

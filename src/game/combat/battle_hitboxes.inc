@@ -209,12 +209,14 @@ static void draw_hit_astra(void) {
         return;
     }
     if (astra_box_a > 0) {
-        draw_hit_strip(astra_x, astra_y, astra_dx, astra_dy, 0, astra_zone_reach(player_level),
+        draw_hit_strip(astra_x, astra_y, astra_dx, astra_dy, astra_grab_forward_offset,
+                       astra_grab_forward_offset + astra_zone_reach(player_level),
                        astra_zone_width(player_level) / 2, astra_box_a);
     }
     if (egrab_box_a > 0) {
-        draw_hit_strip(egrab_x, egrab_y, egrab_dx, egrab_dy, 0, astra_zone_reach(enemy_level),
-                       astra_zone_width(enemy_level) / 2, egrab_box_a);
+        draw_hit_strip(egrab_x, egrab_y, egrab_dx, egrab_dy, astra_grab_forward_offset,
+                       astra_grab_forward_offset + astra_zone_reach(enemy_level), astra_zone_width(enemy_level) / 2,
+                       egrab_box_a);
     }
     if (game_state != ST_ONLINE) {
         return;
@@ -227,7 +229,8 @@ static void draw_hit_astra(void) {
         if (s != net_slot() && arr_get(rgrab_box_a, s) > 0) {
             double lv = net_player_level(s);
             draw_hit_strip(remote_grab_get(s, GRAB_X), remote_grab_get(s, GRAB_Y), remote_grab_get(s, GRAB_DX),
-                           remote_grab_get(s, GRAB_DY), 0, astra_zone_reach(lv), astra_zone_width(lv) / 2,
+                           remote_grab_get(s, GRAB_DY), astra_grab_forward_offset,
+                           astra_grab_forward_offset + astra_zone_reach(lv), astra_zone_width(lv) / 2,
                            arr_get(rgrab_box_a, s));
         }
         s = s + 1;

@@ -98,17 +98,30 @@ static double circle_hits_turret(double cx, double cy, double r, double tx, doub
     return circle_hits_box(cx, cy, r, tx, ty, 0, turret_half());
 }
 
+static double target_is_forward(double px, double py, double pdx, double pdy, double tx, double ty) {
+    return (tx - px) * pdx + (ty - py) * pdy > 0;
+}
+
 static double punch_hits_player(double px, double py, double pdx, double pdy, double reach, double width) {
-    return strip_hits_player(px, py, pdx, pdy, 0, reach, width / 2);
+    if (target_is_forward(px, py, pdx, pdy, player->x, player->y) == 0) {
+        return 0;
+    }
+    return strip_hits_player(px, py, pdx, pdy, punch_forward_offset, punch_forward_offset + reach, width / 2);
 }
 
 static double punch_hits_enemy(double px, double py, double pdx, double pdy, double reach, double width) {
-    return strip_hits_enemy(px, py, pdx, pdy, 0, reach, width / 2);
+    if (target_is_forward(px, py, pdx, pdy, enemy->x, enemy->y) == 0) {
+        return 0;
+    }
+    return strip_hits_enemy(px, py, pdx, pdy, punch_forward_offset, punch_forward_offset + reach, width / 2);
 }
 
 static double punch_hits_turret(double px, double py, double pdx, double pdy, double reach, double width, double tx,
                                 double ty) {
-    return strip_hits_turret(px, py, pdx, pdy, 0, reach, width / 2, tx, ty);
+    if (target_is_forward(px, py, pdx, pdy, tx, ty) == 0) {
+        return 0;
+    }
+    return strip_hits_turret(px, py, pdx, pdy, punch_forward_offset, punch_forward_offset + reach, width / 2, tx, ty);
 }
 
 static double along(double px, double py, double pdx, double pdy, double tx, double ty) {

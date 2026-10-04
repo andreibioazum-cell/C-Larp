@@ -18,6 +18,8 @@ static int ground_texture_missing;
 static int ground_tiles;
 static int ground_fills;
 static const char *last_ground;
+static int showdown_playing;
+static int showdown_play_calls;
 
 struct DSArray {
     double *data;
@@ -178,6 +180,28 @@ void net_save_quest_state(double a, double b, double c, double d, double e, doub
     (void)l;
 }
 
+int snd_load(const char *name) {
+    return name && *name;
+}
+int snd_play(const char *name) {
+    if (name && SHOWDOWN_MUSIC && strcmp(name, SHOWDOWN_MUSIC) == 0) {
+        showdown_playing = 1;
+        showdown_play_calls++;
+    }
+    return 1;
+}
+int snd_playing(const char *name) {
+    return name && SHOWDOWN_MUSIC && strcmp(name, SHOWDOWN_MUSIC) == 0 ? showdown_playing : 0;
+}
+void snd_stop(const char *name) {
+    if (name && SHOWDOWN_MUSIC && strcmp(name, SHOWDOWN_MUSIC) == 0)
+        showdown_playing = 0;
+}
+void snd_volume(const char *name, double volume) {
+    (void)name;
+    (void)volume;
+}
+
 int tex_ready(const char *name) {
     return name && *name && !ground_texture_missing;
 }
@@ -236,6 +260,17 @@ int main(void) {
     assert(circle_hits_box(0, 0, 5, 8, 0, 0, 4) == 1);
     assert(circle_hits_box(0, 0, 2, 8, 0, 0, 4) == 0);
 
+    player->x = 400;
+    player->y = 400;
+    enemy->x = 399;
+    enemy->y = 400;
+    enemy->angle = 0.75;
+    assert(punch_hits_enemy(player->x, player->y, 1, 0, punch_reach, punch_width) == 0);
+    assert(astra_zone_hits_enemy(player->x, player->y, 1, 0, 0) == 0);
+    enemy->x = 470;
+    assert(punch_hits_enemy(player->x, player->y, 1, 0, punch_reach, punch_width) == 1);
+    assert(astra_zone_hits_enemy(player->x, player->y, 1, 0, 0) == 1);
+
     winter_theme = 0;
     snow_tex_ok = 1;
     game_state = ST_SOLO;
@@ -264,6 +299,45 @@ int main(void) {
     assert(snow_active() == 0);
     assert(newyear_menu_active() == 1);
     assert(newyear_music_active() == 1);
+
+    assert(strcmp(SHOWDOWN_MUSIC, "astra_azum_showdown.wav") == 0);
+    finished = 0;
+    player->hp = enemy->hp = 10;
+    game_state = ST_SOLO;
+    player_class = CLASS_ASTRA;
+    enemy_class = CLASS_AZUM;
+    assert(showdown_music_matchup() == 1);
+    player_class = CLASS_AZUM;
+    enemy_class = CLASS_ASTRA;
+    assert(showdown_music_matchup() == 1);
+    enemy_class = CLASS_ORDINARY;
+    assert(showdown_music_matchup() == 0);
+
+    game_state = ST_ONLINE;
+    online_ready = 1;
+    stub_net_slot = 0;
+    player_class = CLASS_AZUM;
+    arr_set(remotes, 1 * remote_fields + 5, 1);
+    arr_set(remotes, 1 * remote_fields + 10, CLASS_ASTRA);
+    assert(showdown_music_matchup() == 1);
+    arr_set(remotes, 2 * remote_fields + 5, 1);
+    arr_set(remotes, 2 * remote_fields + 10, CLASS_ORDINARY);
+    assert(showdown_music_matchup() == 0);
+    arr_set(remotes, 2 * remote_fields + 5, 0);
+
+    showdown_music_ok = 1;
+    showdown_music_reset();
+    showdown_play_calls = 0;
+    update_showdown_music();
+    assert(showdown_playing == 1 && showdown_play_calls == 1);
+    showdown_playing = 0;
+    update_showdown_music();
+    assert(showdown_music_done == 1);
+    update_showdown_music();
+    assert(showdown_play_calls == 1);
+    showdown_music_reset();
+    stub_net_slot = -1;
+    online_ready = 0;
 
     player_class = CLASS_ASTRA;
     player_level = 0;

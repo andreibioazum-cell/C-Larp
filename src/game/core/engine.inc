@@ -95,6 +95,7 @@ static void logic_init(void) {
     net_set_firebase_key(FB_KEY);
     net_autologin(FIREBASE);
     start_music();
+    showdown_music_load();
     progress_from_storage();
     settings_from_storage();
     apply_winter_theme();
@@ -255,6 +256,7 @@ static void logic_update(void) {
     update_alpha_notice();
     update_transition();
     update_music();
+    update_showdown_music();
     reload_textures();
     quest_tick();
     tick_achievement_toast();

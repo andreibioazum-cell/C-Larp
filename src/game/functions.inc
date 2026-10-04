@@ -41,6 +41,7 @@
 #include "include/prototypes/combat/battle_events_input.inc"
 #include "include/prototypes/fx/weather.inc"
 #include "include/prototypes/fx/newyear.inc"
+#include "include/prototypes/fx/showdown_music.inc"
 #include "include/prototypes/fx/dust.inc"
 #include "include/prototypes/core/textures.inc"
 #include "include/prototypes/core/engine.inc"

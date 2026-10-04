@@ -12,6 +12,7 @@
 #include "state/globals/combat/battle_event_plates.inc"
 #include "state/globals/fx/weather.inc"
 #include "state/globals/fx/newyear.inc"
+#include "state/globals/fx/showdown_music.inc"
 #include "state/globals/ui/chat_bubbles.inc"
 
 #include "objects.inc"
@@ -31,6 +32,7 @@ static void state_create(void) {
 #include "state/create/combat/battle_event_plates.inc"
 #include "state/create/fx/weather.inc"
 #include "state/create/fx/newyear.inc"
+#include "state/create/fx/showdown_music.inc"
 #include "state/create/ui/chat_bubbles.inc"
 }
 

@@ -137,7 +137,7 @@ static void finish_game(double result) {
 }
 
 static void draw_punch_box(double x, double y, double dx, double dy, double reach, double width, double alpha) {
-    draw_hit_strip(x, y, dx, dy, 0, reach, width / 2, alpha);
+    draw_hit_strip(x, y, dx, dy, punch_forward_offset, punch_forward_offset + reach, width / 2, alpha);
 }
 
 static void draw_field(void) { rect(0, 0, screen_w, screen_h, 0x33000000); }

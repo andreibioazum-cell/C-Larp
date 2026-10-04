@@ -117,11 +117,19 @@ static GAME_MAYBE_UNUSED double astra_grab_total_fraction(void) {
 }
 
 static double astra_zone_hits_player(double gx, double gy, double gdx, double gdy, double lv) {
-    return strip_hits_player(gx, gy, gdx, gdy, 0, astra_zone_reach(lv), astra_zone_width(lv) / 2);
+    if (target_is_forward(gx, gy, gdx, gdy, player->x, player->y) == 0) {
+        return 0;
+    }
+    return strip_hits_player(gx, gy, gdx, gdy, astra_grab_forward_offset,
+                             astra_grab_forward_offset + astra_zone_reach(lv), astra_zone_width(lv) / 2);
 }
 
 static double astra_zone_hits_enemy(double gx, double gy, double gdx, double gdy, double lv) {
-    return strip_hits_enemy(gx, gy, gdx, gdy, 0, astra_zone_reach(lv), astra_zone_width(lv) / 2);
+    if (target_is_forward(gx, gy, gdx, gdy, enemy->x, enemy->y) == 0) {
+        return 0;
+    }
+    return strip_hits_enemy(gx, gy, gdx, gdy, astra_grab_forward_offset,
+                            astra_grab_forward_offset + astra_zone_reach(lv), astra_zone_width(lv) / 2);
 }
 
 static double astra_locked(void) {
@@ -262,9 +270,13 @@ static double astra_try_catch(void) {
         while (s < max_players) {
             double b = s * remote_fields;
             if (s != net_slot() && arr_get(remotes, b + 5) == 1) {
-                if (strip_hits_box(astra_x, astra_y, astra_dx, astra_dy, 0, astra_zone_reach(player_level),
-                                   astra_zone_width(player_level) / 2, arr_get(remotes, b + 1), arr_get(remotes, b + 2),
-                                   arr_get(remotes, b + 3), player_half()) == 1) {
+                double tx = arr_get(remotes, b + 1);
+                double ty = arr_get(remotes, b + 2);
+                if (target_is_forward(astra_x, astra_y, astra_dx, astra_dy, tx, ty) == 1 &&
+                    strip_hits_box(astra_x, astra_y, astra_dx, astra_dy, astra_grab_forward_offset,
+                                   astra_grab_forward_offset + astra_zone_reach(player_level),
+                                   astra_zone_width(player_level) / 2, tx, ty, arr_get(remotes, b + 3),
+                                   player_half()) == 1) {
                     astra_caught = 1;
                     ds_log("astra grab caught slot %g", s);
                     return 1;

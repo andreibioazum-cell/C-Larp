@@ -144,7 +144,7 @@ static void update_enemy(void) {
         d = 1;
     }
     double pr = player_half();
-    double reach = enemy_punch_reach + pr;
+    double reach = punch_forward_offset + enemy_punch_reach + pr;
     if (enemy->state == 1) {
         enemy_punch_x = enemy->x;
         enemy_punch_y = enemy->y;

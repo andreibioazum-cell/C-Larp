@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import re
+import wave
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,6 +66,7 @@ def check_assets() -> None:
     required = (
         ROOT / "assets" / "audio" / "lobbymusic.wav",
         ROOT / "assets" / "audio" / "winter_jingle.wav",
+        ROOT / "assets" / "audio" / "astra_azum_showdown.wav",
         ROOT / "assets" / "fonts" / "ComicRelief-Regular.ttf",
         ROOT / "assets" / "shaders" / "sprite.vert",
         ROOT / "assets" / "shaders" / "solid.frag",
@@ -73,6 +75,18 @@ def check_assets() -> None:
     )
     for asset in required:
         assert asset.is_file(), f"Не найден ресурс: {asset.relative_to(ROOT)}"
+
+    durations = {
+        "lobbymusic.wav": 35,
+        "winter_jingle.wav": 35,
+        "astra_azum_showdown.wav": 60,
+    }
+    for name, expected in durations.items():
+        path = ROOT / "assets" / "audio" / name
+        with wave.open(str(path), "rb") as audio:
+            assert audio.getnchannels() == 2 and audio.getsampwidth() == 2, f"Неверный формат музыки: {name}"
+            duration = audio.getnframes() / audio.getframerate()
+            assert abs(duration - expected) < 0.001, f"Неверная длительность {name}: {duration}"
 
 
 def check_port_layout() -> None:
