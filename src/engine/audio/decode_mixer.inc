@@ -1,4 +1,4 @@
-#include "runtime.h"
+#include "engine/runtime.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -89,14 +89,12 @@ static const char *snd_base_name(const char *name) {
         return "";
     const char *n = name;
     while (strncmp(n, "./", 2) == 0) n += 2;
-    if (strncmp(n, "game/sounds/", 12) == 0)
-        n += 12;
+    if (strncmp(n, "assets/audio/", 13) == 0)
+        n += 13;
+    else if (strncmp(n, "audio/", 6) == 0)
+        n += 6;
     else if (strncmp(n, "sounds/", 7) == 0)
         n += 7;
-    else if (strncmp(n, "game/assets/sounds/", 19) == 0)
-        n += 19;
-    else if (strncmp(n, "assets/sounds/", 14) == 0)
-        n += 14;
     const char *slash = strrchr(n, '/');
     if (slash)
         n = slash + 1;
@@ -115,14 +113,6 @@ static int snd_open_by_name(const char *base, uint8_t **out, size_t *sz) {
         return 1;
     if (has_waw) {
         snprintf(path, sizeof(path), "sounds/%.*s.wav", (int)(n - 4), base);
-        if (snd_open_candidate(path, out, sz))
-            return 1;
-    }
-    snprintf(path, sizeof(path), "game/sounds/%s", base);
-    if (snd_open_candidate(path, out, sz))
-        return 1;
-    if (has_waw) {
-        snprintf(path, sizeof(path), "game/sounds/%.*s.wav", (int)(n - 4), base);
         if (snd_open_candidate(path, out, sz))
             return 1;
     }
@@ -294,7 +284,7 @@ int snd_load(const char *name) {
         snd_sounds[slot].name = NULL;
         snd_lock_drop();
         free(data);
-        ds_log_err("sound not loaded: '%s' not found in game/sounds", base);
+        ds_log_err("sound not loaded: '%s' not found in assets/audio", base);
         return 0;
     }
     int16_t *samples = NULL;

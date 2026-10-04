@@ -26,6 +26,8 @@ def main() -> int:
                 "-ffunction-sections",
                 "-fdata-sections",
                 "-I",
+                str(ROOT / "src"),
+                "-I",
                 str(ROOT),
                 "-I",
                 str(ROOT / "tools/host_test/stub"),

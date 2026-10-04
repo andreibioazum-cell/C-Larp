@@ -3,8 +3,9 @@
 #define _POSIX_C_SOURCE 200809L
 #endif
 #include <android_native_app_glue.h>
-#include "runtime.h"
-#include "net.h"
+#include "engine/runtime.h"
+#include "engine/network.h"
+#include "game/game.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <time.h>
@@ -407,6 +408,6 @@ void android_main(struct android_app *app) {
         }
     }
 }
-#include "graphics.c"
-#include "net.c"
-#include "sound.c"
+#include "engine/graphics.c"
+#include "engine/network.c"
+#include "engine/audio.c"

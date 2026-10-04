@@ -9,7 +9,7 @@
 #include <android/asset_manager.h>
 #include <android/log.h>
 #include <android/native_window.h>
-typedef struct {
+typedef struct Buffer {
     uint32_t *pixels;
     int width;
     int height;
@@ -141,10 +141,4 @@ void ds_graphics_error_screen(const char *message);
 
 const char *ds_graphics_failure(void);
 int ds_graphics_show_failure(ANativeWindow *window, int attempts);
-void game_init(AAssetManager *assets);
-void game_update(void);
-void game_draw(Buffer *buffer);
-void game_touch(float x, float y, int action, int pointer_id);
-int game_back(void);
-void game_reset(void);
 #endif

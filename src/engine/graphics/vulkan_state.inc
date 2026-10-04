@@ -4,7 +4,7 @@
 #ifdef __ANDROID__
 #include <dlfcn.h>
 #endif
-#include "native/graphics/shaders_spirv.inc"
+#include "engine/graphics/shaders_spirv.inc"
 
 #define DS_VK_MAX_SW_IMAGES 32
 #define DS_VK_FRAMES_IN_FLIGHT 2

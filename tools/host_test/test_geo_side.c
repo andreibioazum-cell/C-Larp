@@ -1,5 +1,5 @@
-#include "native/graphics/types.inc"
-#include "native/graphics/geometry.inc"
+#include "engine/graphics/types.inc"
+#include "engine/graphics/geometry.inc"
 
 struct DSFont {
     int aw, ah;

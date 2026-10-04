@@ -86,7 +86,7 @@
     </div>
     <p class="muted" style="margin:8px 0 0">
       Пароль для Firebase = игровой пароль + суффикс. Суффикс <b>обязан</b> совпадать с
-      <code>FB_PASS_SUFFIX</code> в <code>net.c</code> (сейчас <code>|cb4v1</code>), иначе Firebase
+      <code>FB_PASS_SUFFIX</code> в <code>src/engine/network/http_json.inc</code> (сейчас <code>|cb4v1</code>), иначе Firebase
       отвечает <code>INVALID_LOGIN_CREDENTIALS</code>. Панель на всякий случай сама перебирает
       известные варианты суффикса, так что вход обычно проходит и с чужим значением в поле.
     </p>

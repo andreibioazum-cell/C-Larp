@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def body_keys(name: str) -> set[str]:
-    text = (ROOT / "native" / "net" / name).read_text(encoding="utf-8")
+    text = (ROOT / "src" / "engine" / "network" / name).read_text(encoding="utf-8")
     return set(re.findall(r'\\"([a-z0-9_]+)\\":', text))
 
 
@@ -49,21 +49,48 @@ def check_firebase_rules() -> None:
 
 def check_assets() -> None:
     names: set[str] = set()
-    for directory in (ROOT / "game" / "modules", ROOT / "game" / "state"):
+    game = ROOT / "src" / "game"
+    for directory in (game / "core", game / "ui", game / "combat", game / "fx", game / "state"):
         for source in directory.rglob("*.inc"):
             names |= set(re.findall(r'"([A-Za-z0-9_./-]+\.png)"', source.read_text(encoding="utf-8")))
     assert names, "В исходниках не найдены ссылки на текстуры"
     missing = [
         name for name in sorted(names)
-        if not (ROOT / "game" / "assets" / name.split("/")[-1]).is_file()
+        if not (ROOT / "assets" / "textures" / name.split("/")[-1]).is_file()
     ]
     assert not missing, f"Не найдены текстуры: {missing}"
+
+    required = (
+        ROOT / "assets" / "audio" / "lobbymusic.wav",
+        ROOT / "assets" / "fonts" / "ComicRelief-Regular.ttf",
+        ROOT / "assets" / "shaders" / "sprite.vert",
+        ROOT / "assets" / "shaders" / "solid.frag",
+        ROOT / "assets" / "shaders" / "image.frag",
+        ROOT / "assets" / "shaders" / "tint.frag",
+    )
+    for asset in required:
+        assert asset.is_file(), f"Не найден ресурс: {asset.relative_to(ROOT)}"
 
 
 def check_port_layout() -> None:
     assert not list(ROOT.rglob("*.ds")), "В C-порте остались исходники старого языка"
+    assert not (ROOT / "game").exists(), "Старый каталог game не должен использоваться"
+    assert not (ROOT / "native").exists(), "Старый каталог native не должен использоваться"
+    required = (
+        ROOT / "src" / "game",
+        ROOT / "src" / "engine",
+        ROOT / "src" / "platform" / "android",
+        ROOT / "assets" / "textures",
+        ROOT / "assets" / "audio",
+        ROOT / "assets" / "fonts",
+        ROOT / "assets" / "shaders",
+        ROOT / "platform" / "android",
+    )
+    for directory in required:
+        assert directory.is_dir(), f"Нет каталога проекта: {directory.relative_to(ROOT)}"
+
     old_prefix = "ds" + "_fn_"
-    for source in (ROOT / "game").rglob("*.inc"):
+    for source in (ROOT / "src" / "game").rglob("*.inc"):
         assert old_prefix not in source.read_text(encoding="utf-8"), source
 
 

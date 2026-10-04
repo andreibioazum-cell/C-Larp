@@ -14,7 +14,7 @@ HARNESS = r'''
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "net.c"
+#include "engine/network.c"
 
 int __android_log_print(int prio, const char *tag, const char *fmt, ...) {
     (void)prio; (void)tag; (void)fmt;
@@ -94,7 +94,7 @@ def main():
             *shlex.split(os.environ.get("CC", "cc")), "-std=gnu99", "-O0",
             "-D_POSIX_C_SOURCE=200809L", "-D__ANDROID__",
             "-Werror=implicit-function-declaration",
-            "-I", str(temp), "-I", str(ROOT),
+            "-I", str(temp), "-I", str(ROOT / "src"), "-I", str(ROOT),
             str(temp / "test.c"), "-lm", "-lpthread", "-o", str(temp / "test"),
         ], check=True)
         run = [str(temp / "test")]

@@ -1,22 +1,17 @@
 #!/usr/bin/env python3
-"""Проверяет ограничение размера нативных исходников."""
+"""Проверяет ограничение размера собственных исходников проекта."""
 
 from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_LINES = 450
-ROOT_SOURCES = {
-    "graphics.c", "main.c", "net.c", "net.h", "runtime.c", "runtime.h",
-    "sound.c", "ttf_font.c",
-}
 SOURCE_SUFFIXES = {".c", ".h", ".inc", ".java", ".xml"}
+SOURCE_ROOTS = (ROOT / "src", ROOT / "platform")
 
 
-def game_sources():
-    for name in sorted(ROOT_SOURCES):
-        yield ROOT / name
-    for directory in (ROOT / "game", ROOT / "native"):
+def project_sources():
+    for directory in SOURCE_ROOTS:
         for path in sorted(directory.rglob("*")):
             if path.is_file() and path.suffix.lower() in SOURCE_SUFFIXES:
                 yield path
@@ -29,12 +24,12 @@ def line_count(path: Path) -> int:
 
 def main() -> int:
     oversized = []
-    for path in game_sources():
+    for path in project_sources():
         count = line_count(path)
         if count > MAX_LINES:
             oversized.append((path.relative_to(ROOT), count))
     if oversized:
-        print(f"Исходники игры не должны превышать {MAX_LINES} строк:", file=sys.stderr)
+        print(f"Исходники проекта не должны превышать {MAX_LINES} строк:", file=sys.stderr)
         for path, count in oversized:
             print(f"  {path}: {count}", file=sys.stderr)
         return 1

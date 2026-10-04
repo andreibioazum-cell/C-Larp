@@ -1,4 +1,4 @@
-#include "runtime.h"
+#include "engine/runtime.h"
 #define STBI_ONLY_PNG
 #define STBI_NO_STDIO
 #define STBI_NO_HDR
@@ -329,8 +329,10 @@ static const char *norm_name(const char *n) {
     if (!n)
         return NULL;
     while (strncmp(n, "./", 2) == 0) n += 2;
-    if (strncmp(n, "game/assets/", 12) == 0)
-        n += 12;
+    if (strncmp(n, "assets/textures/", 16) == 0)
+        n += 16;
+    else if (strncmp(n, "textures/", 9) == 0)
+        n += 9;
     else if (strncmp(n, "assets/", 7) == 0)
         n += 7;
     if (!*n || *n == '/' || strchr(n, '\\'))

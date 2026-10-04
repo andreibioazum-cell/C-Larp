@@ -1000,7 +1000,7 @@ int console_type(int i) {
 }
 int screen_w = 720, screen_h = 1280;
 
-#include "graphics.c"
+#include "engine/graphics.c"
 
 static int g_real_assets = 0;
 struct AAsset {
@@ -1013,7 +1013,7 @@ AAsset *AAssetManager_open(AAssetManager *mgr, const char *name, int mode) {
     if (!g_real_assets || !name)
         return NULL;
     char path[512];
-    snprintf(path, sizeof path, "game/assets/%s", name);
+    snprintf(path, sizeof path, "assets/textures/%s", name);
     FILE *f = fopen(path, "rb");
     if (!f)
         return NULL;
