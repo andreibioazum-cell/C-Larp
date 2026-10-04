@@ -73,9 +73,10 @@ static double admin_handle(const char *msg) {
         ds_log("admin: event 1 disco");
         return 1;
     }
-    if (str_eq(msg, "event 3") == 1) {
-        net_event_set(3);
+    if (str_eq(msg, "event 2") == 1 || str_eq(msg, "event 3") == 1) {
+        net_event_set(2);
         net_chat_send(ds_concat("PLATES EVENT by ", by));
+        ds_log("admin: event 2 plates");
         return 1;
     }
     if (net_chat_is_ban(msg) == 1) {
@@ -115,7 +116,7 @@ static void chat_send(void) {
     }
     if (is_admin() == 1) {
         if (str_eq(chat_input, "event 0") == 1 || str_eq(chat_input, "event 1") == 1 ||
-            str_eq(chat_input, "event 3") == 1) {
+            str_eq(chat_input, "event 2") == 1 || str_eq(chat_input, "event 3") == 1) {
             admin_handle(chat_input);
             chat_input = "";
             keyboard_clear();
@@ -207,11 +208,18 @@ static const char *sticker_tex_of(double i) {
 }
 
 static void draw_sticker_face(double cx, double cy) {
-    ring(cx, cy, 13, 3, text_color);
-    circle(cx - 5, cy - 4, 2.4, text_color);
-    circle(cx + 5, cy - 4, 2.4, text_color);
-    circle(cx, cy + 6, 5, text_color);
-    rect(cx - 7, cy + 1, 14, 5, ui_purple);
+    /* Clear sticker-sheet icon: a white smiling sticker with a folded corner,
+     * rather than the old mouth made from overlapping circle/rectangle shapes. */
+    circle(cx, cy, 15, 0xFFFFFFFF);
+    ring(cx, cy, 15, 2, 0xFF292944);
+    circle(cx - 5, cy - 4, 2.2, 0xFF292944);
+    circle(cx + 5, cy - 4, 2.2, 0xFF292944);
+    line(cx - 6, cy + 4, cx - 2, cy + 7, 2.2, 0xFF292944);
+    line(cx - 2, cy + 7, cx + 3, cy + 7, 2.2, 0xFF292944);
+    line(cx + 3, cy + 7, cx + 7, cy + 3, 2.2, 0xFF292944);
+    /* Folded lower-right sticker corner. */
+    line(cx + 8, cy + 11, cx + 14, cy + 7, 2, 0xFF292944);
+    line(cx + 8, cy + 11, cx + 13, cy + 13, 2, 0xFF292944);
 }
 
 static void draw_sticker_tile(double i) {

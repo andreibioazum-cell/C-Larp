@@ -331,6 +331,11 @@ def showdown_track() -> tuple[array, array]:
     add_tone(left, right, 44.25, 0.75, 52, 0.30, -0.35, "brass", 0.003, 0.65)
     add_tone(left, right, 44.25, 0.75, 59, 0.28, 0.35, "brass", 0.003, 0.65)
     add_reverb(left, right)
+    # Dense, loud master for the showdown: strong saturation raises perceived
+    # loudness while write_track's peak normalization prevents clipping.
+    for i in range(len(left)):
+        left[i] *= 2.6
+        right[i] *= 2.6
     return left, right
 
 

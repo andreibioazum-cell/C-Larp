@@ -19,7 +19,7 @@ static void draw_disco(void) {
 
 static void update_event(void) {
     event_mode = net_event();
-    if (event_mode == 3 && candy_enabled == 0) {
+    if (event_mode == 2 && candy_enabled == 0) {
         event_mode = 0;
     }
     event_t = event_t + dt;
@@ -84,7 +84,13 @@ static void update_banner(void) {
         }
     }
     if (banner_t > 0) {
+        double before = banner_t;
         banner_t = tick_down(banner_t);
+        if (before > 0 && banner_t <= 0) {
+            /* The fade-out has completed; remove the transient command value
+             * from Firebase so new players do not inherit an old banner. */
+            net_banner_clear();
+        }
     }
 }
 

@@ -239,7 +239,7 @@ static void plates_watch_cloud(void) {
 
 static void tick_plates_event(void) {
     plates_watch_cloud();
-    if (event_mode != 3) {
+    if (event_mode != 2) {
         if (plates_prev_mode == 3) {
             plates_event_reset();
         }
@@ -323,7 +323,7 @@ static void draw_plate(double cx, double cy, double k, double lit) {
 }
 
 static void draw_event_plates(void) {
-    if (event_mode != 3 || plates_phase >= 3 || plates_finished == 1) {
+    if (event_mode != 2 || plates_phase >= 3 || plates_finished == 1) {
         return;
     }
     double k = 1;
@@ -335,7 +335,7 @@ static void draw_event_plates(void) {
 }
 
 static void draw_event_candies(void) {
-    if (event_mode != 3 || plates_phase != 3) {
+    if (event_mode != 2 || plates_phase != 3) {
         return;
     }
     double i = 0;
@@ -386,7 +386,7 @@ static void draw_event_candies(void) {
 }
 
 static void draw_event_santa(void) {
-    if (event_mode != 3 || plates_phase != 3 || plates_santa_gone == 1) {
+    if (event_mode != 2 || plates_phase != 3 || plates_santa_gone == 1) {
         return;
     }
     double cx = screen_w / 2;
@@ -407,7 +407,7 @@ static void draw_event_santa(void) {
 }
 
 static void draw_plates_hud(void) {
-    if (event_mode != 3 || plates_phase != 3) {
+    if (event_mode != 2 || plates_phase != 3) {
         return;
     }
     double left = plates_candies_left();
