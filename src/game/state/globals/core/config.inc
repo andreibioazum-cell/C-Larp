@@ -160,6 +160,7 @@ double tex_reload_slow;
 double azum_skin;
 double ebuc_skin;
 double arena_tile_size;
+double grass_tex_ok;
 double snow_tex_ok;
 double snow_t;
 double candy_tex_ok;

@@ -17,6 +17,7 @@ Joy joy;
 static int ground_texture_missing;
 static int ground_tiles;
 static int ground_fills;
+static uint32_t last_ground_fill;
 static const char *last_ground;
 static int showdown_playing;
 static int showdown_play_calls;
@@ -211,7 +212,7 @@ void rect(float x, float y, float width, float height, uint32_t color) {
     (void)y;
     (void)width;
     (void)height;
-    (void)color;
+    last_ground_fill = color;
     ground_fills++;
 }
 
@@ -238,6 +239,10 @@ int main(void) {
     language = 0;
 
     assert(class_count == 5 && CLASS_ASTRA == 4);
+    assert(punch_forward_offset == 24 && astra_grab_forward_offset == 24);
+    assert(fabs(astra_hit_interval - 0.2) < 1e-9);
+    assert(fabs(astra_final_delay - 0.85) < 1e-9);
+    assert(fabs(astra_final_time() - astra_beat_time(astra_hit_count) - astra_final_delay) < 1e-9);
     assert(class_cost_of(CLASS_AZUM) == 65);
     assert(class_cost_of(CLASS_SANTA) == 100);
     assert(class_cost_of(CLASS_EBUC) == 120);
@@ -276,7 +281,8 @@ int main(void) {
     game_state = ST_SOLO;
     ground_tiles = ground_fills = 0;
     draw_arena_background();
-    assert(ground_tiles > 0 && ground_fills == 0);
+    assert(ground_tiles > 0 && ground_fills == 1);
+    assert(last_ground_fill == (uint32_t)grass_ground_rgb);
     assert(strcmp(last_ground, GRASS) == 0);
 
     ground_texture_missing = 1;
@@ -288,7 +294,7 @@ int main(void) {
     winter_theme = 1;
     ground_tiles = ground_fills = 0;
     draw_arena_background();
-    assert(ground_tiles > 0 && ground_fills == 0);
+    assert(ground_tiles > 0 && ground_fills == 1);
     assert(strcmp(last_ground, SNOW_TEX) == 0);
     assert(snow_active() == 1);
     assert(newyear_active() == 1);

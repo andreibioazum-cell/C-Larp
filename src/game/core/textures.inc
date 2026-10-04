@@ -1,5 +1,5 @@
 static void load_textures(void) {
-    png_load(GRASS);
+    grass_tex_ok = png_load(GRASS);
     ordinary_tex_ok = png_load(ORDINARY_TEX);
     ordinary_punch_tex_ok = png_load(PUNCH_TEX);
     azum_tex_ok = png_load(AZUM_TEX);
@@ -30,6 +30,7 @@ static double flag_live(double flag, const char *name) {
 }
 
 static void recheck_texture_flags(void) {
+    grass_tex_ok = flag_live(grass_tex_ok, GRASS);
     ordinary_tex_ok = flag_live(ordinary_tex_ok, ORDINARY_TEX);
     ordinary_punch_tex_ok = flag_live(ordinary_punch_tex_ok, PUNCH_TEX);
     azum_tex_ok = flag_live(azum_tex_ok, AZUM_TEX);
@@ -49,7 +50,7 @@ static void recheck_texture_flags(void) {
 }
 
 static double textures_all_ok(void) {
-    if (ordinary_tex_ok == 0 || santa_tex_ok == 0 || ebuc_tex_ok == 0) {
+    if (grass_tex_ok == 0 || ordinary_tex_ok == 0 || santa_tex_ok == 0 || ebuc_tex_ok == 0) {
         return 0;
     }
     if (ordinary_punch_tex_ok == 0 || azum_tex_ok == 0 || azum_punch_tex_ok == 0) {
@@ -82,6 +83,9 @@ static void reload_textures(void) {
         tex_reload_left = tex_reload_left - 1;
     } else {
         tex_reload_t = tex_reload_slow;
+    }
+    if (grass_tex_ok == 0) {
+        grass_tex_ok = png_load(GRASS);
     }
     if (ordinary_tex_ok == 0) {
         ordinary_tex_ok = png_load(ORDINARY_TEX);

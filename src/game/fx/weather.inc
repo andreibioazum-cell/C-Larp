@@ -18,8 +18,8 @@ static double arena_ground_rgb(void) {
 
 static void draw_arena_background(void) {
     const char *ground = arena_ground_tex();
+    rect(0, 0, screen_w, screen_h, arena_ground_rgb());
     if (tex_ready(ground) == 0) {
-        rect(0, 0, screen_w, screen_h, arena_ground_rgb());
         return;
     }
     double y = 0;
