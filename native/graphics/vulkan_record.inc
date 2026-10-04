@@ -1,9 +1,9 @@
-/* Script commands become geometry batches, then draw and blit recording, the
+/* Game draw commands become geometry batches, then draw and blit recording, the
  * render pass and pipeline rebuilds. Part of the Vulkan backend: included from
  * vulkan_backend.inc into one translation unit (graphics.c), so the state is
  * shared. */
 
-/* --- script commands into geometry and batches --- */
+/* --- draw commands into geometry and batches --- */
 
 static int ds_vk_batch_push(int pipeline, const void *desc, size_t first, size_t count) {
     if (count == 0) return 1;
@@ -102,7 +102,7 @@ static int ds_vk_build_geometry(void) {
  * pipeline and one texture merge into a single vkCmdDrawIndexed. */
 static void ds_vk_record_draws(VkCommandBuffer cmd) {
     if (vk_off_w == 0 || vk_off_h == 0) return;
-    /* Script coordinates to NDC: the scale comes from the logical window size,
+    /* Game coordinates to NDC: the scale comes from the logical window size,
      * otherwise the whole interface would grow by the scale factor. */
     uint32_t lw = vk_log_w ? vk_log_w : vk_off_w, lh = vk_log_h ? vk_log_h : vk_off_h;
     float pc[4] = { 2.0f / (float)lw, 2.0f / (float)lh, -1.0f, -1.0f };

@@ -1,43 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.cb4"
-    android:versionCode="3"
-    android:versionName="1.2">
+    android:versionCode="4"
+    android:versionName="2.0">
 
-    <!-- Android 8 (API 26) through Android 15 (API 35), arm64, arm32 and x86_64 -->
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35" />
-
-    <!-- The online mode talks to the Firebase Realtime Database over HTTPS. -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <!-- Rendering is Vulkan only: without 1.0 support the game has no fallback,
-         so a store must not install it on such devices. -->
-    <uses-feature android:name="android.hardware.vulkan.version" android:required="true" android:version="0x00010000" />
-    <uses-feature android:name="android.hardware.vulkan.level" android:required="false" />
+    <uses-feature
+        android:name="android.hardware.vulkan.version"
+        android:required="true"
+        android:version="0x00010000" />
 
     <application
         android:label="Cubic Battle 4"
         android:icon="@mipmap/ic_launcher"
-        android:hasCode="true"
-        android:extractNativeLibs="true">
+        android:hasCode="false"
+        android:extractNativeLibs="true"
+        android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
 
-        <!-- configChanges: the game handles every change itself. Coming back
-             from the portrait launcher (or with the dark theme or font size
-             switched meanwhile) changed more than orientation|screenSize, and
-             Android 14 then destroyed and re-created the NativeActivity right
-             in the middle of the return. -->
         <activity
-            android:name="com.cb4.GameActivity"
+            android:name="android.app.NativeActivity"
             android:configChanges="orientation|keyboard|keyboardHidden|screenSize|smallestScreenSize|screenLayout|navigation|uiMode|density|fontScale|layoutDirection|locale"
             android:screenOrientation="landscape"
-            android:windowSoftInputMode="adjustResize"
             android:exported="true">
-
             <meta-data
                 android:name="android.app.lib_name"
-                android:value="ds_game" />
-
+                android:value="cb_game" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

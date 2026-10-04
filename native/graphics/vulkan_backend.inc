@@ -2,10 +2,10 @@
  * swapchain, offscreen target, pipelines with prebaked SPIR-V shaders, texture
  * uploads and the per-frame begin, end and cancel cycle.
  *
- * A frame is built like this: the script collects commands (lifecycle.inc), at the
+ * A frame is built like this: the game collects commands (lifecycle.inc), at the
  * end of the frame geometry.inc turns them into triangles, the backend draws them
  * into an offscreen RGBA8 target of window / scale, and the result is blitted
- * nearest into the swapchain image covering the whole window. Script coordinates
+ * nearest into the swapchain image covering the whole window. Game coordinates
  * stay in physical window pixels, since the vertex shader gets the logical size,
  * which means the offscreen resolution shrinks the raster without scaling the
  * interface up.

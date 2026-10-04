@@ -129,7 +129,7 @@ static VkImageView vk_off_view;
 static VkFramebuffer vk_off_fb;
 static VkFormat vk_off_format = VK_FORMAT_R8G8B8A8_UNORM;
 static uint32_t vk_off_w, vk_off_h;
-/* Logical frame size in window pixels: the scripts live in those coordinates,
+/* Logical frame size in window pixels: the game uses these coordinates,
  * so the vertex shader divides by them and not by the offscreen size. The
  * internal scale shrinks the raster but never scales the interface up. */
 static uint32_t vk_log_w, vk_log_h;
@@ -169,7 +169,7 @@ static VkDeviceMemory vk_font_memory;
 static VkImageView vk_font_view;
 static VkDescriptorSet vk_font_desc;
 
-/* Deferred uploads: textures created by a script during a frame are copied to
+/* Deferred uploads: textures requested during a frame are copied to
  * the GPU at the start of end_frame. */
 #define DS_VK_PENDING_CAP 64
 static Texture *vk_pending_tex[DS_VK_PENDING_CAP];

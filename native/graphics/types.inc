@@ -17,6 +17,8 @@
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 typedef struct DSFont DSFont;
 typedef struct Texture Texture;
@@ -85,7 +87,7 @@ typedef struct {
     } v;
 } DSCmd;
 
-/* 0xRRGGBBAA, as in scripts, becomes the in-memory RGBA bytes R|G<<8|B<<16|A<<24. */
+/* 0xAARRGGBB becomes the in-memory RGBA bytes R|G<<8|B<<16|A<<24. */
 static uint32_t pack_c(uint32_t c) {
     uint32_t a = (c >> 24) & 0xff, r = (c >> 16) & 0xff, g = (c >> 8) & 0xff, b = c & 0xff;
     if (!a) a = 255;

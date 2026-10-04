@@ -1,14 +1,11 @@
 # Generated build output
 __pycache__/
 *.py[cod]
-**/game.c
+build/
 staging/
 *.apk
+*.so
+*.o
+aligned.apk
+unsigned.apk
 debug.keystore
-
-# Session file created by the game (saved nick)
-auth.dat
-progress.dat
-achievements.dat
-bans.dat
-settings.dat

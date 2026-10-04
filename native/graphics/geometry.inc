@@ -1,4 +1,4 @@
-/* Turns DrawScript primitives into triangles for the GPU.
+/* Turns immediate-mode drawing primitives into triangles for the GPU.
  *
  * It matches the software renderer that used to sit here: a rectangle is an
  * aligned quad, a circle a fan with an adaptive segment count, a ring a band
@@ -269,7 +269,7 @@ static int geo_rect_rot(float x, float y, float w, float h, float ang, uint32_t 
  * x and y are the top left corner of the unaligned texture, sc the scale and a the
  * angle. */
 static int geo_tex(float x, float y, float ang, float sc, float tw, float th_, uint32_t c) {
-    /* A broken angle (NaN or inf from a script value or the network) used to
+    /* A broken angle (NaN or inf from a bad game value) used to
      * drop the whole sprite: the fighter's idle cube vanished while his punch
      * pose, turned by another angle, still showed. The sprite is drawn
      * unturned instead; only a broken position or scale skips it. */

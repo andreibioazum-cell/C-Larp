@@ -1,4 +1,4 @@
-name: Build DS Game (Android APK)
+name: Build Cubic Battle 4 (Pure C)
 
 on:
   push:
@@ -13,26 +13,28 @@ defaults:
 
 jobs:
   build-android:
-    name: Build Android APK (Android 8-15 arm64+arm32+x86_64)
+    name: Build Android APK (Android 8-15)
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check package name consistency
+      - name: Verify pure-C project layout
         run: |
-          grep -q 'package="com.cb4"' game/AndroidManifest.xml
+          set -euo pipefail
+          test -f game/game.c
+          grep -q 'android:name="android.app.NativeActivity"' game/AndroidManifest.xml
+          grep -q 'android:value="cb_game"' game/AndroidManifest.xml
           grep -q 'android:versionCode="[0-9]\+"' game/AndroidManifest.xml
-          grep -q 'android:versionName="[^"]\+"' game/AndroidManifest.xml
-          grep -q 'android:name="com.cb4.GameActivity"' game/AndroidManifest.xml
-          grep -q '^package com.cb4;' game/java/com/dimscript/gamedemo/GameActivity.java
-          grep -q 'Java_com_cb4_GameActivity_nativeReplaceText' runtime.c
-          grep -q 'Java_com_cb4_GameActivity_nativeSubmitText' runtime.c
-          grep -q 'Java_com_cb4_GameActivity_nativeKeyboardHidden' runtime.c
-          ! grep -rn 'dimscript\.gamedemo\|Java_com_dimscript\|com\.CB4\|Java_com_CB4' \
-            game/AndroidManifest.xml game/java runtime.c
+          if find . -type f -name '*.ds' -print -quit | grep -q .; then
+            echo "::error::Script source remains in the pure-C game"
+            exit 1
+          fi
 
-      - name: Setup Java
+      - name: Test game flow on host
+        run: python3 tools/test_game.py
+
+      - name: Setup Java for Android build tools
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -44,44 +46,23 @@ jobs:
           CB4_P12_PASSWORD: ${{ secrets.CB4_P12_PASSWORD }}
         run: |
           set -euo pipefail
-
           if [[ -z "$CB4_P12_BASE64" || -z "$CB4_P12_PASSWORD" ]]; then
             echo "::error::Add CB4_P12_BASE64 and CB4_P12_PASSWORD repository secrets."
             exit 1
           fi
-
           umask 077
           KEY_DIR="$RUNNER_TEMP/cb4-signing"
           mkdir -p "$KEY_DIR"
-          chmod 700 "$KEY_DIR"
-
-          if ! printf '%s' "$CB4_P12_BASE64" \
-            | tr -d '[:space:]' \
-            | base64 --decode > "$KEY_DIR/CB4.p12"; then
-            echo "::error::CB4_P12_BASE64 is not valid Base64."
-            exit 1
-          fi
-
+          printf '%s' "$CB4_P12_BASE64" | tr -d '[:space:]' | base64 --decode > "$KEY_DIR/CB4.p12"
           chmod 600 "$KEY_DIR/CB4.p12"
-
-          if ! keytool -list -storetype PKCS12 \
-            -keystore "$KEY_DIR/CB4.p12" \
-            -storepass:env CB4_P12_PASSWORD > /dev/null; then
-            echo "::error::Cannot open the P12. Check the key and its password."
-            exit 1
-          fi
+          keytool -list -storetype PKCS12 -keystore "$KEY_DIR/CB4.p12" \
+            -storepass:env CB4_P12_PASSWORD > /dev/null
 
       - name: Install Android SDK packages
-        # android-actions/setup-android@v3 is gone: on recent runners it rejects the
-        # preinstalled sdkmanager (cmdline-tools 12.0) as a wrong version, downloads
-        # cmdline-tools again and fails. The runners already ship a working SDK in
-        # $ANDROID_HOME, so the licenses are accepted and the packages installed
-        # through it, with a cmdline-tools download as the fallback.
         run: |
           set -euo pipefail
           SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           if [ ! -x "$SDKM" ]; then
-            echo "Preinstalled cmdline-tools not found - downloading"
             TMP="$(mktemp -d)"
             curl -fsSL -o "$TMP/tools.zip" \
               https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip
@@ -100,14 +81,6 @@ jobs:
         with:
           ndk-version: r25c
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Generate game.c
-        run: python3 gen.py
-
       - name: Stage assets
         run: python3 stage_assets.py game/assets staging/assets
 
@@ -115,42 +88,28 @@ jobs:
         env:
           NDK_ROOT: ${{ steps.ndk.outputs.ndk-path }}
         run: |
+          set -euo pipefail
           TOOLCHAIN="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin"
           GLUE="$NDK_ROOT/sources/android/native_app_glue"
-
+          SOURCES=(game/game.c runtime.c main.c "$GLUE/android_native_app_glue.c")
+          COMMON=(-std=c99 -O3 -s -fPIC -shared -I. -I"$GLUE" -landroid -llog -ldl -lm -lvulkan)
           mkdir -p staging/lib/arm64-v8a staging/lib/armeabi-v7a staging/lib/x86_64
-
-          "$TOOLCHAIN/aarch64-linux-android26-clang" -O3 -s -fPIC -shared \
-            game/game.c runtime.c main.c "$GLUE/android_native_app_glue.c" \
-            -I. -I"$GLUE" -landroid -llog -ldl -lm -lvulkan \
-            -o staging/lib/arm64-v8a/libds_game.so
-
-          "$TOOLCHAIN/armv7a-linux-androideabi26-clang" -O3 -s -fPIC -shared \
-            game/game.c runtime.c main.c "$GLUE/android_native_app_glue.c" \
-            -I. -I"$GLUE" -landroid -llog -ldl -lm -lvulkan \
-            -o staging/lib/armeabi-v7a/libds_game.so
-
-          "$TOOLCHAIN/x86_64-linux-android26-clang" -O3 -s -fPIC -shared \
-            game/game.c runtime.c main.c "$GLUE/android_native_app_glue.c" \
-            -I. -I"$GLUE" -landroid -llog -ldl -lm -lvulkan \
-            -o staging/lib/x86_64/libds_game.so
+          "$TOOLCHAIN/aarch64-linux-android26-clang" "${SOURCES[@]}" "${COMMON[@]}" \
+            -o staging/lib/arm64-v8a/libcb_game.so
+          "$TOOLCHAIN/armv7a-linux-androideabi26-clang" "${SOURCES[@]}" "${COMMON[@]}" \
+            -o staging/lib/armeabi-v7a/libcb_game.so
+          "$TOOLCHAIN/x86_64-linux-android26-clang" "${SOURCES[@]}" "${COMMON[@]}" \
+            -o staging/lib/x86_64/libcb_game.so
 
       - name: Package and align APK
         run: |
+          set -euo pipefail
           BT="$ANDROID_HOME/build-tools/34.0.0"
-
-          VERSION_CODE="$(sed -n 's/.*android:versionCode="\([0-9]\+\)".*/\1/p' game/AndroidManifest.xml | head -n1)"
-          VERSION_NAME="$(sed -n 's/.*android:versionName="\([^"]\+\)".*/\1/p' game/AndroidManifest.xml | head -n1)"
-          echo "versionCode=$VERSION_CODE versionName=$VERSION_NAME"
-
           "$BT/aapt" package -f \
             -M game/AndroidManifest.xml \
             -S game/res \
             -I "$ANDROID_HOME/platforms/android-35/android.jar" \
-            --version-code "$VERSION_CODE" \
-            --version-name "$VERSION_NAME" \
             -F unsigned.apk ./staging/
-
           "$BT/zipalign" -v 4 unsigned.apk aligned.apk
 
       - name: Sign APK
@@ -159,28 +118,18 @@ jobs:
           CB4_KEY_ALIAS: ${{ secrets.CB4_KEY_ALIAS }}
           CB4_KEY_PASSWORD: ${{ secrets.CB4_KEY_PASSWORD || secrets.CB4_P12_PASSWORD }}
         run: |
+          set -euo pipefail
           BT="$ANDROID_HOME/build-tools/34.0.0"
+          SIGN_ARGS=(--ks "$RUNNER_TEMP/cb4-signing/CB4.p12" --ks-type PKCS12 \
+                     --ks-pass env:CB4_P12_PASSWORD --key-pass env:CB4_KEY_PASSWORD)
+          if [[ -n "$CB4_KEY_ALIAS" ]]; then SIGN_ARGS+=(--ks-key-alias "$CB4_KEY_ALIAS"); fi
+          "$BT/apksigner" sign "${SIGN_ARGS[@]}" --out Game.apk aligned.apk
 
-          SIGN_ARGS=(
-            --ks "$RUNNER_TEMP/cb4-signing/CB4.p12"
-            --ks-type PKCS12
-            --ks-pass env:CB4_P12_PASSWORD
-            --key-pass env:CB4_KEY_PASSWORD
-          )
-
-          if [[ -n "$CB4_KEY_ALIAS" ]]; then
-            SIGN_ARGS+=(--ks-key-alias "$CB4_KEY_ALIAS")
-          fi
-
-          "$BT/apksigner" sign "${SIGN_ARGS[@]}" \
-            --out Game.apk aligned.apk
-
-      - name: Verify APK metadata and signature
+      - name: Verify APK
         run: |
+          set -euo pipefail
           BT="$ANDROID_HOME/build-tools/34.0.0"
           "$BT/aapt" dump badging Game.apk | head -n 5
-          "$BT/aapt" dump badging Game.apk | grep -q "versionCode='[0-9]\+'" \
-            || { echo "::error::APK has no versionCode - RuStore will reject it."; exit 1; }
           "$BT/apksigner" verify --verbose --print-certs Game.apk
 
       - name: Delete temporary signing key
@@ -189,6 +138,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Game-APK-Android8-15-arm64-arm32-x86_64
+          name: Cubic-Battle-4-Pure-C-APK
           path: Game.apk
           if-no-files-found: error

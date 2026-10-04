@@ -1,7 +1,7 @@
 /* The screen shown when Vulkan cannot start on this device.
  *
  * Before, a failed start left the window untouched: a black screen, no music
- * (the script and the sound start only after the renderer), no crash and no
+ * (the game starts only after the renderer), no crash and no
  * hint why. Now main.c retries the start a few times and then calls
  * ds_graphics_show_failure(), which draws the reason straight into the window
  * with the CPU (ANativeWindow_lock), with the game's own TrueType font - no

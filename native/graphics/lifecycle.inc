@@ -1,6 +1,6 @@
-/* Public graphics API for the scripts and main.c: texture and font loading,
+/* Public graphics API for game/game.c and main.c: texture and font loading,
  * the draw commands (rect, roundrect, rect_rot, circle, ring, line, tex,
- * tex_tint, text), begin/end/cancel of a frame and the DimScript error screen.
+ * tex_tint, text), begin/end/cancel of a frame and the native error screen.
  *
  * The commands are only collected; the Vulkan backend (vulkan_backend.inc)
  * draws them at the end of the frame. Nothing is rasterised on the CPU. */
@@ -150,7 +150,7 @@ void ds_set_asset_manager(AAssetManager *a) {
 }
 int png_load(const char *n) { return load_png(n) != NULL; }
 
-/* --- draw commands (script API, unchanged) --- */
+/* --- immediate-mode draw commands --- */
 
 void rect(float x, float y, float w, float h, uint32_t c) {
     DSCmd *p = push(DS_CMD_RECT); if (!p) return;
@@ -195,27 +195,14 @@ void tex_tint(float x, float y, const char *name, float a, float s, uint32_t c) 
     DSCmd *p = push(DS_CMD_TEX_TINT); if (!p) return;
     p->v.tx2.x=x; p->v.tx2.y=y; p->v.tx2.a=a; p->v.tx2.sc=s; p->v.tx2.tx=t; p->v.tx2.c=pack_c(c);
 }
-/* All text in the game is pure white (255,255,255). Scripts still pass a
- * colour, but only its alpha survives, which the smooth fades of labels need
- * (fade_color in core/ui.ds, the admin banner, the warning screen). The RGB is
- * replaced by white, so no tinted achievement labels or coloured admin nicks
- * appear: one rule for the whole game instead of editing every call. */
+/* Interface text is white. The caller controls alpha for smooth fades. */
 static uint32_t text_force_white(uint32_t c) {
-    // Preserve admin nickname colors (red for Dimasi4ek229, blue for qwetyuiopaj1234)
-    if (c == 0xFFFF4444u || c == 0xFF4FC3F7u || c == 0xFFFF3333u || c == 0xFF33A8FFu)
-        return c;
-    /* Dark ink of the chat bubble (chat_bubble_ink from config.ds): white text
-     * on a white bubble cannot be read, so the dark RGB is kept while the fade
-     * alpha survives. Only the RGB is compared. */
-    if ((c & 0x00ffffffu) == 0x00202020u)
-        return c;
     return (c & 0xff000000u) | 0x00ffffffu;
 }
 void text_scaled(const char *s, float x, float y, uint32_t c, float sc) {
     if (!frame_open || !s || !ensure_font()) return;
     DSCmd *p = push(DS_CMD_TEXT); if (!p) return;
-    /* Network and script strings can come from reused buffers; renderer commands
-     * must own text until the frame is flushed or cancelled. */
+    /* Renderer commands own text until the frame is flushed or cancelled. */
     p->v.tt.s = strdup_safe(s);
     if (!p->v.tt.s) { ds_runtime_error("out of memory copying renderer text"); return; }
     p->v.tt.x=x; p->v.tt.y=y; p->v.tt.sc=sc; p->v.tt.c=pack_c(text_force_white(c));
@@ -320,7 +307,7 @@ void ds_graphics_error_screen(const char *m) {
          (float)(cur_buf ? cur_buf->height : screen_h), pack_c(0xff1c0b10));
     if (!ensure_font()) return;
     int y = 12;
-    text_scaled("=== DIMSCRIPT ERROR ===", 16, (float)y, pack_c(0xffffffff), 0.7f);
+    text_scaled("=== CUBIC BATTLE ERROR ===", 16, (float)y, pack_c(0xffffffff), 0.7f);
     y += 30;
     if (m && *m) {
         text_scaled(m, 16, (float)y, pack_c(0xffffb0b0), 0.6f);
@@ -334,7 +321,7 @@ void ds_graphics_error_screen(const char *m) {
     for (int i = start; i < n; i++) {
         const char *ln = console_line(i);
         if (!ln || !*ln) { y += 19; continue; }
-        uint32_t col = console_type(i) ? pack_c(0xffff8a80) : pack_c(0xffc8d0dc);
+        uint32_t col = console_type(i) ? 0xffff8a80 : 0xffc8d0dc;
         text_scaled(ln, 16, (float)y, col, 0.55f);
         y += 19;
         if (y > (cur_buf ? cur_buf->height : screen_h) - 8) break;
