@@ -248,5 +248,12 @@ void ds_sound_pause(void) {
     snd_backend_pause();
 }
 void ds_sound_resume(void) {
+    /* Suspend destroys AudioTrack. Recreate it on resume instead of silently
+     * calling play on a null track, which previously left UI clicks dead after
+     * an app switch or screen interruption. */
+    if (!snd_at_track) {
+        snd_backend_start();
+        return;
+    }
     snd_backend_resume();
 }

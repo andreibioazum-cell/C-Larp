@@ -65,9 +65,6 @@ static void touch_menu(double x, double y, double action) {
     if (action != 0) {
         return;
     }
-    if (menu_button_hit(x, y) == 1) {
-        play_button_click();
-    }
     if (game_state == ST_MODES) {
         touch_modes(x, y);
         return;

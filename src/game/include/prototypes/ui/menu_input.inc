@@ -26,4 +26,5 @@ static void touch_skins(double x, double y, double action);
 static void touch_achievements(double x, double y, double action);
 static void touch_leaderboard(double x, double y, double action);
 static void touch_login(double x, double y, double action);
+static double menu_button_hit(double x, double y);
 static void touch_menu(double x, double y, double action);

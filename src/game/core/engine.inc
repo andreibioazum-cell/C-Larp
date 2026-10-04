@@ -402,6 +402,12 @@ static void logic_touch(double x, double y, double action, double id) {
     if (studio_open == 1) {
         return;
     }
+    /* Lobby has its own input handler, while the other screens use
+     * touch_menu(). Detect menu controls here so every screen gets exactly one
+     * immediate click, including Play and Settings on the lobby screen. */
+    if (action == 0 && game_state != ST_SOLO && game_state != ST_ONLINE && menu_button_hit(x, y) == 1) {
+        play_button_click();
+    }
     if (game_state == ST_LOBBY) {
         touch_lobby(x, y, action);
     } else if (game_state == ST_SOLO || game_state == ST_ONLINE) {
