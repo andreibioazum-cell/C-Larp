@@ -1,0 +1,4 @@
+# GitHub Linguist cannot infer the language of extension-neutral include
+# fragments and may classify C headers as C++. All of these files are C.
+*.h linguist-language=C
+*.inc linguist-language=C

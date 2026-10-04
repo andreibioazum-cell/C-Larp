@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
-    compiler = os.environ.get("CC", "cc")
+    compiler = os.environ.get("CC", "clang")
     with tempfile.TemporaryDirectory(prefix="cb4-state-") as directory:
         executable = Path(directory) / "test_game_state"
         subprocess.run(

@@ -15,6 +15,8 @@ jobs:
   build-android:
     name: Build Android APK (Android 8-15)
     runs-on: ubuntu-latest
+    env:
+      CC: clang
 
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +44,7 @@ jobs:
 
       - name: Check native game sources
         run: |
-          cc -std=c99 -Wall -Wextra -Werror -pedantic \
+          clang -std=c99 -Wall -Wextra -Werror -pedantic \
             -Isrc -I. -Itools/host_test/stub -fsyntax-only src/game/game.c
           python3 tools/check_game_file_size.py
           python3 tools/test_resources.py
