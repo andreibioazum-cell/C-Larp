@@ -110,7 +110,14 @@ static Texture *load_png(const char *req) {
         stbi_image_free(dec);
         return NULL;
     }
-    size_t pc = (size_t)t->w * t->h;
+    if ((size_t)t->w > SIZE_MAX / (size_t)t->h ||
+        (size_t)t->w * (size_t)t->h > SIZE_MAX / sizeof(*t->pixels)) {
+        stbi_image_free(dec);
+        ds_log_err("texture not loaded: dimensions overflow for PNG '%s'", n);
+        t->w = t->h = 0;
+        return NULL;
+    }
+    size_t pc = (size_t)t->w * (size_t)t->h;
     t->pixels = (uint32_t *)malloc(pc * sizeof(*t->pixels));
     if (!t->pixels) {
         stbi_image_free(dec);

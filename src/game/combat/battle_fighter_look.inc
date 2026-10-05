@@ -1,9 +1,11 @@
 static double fighter_look_of(double slot) { return arr_get(fighter_looks, slot); }
 
 static double fighter_pose_of(double slot, double punching) {
-    if (punching == 1 && arr_get(fighter_swings, slot) == 1) {
-        return 1;
-    }
+    /* Keep the resolved character texture stable for the whole fight.  Pose
+     * textures used to be swapped at punch time, which could briefly display
+     * another cached fighter on some Vulkan drivers. */
+    (void)slot;
+    (void)punching;
     return 0;
 }
 
@@ -29,11 +31,9 @@ static void resolve_fighter_looks(void) {
 
 static GAME_MAYBE_UNUSED const char *fighter_sprite(double cls, double punching, double skin) {
     double look = drawable_look(cls, skin);
+    (void)punching;
     if (look == LOOK_NONE) {
         return "";
-    }
-    if (punching == 1 && look_swing_ready(look) == 1) {
-        return look_punch_tex(look);
     }
     return look_idle_tex(look);
 }
