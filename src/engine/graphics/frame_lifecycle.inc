@@ -20,6 +20,10 @@ int ds_graphics_begin_frame(Buffer *b) {
         oh = 1;
     if (!ds_vk_begin_frame_backend((uint32_t)b->width, (uint32_t)b->height, ow, oh))
         return 0;
+    /* Upload assets queued by the update step before game code resolves
+     * fighter appearances. Delaying this until geometry construction caused
+     * one-frame fallback cubes and pose/skin flicker. */
+    ds_vk_process_pending_uploads();
     discard_commands();
     cur_buf = b;
     frame_open = 1;

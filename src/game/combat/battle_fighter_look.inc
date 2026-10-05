@@ -8,9 +8,18 @@ static double fighter_pose_of(double slot, double punching) {
 }
 
 static void resolve_fighter_look(double slot, double cls, double skin) {
-    double look = drawable_look(cls, skin);
-    arr_set(fighter_looks, slot, look);
-    arr_set(fighter_swings, slot, look_swing_ready(look));
+    double wanted = class_look(cls, skin);
+    if (look_ready(wanted) == 1) {
+        /* Publish the matching idle/punch pair atomically. */
+        arr_set(fighter_looks, slot, wanted);
+        arr_set(fighter_swings, slot, 1);
+        return;
+    }
+    /* Never retain or substitute a different fighter after an upload failure.
+     * The normal upload path completes at frame start, so this fallback is
+     * reserved for a real asset/GPU error and remains visibly opaque. */
+    arr_set(fighter_looks, slot, LOOK_NONE);
+    arr_set(fighter_swings, slot, 0);
 }
 
 static void resolve_fighter_looks(void) {
