@@ -7,6 +7,8 @@ static double look_swing_ready(double look);
 static double class_look(double cls, double skin);
 static double drawable_look(double cls, double skin);
 static double card_look(double cls, double skin);
+static const char *class_card_tex(double cls, double skin);
+static double class_card_render_ready(double cls, double skin);
 static const char *class_idle_tex(double cls);
 static const char *class_punch_tex(double cls);
 static const char *skin_idle_tex_for(double cls, double skin);

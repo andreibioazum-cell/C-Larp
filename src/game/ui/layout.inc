@@ -90,17 +90,22 @@ static double classes_top(void) { return back_y + btn_h + title_gap; }
 
 static double classes_card_x(double vi) { return center_x(classes_total_w()) + vi * (classes_card_w() + class_gap); }
 
-static double class_sprite_scale(void) { return 1.55; }
+/* On-screen size (in px) of the shop card render. Bumped up from the old
+ * tiny 50*1.55 = 77.5px pixel sprite so the higher-resolution character art
+ * in the shop reads as a proper picture rather than a cube icon;
+ * class_title_y/class_desc_y/class_level_y below are shifted down to match,
+ * keeping the same clearance to the buy button as before. */
+static double class_render_px(void) { return 108; }
 
-static double class_sprite_y(void) { return classes_top() + 12; }
+static double class_sprite_y(void) { return classes_top() + 4; }
 
 static double class_title_scale(void) { return 0.85; }
 
-static double class_title_y(void) { return classes_top() + 82; }
+static double class_title_y(void) { return classes_top() + 105; }
 
-static double class_desc_y(void) { return classes_top() + 114; }
+static double class_desc_y(void) { return classes_top() + 137; }
 
-static double class_level_y(void) { return classes_top() + 136; }
+static double class_level_y(void) { return classes_top() + 159; }
 
 static double class_pick_inset(void) { return 24; }
 

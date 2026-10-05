@@ -104,6 +104,19 @@ static void draw_card_look(double look, double x, double y, double scale) {
     rect(x, y, side, side, fighter_fallback_rgb);
 }
 
+/* Draws the shop/lobby render for a class+skin combo into a target_px square
+ * at (x, y), the same box the old tiny battle sprite used to occupy. Prefers
+ * the high-resolution card art; while it hasn't finished uploading (or is
+ * missing) it falls back to the familiar small pixel sprite scaled to fill
+ * the same box, so the shop never shows a blank hole. */
+static void draw_class_render(double cls, double skin, double x, double y, double target_px) {
+    if (class_card_render_ready(cls, skin) == 1) {
+        tex(x, y, class_card_tex(cls, skin), 0, target_px / CARD_RENDER_PX);
+        return;
+    }
+    draw_card_look(card_look(cls, skin), x, y, target_px / 50);
+}
+
 static void draw_class_card(double vi) {
     double cls = visible_class_at(vi);
     double x = classes_card_x(vi);
@@ -113,14 +126,13 @@ static void draw_class_card(double vi) {
         selected = 1;
     }
     card(x, classes_top(), w, class_card_h, selected);
-    double scale = class_sprite_scale();
-    double sprite = 50 * scale;
+    double sprite = class_render_px();
     double sx = x + (w - sprite) / 2;
-    double card = card_look(cls, SKIN_NORMAL);
+    double skin = SKIN_NORMAL;
     if (class_skin_active(cls) == 1) {
-        card = card_look(cls, SKIN_SPECIAL);
+        skin = SKIN_SPECIAL;
     }
-    draw_card_look(card, sx, class_sprite_y(), scale);
+    draw_class_render(cls, skin, sx, class_sprite_y(), sprite);
     centered_text(class_name_of(cls), x, w, class_title_y(), text_color, class_title_scale());
     const char *motto = class_desc_of(cls);
     centered_text(motto, x, w, class_desc_y(), text_color, fit_text_scale(motto, w - 16, 0.5));
@@ -200,10 +212,9 @@ static void draw_skin_card(double skin) {
         selected = 1;
     }
     card_state(x, skins_top(), w, skin_card_h, selected, locked);
-    double scale = skin_preview_scale();
-    double sprite = 50 * scale;
+    double sprite = 50 * skin_preview_scale();
     double sx = x + (w - sprite) / 2;
-    draw_card_look(card_look(player_class, skin), sx, skin_preview_y(), scale);
+    draw_class_render(player_class, skin, sx, skin_preview_y(), sprite);
     uint32_t c = panel_text(locked);
     const char *status = skin_hint_for(player_class);
     if (locked == 0) {

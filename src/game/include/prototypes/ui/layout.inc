@@ -23,7 +23,7 @@ static double classes_card_w(void);
 static double classes_total_w(void);
 static double classes_top(void);
 static double classes_card_x(double vi);
-static double class_sprite_scale(void);
+static double class_render_px(void);
 static double class_sprite_y(void);
 static double class_title_scale(void);
 static double class_title_y(void);
