@@ -37,16 +37,13 @@ static double look_ready(double look) {
     if (look == LOOK_NONE) {
         return 0;
     }
-    /* Combat rendering deliberately uses one immutable texture per look.
-     * Requiring only that texture also prevents a failed optional pose asset
-     * from hiding or replacing the selected fighter. */
-    return tex_ready(look_idle_tex(look)) == 1;
+    FighterSpritePair pair = look_sprite_pair(look);
+    /* The idle and punch textures are resolved as one pair for the same look,
+     * so changing pose can never change the fighter's class or skin. */
+    return tex_ready(pair.idle) == 1 && tex_ready(pair.punch) == 1;
 }
 
-static double look_swing_ready(double look) {
-    (void)look;
-    return 0;
-}
+static double look_swing_ready(double look) { return look_ready(look); }
 
 static double look_base(double look) {
     if (look == LOOK_ZOMBIE) {
