@@ -38,23 +38,12 @@ static double look_ready(double look) {
         return 0;
     }
     FighterSpritePair pair = look_sprite_pair(look);
-    /* Publish an appearance only when its two sprites are ready. This makes a
-     * class+skin pair atomic and avoids switching to a different pose asset
-     * while Vulkan is still restoring textures. */
+    /* The idle and punch textures are resolved as one pair for the same look,
+     * so changing pose can never change the fighter's class or skin. */
     return tex_ready(pair.idle) == 1 && tex_ready(pair.punch) == 1;
 }
 
 static double look_swing_ready(double look) { return look_ready(look); }
-
-static double look_base(double look) {
-    if (look == LOOK_ZOMBIE) {
-        return LOOK_AZUM;
-    }
-    if (look == LOOK_ELF) {
-        return LOOK_EBUC;
-    }
-    return look;
-}
 
 static double class_look(double cls, double skin) {
     if (skin_is_active(cls, skin) == 1) {
@@ -77,12 +66,11 @@ static double class_look(double cls, double skin) {
 
 static double drawable_look(double cls, double skin) {
     double want = class_look(cls, skin);
+    /* Never substitute another class/skin while assets are uploading. A
+     * fallback cube is preferable to briefly drawing Azum for a zombie or
+     * Ebuc for an elf. */
     if (look_ready(want) == 1) {
         return want;
-    }
-    double base = look_base(want);
-    if (base != want && look_ready(base) == 1) {
-        return base;
     }
     return LOOK_NONE;
 }

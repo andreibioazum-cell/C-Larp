@@ -86,7 +86,9 @@ static int ds_vk_begin_frame_backend(uint32_t w, uint32_t h, uint32_t ow, uint32
     if (!ds_vk_check_result(vkBeginCommandBuffer(f->cmd, &bi), "vkBeginCommandBuffer(frame)"))
         return 0;
     VkClearValue clear;
-    clear.color = (VkClearColorValue){{0.0f, 0.0f, 0.0f, 0.0f}};
+    /* The game renders an opaque frame. Keeping the offscreen alpha opaque
+     * prevents stale/transparent swapchain contents from showing through. */
+    clear.color = (VkClearColorValue){{0.0f, 0.0f, 0.0f, 1.0f}};
     VkRenderPassBeginInfo ri = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
     ri.renderPass = vk_renderpass;
     ri.framebuffer = vk_off_fb;

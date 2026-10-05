@@ -255,15 +255,24 @@ int main(void) {
     assert(fabs(astra_grab_total_fraction() - 0.45) < 1e-9);
     assert(strcmp(WINTER_JINGLE, "winter_jingle.wav") == 0);
     assert(strcmp(fighter_sprite(CLASS_ORDINARY, 0, SKIN_NORMAL), ORDINARY_TEX) == 0);
+    assert(strcmp(fighter_sprite(CLASS_ORDINARY, 1, SKIN_NORMAL), PUNCH_TEX) == 0);
     azum_tex_ok = azum_punch_tex_ok = 1;
     azum_zombie_tex_ok = azum_zombie_punch_tex_ok = 1;
+    assert(strcmp(fighter_sprite(CLASS_AZUM, 0, SKIN_NORMAL), AZUM_TEX) == 0);
     assert(strcmp(fighter_sprite(CLASS_AZUM, 1, SKIN_NORMAL), AZUM_PUNCH_TEX) == 0);
     assert(strcmp(fighter_sprite(CLASS_AZUM, 0, SKIN_ZOMBIE), AZUM_ZOMBIE_TEX) == 0);
+    assert(strcmp(fighter_sprite(CLASS_AZUM, 1, SKIN_ZOMBIE), AZUM_ZOMBIE_PUNCH_TEX) == 0);
     FighterSpritePair azum_pair = look_sprite_pair(LOOK_AZUM);
     FighterSpritePair zombie_pair = look_sprite_pair(LOOK_ZOMBIE);
     assert(strcmp(azum_pair.idle, AZUM_TEX) == 0 && strcmp(azum_pair.punch, AZUM_PUNCH_TEX) == 0);
     assert(strcmp(zombie_pair.idle, AZUM_ZOMBIE_TEX) == 0 &&
            strcmp(zombie_pair.punch, AZUM_ZOMBIE_PUNCH_TEX) == 0);
+    resolve_fighter_look(FLOOK_ME, CLASS_ORDINARY, SKIN_NORMAL);
+    assert(fighter_look_of(FLOOK_ME) == LOOK_ORDINARY);
+    assert(strcmp(look_tex(fighter_look_of(FLOOK_ME), fighter_pose_of(FLOOK_ME, 1)), PUNCH_TEX) == 0);
+    resolve_fighter_look(FLOOK_ME, CLASS_AZUM, SKIN_NORMAL);
+    assert(fighter_look_of(FLOOK_ME) == LOOK_AZUM);
+    assert(strcmp(look_tex(fighter_look_of(FLOOK_ME), fighter_pose_of(FLOOK_ME, 1)), AZUM_PUNCH_TEX) == 0);
     assert(remote_fields == 12);
 
     assert(rects_overlap(0, 0, 1, 0, 10, 10, 15, 0, 1, 0, 10, 10) == 1);

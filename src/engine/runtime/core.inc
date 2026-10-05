@@ -267,6 +267,10 @@ void arr_push(DSArray *a, double v) {
     if (!a)
         return;
     if (a->len >= a->cap) {
+        if (a->cap > SIZE_MAX / (2 * sizeof(double))) {
+            ds_runtime_error("arr_push capacity overflow");
+            return;
+        }
         size_t nc = a->cap * 2;
         if (nc < 8)
             nc = 8;
@@ -295,7 +299,12 @@ void arr_set(DSArray *a, double idx, double v) {
     if (i < 0)
         return;
     if ((size_t)i >= a->len) {
-        while (a->len <= (size_t)i) arr_push(a, 0);
+        while (a->len <= (size_t)i) {
+            size_t old_len = a->len;
+            arr_push(a, 0);
+            if (a->len == old_len)
+                return;
+        }
     }
     a->data[i] = v;
 }

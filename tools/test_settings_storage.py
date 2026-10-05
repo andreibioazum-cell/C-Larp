@@ -169,7 +169,7 @@ def main():
         (temp / "jni.h").write_text(JNI_H)
         (temp / "test.c").write_text(HARNESS)
         subprocess.run([
-            *shlex.split(os.environ.get("CC", "cc")), "-std=gnu99", "-O0",
+            *shlex.split(os.environ.get("CC", "clang")), "-std=gnu99", "-O0",
             "-D_POSIX_C_SOURCE=200809L", "-D__ANDROID__",
             "-Werror=implicit-function-declaration",
             "-I", str(temp), "-I", str(ROOT / "src"), "-I", str(ROOT),
