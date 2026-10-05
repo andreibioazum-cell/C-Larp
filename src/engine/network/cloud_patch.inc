@@ -83,6 +83,104 @@ static void http_patch_async(const char *url, const char *body) {
     http_patch_async_ex(url, body, 0);
 }
 
+/*
+ * Progress (cups/profile) writes used to be fired as independent detached
+ * threads, each with its own retry/backoff loop. When several progress
+ * updates happened in quick succession (e.g. a quest reward immediately
+ * followed by a battle win), the resulting PATCH requests raced each other
+ * over the network. Retries/backoff meant they could finish out of order,
+ * so an *older*, smaller cups value could land on the server *after* a
+ * newer one - leaving the leaderboard showing a stale (lower) cups count
+ * even though the local profile already had the correct, higher value.
+ *
+ * To fix this we serialize progress PATCHes through a single worker that
+ * always sends the most recently queued snapshot. If a newer update is
+ * queued while a request is in flight, the worker simply sends that newer
+ * snapshot next - it never lets an older write "win" over a newer one.
+ */
+static DSMutex progress_sync_lock = DS_MUTEX_INIT;
+static char progress_sync_url[URL];
+static char progress_sync_body[BODY * 3];
+static int progress_sync_pending = 0;
+static int progress_sync_running = 0;
+
+static void *progress_sync_worker(void *arg) {
+    (void)arg;
+    for (;;) {
+        char url[URL], body[BODY * 3];
+        ds_mutex_lock(progress_sync_lock);
+        if (!progress_sync_pending) {
+            progress_sync_running = 0;
+            ds_mutex_unlock(progress_sync_lock);
+            break;
+        }
+        progress_sync_pending = 0;
+        snprintf(url, sizeof(url), "%s", progress_sync_url);
+        snprintf(body, sizeof(body), "%s", progress_sync_body);
+        ds_mutex_unlock(progress_sync_lock);
+
+        HttpJob j;
+        snprintf(j.plain, sizeof(j.plain), "%s", url);
+        snprintf(j.url, sizeof(j.url), "%s", url);
+        snprintf(j.body, sizeof(j.body), "%s", body);
+        j.progress = 1;
+
+        int code = 0, attempt = 0, wait = 1000;
+        for (;;) {
+            code = http_patch_once(&j);
+            if (code == 200)
+                break;
+            int transient = (code == 0 || code == 429 || code >= 500);
+            if (!transient || ++attempt >= PATCH_RETRIES)
+                break;
+            sleep_ms(wait);
+            if (wait < 4000)
+                wait *= 2;
+        }
+
+        ds_mutex_lock(progress_sync_lock);
+        int superseded = progress_sync_pending;
+        ds_mutex_unlock(progress_sync_lock);
+
+        if (code != 200) {
+            cloud_dirty_set(1);
+            if (net_log_ok())
+                LOGERR("cloud PATCH failed: HTTP %d (progress will be resent on next login)", code);
+        } else if (!superseded) {
+            /* Only clear the dirty flag if nothing newer was queued while
+             * this request was in flight; otherwise the loop above will
+             * pick up the newer snapshot on its next iteration. */
+            cloud_dirty_set(0);
+        } else if (attempt > 0) {
+            LOG("cloud PATCH ok after %d retry(ies)", attempt);
+        }
+    }
+    return NULL;
+}
+
+static void queue_progress_patch(const char *url, const char *body) {
+    int need_start;
+    ds_mutex_lock(progress_sync_lock);
+    snprintf(progress_sync_url, sizeof(progress_sync_url), "%s", url);
+    snprintf(progress_sync_body, sizeof(progress_sync_body), "%s", body);
+    progress_sync_pending = 1;
+    need_start = !progress_sync_running;
+    if (need_start)
+        progress_sync_running = 1;
+    ds_mutex_unlock(progress_sync_lock);
+    if (!need_start)
+        return;
+    DSThread t = ds_thread_start(progress_sync_worker, NULL);
+    if (t) {
+        ds_thread_detach(t);
+        return;
+    }
+    ds_mutex_lock(progress_sync_lock);
+    progress_sync_running = 0;
+    ds_mutex_unlock(progress_sync_lock);
+    cloud_dirty_set(1);
+}
+
 void net_save_progress(double cups, double candies, double cls, double azum, double santa, double ebuc, double level,
                        double levels_unlocked) {
     int k = (int)cls;
@@ -270,7 +368,7 @@ void net_save_progress_all(double cups, double candies, double cls, double azum,
                  c, cd, k, a, sn, eu, at, lv, lu, ol, ou, al, au, sl, su, el, eul, atl, atu, bp, sk, af, ar);
 
         cloud_dirty_set(1);
-        http_patch_async_ex(url, body, 1);
+        queue_progress_patch(url, body);
     } else {
 
         cloud_dirty_set(1);
