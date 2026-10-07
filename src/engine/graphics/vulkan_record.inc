@@ -74,6 +74,16 @@ static int ds_vk_build_geometry(void) {
             }
             break;
         }
+        case DS_CMD_TEX_ROUND: {
+            Texture *t = c->v.txr.tx;
+            if (t && t->gpu.uploaded && t->gpu.desc) {
+                pipeline = 1;
+                desc = (const void *)(uintptr_t)t->gpu.desc;
+                geo_tex_round(c->v.txr.x, c->v.txr.y, c->v.txr.sc, (float)t->w, (float)t->h, c->v.txr.r,
+                              0xffffffffu);
+            }
+            break;
+        }
         case DS_CMD_TEXT:
             if (font && font_desc) {
                 pipeline = 1;

@@ -108,10 +108,14 @@ static void draw_card_look(double look, double x, double y, double scale) {
  * at (x, y), the same box the old tiny battle sprite used to occupy. Prefers
  * the high-resolution card art; while it hasn't finished uploading (or is
  * missing) it falls back to the familiar small pixel sprite scaled to fill
- * the same box, so the shop never shows a blank hole. */
+ * the same box, so the shop never shows a blank hole.
+ *
+ * The card art itself is a plain square PNG - tex_round() rounds its corners
+ * at draw time (same silhouette the card background panel already uses),
+ * so the source art can stay a simple square image. */
 static void draw_class_render(double cls, double skin, double x, double y, double target_px) {
     if (class_card_render_ready(cls, skin) == 1) {
-        tex(x, y, class_card_tex(cls, skin), 0, target_px / CARD_RENDER_PX);
+        tex_round(x, y, class_card_tex(cls, skin), target_px / CARD_RENDER_PX, target_px * card_render_radius_frac);
         return;
     }
     draw_card_look(card_look(cls, skin), x, y, target_px / 50);

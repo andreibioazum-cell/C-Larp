@@ -90,6 +90,7 @@ const char *AZUM_ZOMBIE_PUNCH_TEX;
 const char *EBUC_ELF_TEX;
 const char *EBUC_ELF_PUNCH_TEX;
 double CARD_RENDER_PX;
+double card_render_radius_frac;
 const char *ORDINARY_CARD_TEX;
 const char *AZUM_CARD_TEX;
 const char *AZUM_ZOMBIE_CARD_TEX;
