@@ -94,8 +94,20 @@ static double classes_card_x(double vi) { return center_x(classes_total_w()) + v
  * tiny 50*1.55 = 77.5px pixel sprite so the higher-resolution character art
  * in the shop reads as a proper picture rather than a cube icon;
  * class_title_y/class_desc_y/class_level_y below are shifted down to match,
- * keeping the same clearance to the buy button as before. */
-static double class_render_px(void) { return 108; }
+ * keeping the same clearance to the buy button as before.
+ *
+ * classes_card_w() shrinks toward class_card_min_w on narrow screens (small
+ * phones with a low-resolution screen_w), while the render kept a fixed
+ * 108px box - on those phones it filled most of the card's width and almost
+ * reached the name/description text below it. Scale the render down together
+ * with the card width so small screens keep a comfortable gap above the
+ * text, while wide/high-res screens still get the full-size 108px render. */
+static double class_render_px(void) {
+    double w = classes_card_w();
+    double t = (w - class_card_min_w) / (class_card_max_w - class_card_min_w);
+    t = clamp(t, 0, 1);
+    return 84 + t * (108 - 84);
+}
 
 static double class_sprite_y(void) { return classes_top() + 4; }
 
