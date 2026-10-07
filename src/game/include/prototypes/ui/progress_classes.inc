@@ -15,7 +15,6 @@ static const char *class_msg_text(void);
 static double skin_is_active(double cls, double skin);
 static double class_skin_of(double cls);
 static double current_skin(void);
-static double class_skin_active(double cls);
 static double skin_unlocked_for(double cls, double skin);
 static double skin_unlocked(double skin);
 static const char *skin_name_for(double cls, double skin);

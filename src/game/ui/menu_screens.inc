@@ -128,11 +128,10 @@ static void draw_class_card(double vi) {
     card(x, classes_top(), w, class_card_h, selected);
     double sprite = class_render_px();
     double sx = x + (w - sprite) / 2;
-    double skin = SKIN_NORMAL;
-    if (class_skin_active(cls) == 1) {
-        skin = SKIN_SPECIAL;
-    }
-    draw_class_render(cls, skin, sx, class_sprite_y(), sprite);
+    /* The shop card always shows the class's base look, regardless of which
+     * skin is currently equipped - picking a skin in the Skins screen should
+     * not change what the character looks like in the class list. */
+    draw_class_render(cls, SKIN_NORMAL, sx, class_sprite_y(), sprite);
     centered_text(class_name_of(cls), x, w, class_title_y(), text_color, class_title_scale());
     const char *motto = class_desc_of(cls);
     centered_text(motto, x, w, class_desc_y(), text_color, fit_text_scale(motto, w - 16, 0.5));
