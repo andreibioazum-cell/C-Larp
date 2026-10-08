@@ -3,25 +3,13 @@ static double has_achievement(double bit) {
     return shifted - floor(shifted * 0.5) * 2;
 }
 
-static void show_achievement_toast(double bit) {
-    ach_toast_bit = bit;
-    ach_toast_t = ACH_TOAST_DURATION;
-}
-
 static double grant_achievement(double bit) {
     if (has_achievement(bit) == 1) {
         return 0;
     }
     achievement_mask = achievement_mask + bit;
     net_mark_achievement_flag(bit);
-    show_achievement_toast(bit);
     return 1;
-}
-
-static void check_achievements(void) {
-    if (class_owned_of(CLASS_AZUM) == 1 && class_owned_of(CLASS_SANTA) == 1 && class_owned_of(CLASS_EBUC) == 1) {
-        grant_achievement(ACH_ALL_CHARACTERS);
-    }
 }
 
 static void save_progress(void) {
@@ -111,7 +99,6 @@ static void progress_from_storage(void) {
     progress_normalize();
     sync_selected_class();
     progress_push_to_net();
-    check_achievements();
     quest_load();
 }
 

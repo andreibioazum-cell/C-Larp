@@ -120,7 +120,6 @@ static void finish_game(double result) {
             candies = candies + candy_win;
         }
         save_progress();
-        grant_achievement(ACH_FIRST_WIN);
         quest_on_win(result);
         ds_log("win +%g cups +%g candies", cup_win, candy_win);
     }

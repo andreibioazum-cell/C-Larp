@@ -202,7 +202,7 @@ static void draw_quest_card(double i) {
     const char *prog = quest_progress_text(i);
     const char *rew = tr_quest_reward(quest_cups, quest_candies);
     if (done == 1) {
-        rew = tr_achievement_open();
+        rew = tr_quest_claimed();
     }
     text_scaled(title, x + card_text_pad, y + 14, c, 0.62);
     text_scaled(prog, x + card_text_pad, y + 46, c, 0.46);

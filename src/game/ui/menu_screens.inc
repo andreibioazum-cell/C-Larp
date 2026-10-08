@@ -34,7 +34,6 @@ static void draw_lobby_money(void) {
 }
 
 static void draw_lobby(void) {
-    check_achievements();
     screen_fill();
     ctext("Cubic Battle 4", lobby_title_y(), text_color);
     if (newyear_active() == 1) {
@@ -44,7 +43,6 @@ static void draw_lobby(void) {
     draw_menu_button(1, tr_shop());
     draw_menu_button(2, tr_settings());
     draw_menu_button(3, tr_account());
-    draw_menu_button(4, tr_achievements());
     button(tr_quests(), lobby_quests_x(), lobby_quests_y(), btn_w, btn_h);
     draw_lobby_nick();
     draw_lobby_money();
@@ -239,66 +237,6 @@ static void draw_skins(void) {
     }
     skin_msg_t = tick_down(skin_msg_t);
     draw_msg(tr_skins_need_legends(), skins_msg_y(), skin_msg_t);
-    draw_back();
-}
-
-static double achievement_count(void) {
-    return 3;
-}
-
-static double achievement_bit(double i) {
-    if (i == 1) {
-        return ACH_FIRST_WIN;
-    }
-    if (i == 2) {
-        return ACH_ALL_CHARACTERS;
-    }
-    return ACH_LEGENDS;
-}
-
-static const char *achievement_title(double i) {
-    if (i == 1) {
-        return tr_achievement_first_win();
-    }
-    if (i == 2) {
-        return tr_achievement_grass();
-    }
-    return tr_achievement_legends();
-}
-
-static const char *achievement_desc(double i) {
-    if (i == 1) {
-        return tr_achievement_first_win_desc();
-    }
-    if (i == 2) {
-        return tr_achievement_grass_desc();
-    }
-    return tr_achievement_legends_desc();
-}
-
-static void draw_achievement_card(double i) {
-    double locked = 1 - has_achievement(achievement_bit(i));
-    double x = ach_x();
-    double y = ach_card_y(i);
-    panel(x, y, ach_w(), ach_card_h, locked);
-    uint32_t c = panel_text(locked);
-    const char *status = tr_achievement_open();
-    if (locked == 1) {
-        status = tr_achievement_locked();
-    }
-    text_scaled(achievement_title(i), x + card_text_pad, y + 14, c, 0.62);
-    text_scaled(achievement_desc(i), x + card_text_pad, y + 46, c, 0.46);
-    text_scaled(status, x + card_text_pad, y + 70, c, 0.42);
-}
-
-static void draw_achievements(void) {
-    check_achievements();
-    screen_fill();
-    double i = 0;
-    while (i < achievement_count()) {
-        draw_achievement_card(i);
-        i = i + 1;
-    }
     draw_back();
 }
 
