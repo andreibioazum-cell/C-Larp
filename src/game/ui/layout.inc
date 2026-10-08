@@ -101,23 +101,26 @@ static double classes_card_x(double vi) { return center_x(classes_total_w()) + v
  * 108px box - on those phones it filled most of the card's width and almost
  * reached the name/description text below it. Scale the render down together
  * with the card width so small screens keep a comfortable gap above the
- * text, while wide/high-res screens still get the full-size 108px render. */
+ * text, while wide/high-res screens still get the full-size 108px render.
+ *
+ * The 0.88 factor on top shrinks the whole render by another ~12% - the
+ * renders still read as too big for the card at full size. */
 static double class_render_px(void) {
     double w = classes_card_w();
     double t = (w - class_card_min_w) / (class_card_max_w - class_card_min_w);
     t = clamp(t, 0, 1);
-    return 84 + t * (108 - 84);
+    return (84 + t * (108 - 84)) * 0.88;
 }
 
 static double class_sprite_y(void) { return classes_top() + 4; }
 
 static double class_title_scale(void) { return 0.85; }
 
-static double class_title_y(void) { return classes_top() + 105; }
+static double class_title_y(void) { return classes_top() + 116; }
 
-static double class_desc_y(void) { return classes_top() + 137; }
+static double class_desc_y(void) { return classes_top() + 151; }
 
-static double class_level_y(void) { return classes_top() + 159; }
+static double class_level_y(void) { return classes_top() + 175; }
 
 static double class_pick_inset(void) { return 24; }
 

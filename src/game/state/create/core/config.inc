@@ -42,9 +42,12 @@ screen_margin = 40;
 class_action_gap = 40;
 class_count = 5;
 class_gap = 14;
-class_card_h = 272;
-class_card_min_w = 150;
-class_card_max_w = 260;
+/* 5% taller and 10% narrower than the original 272/150/260 so the shop
+ * cards read a bit more portrait and leave more breathing room around the
+ * (now smaller) character render - see class_render_px() in layout.inc. */
+class_card_h = 286;
+class_card_min_w = 135;
+class_card_max_w = 234;
 class_pick_h = 42;
 class_pick_pad = 22;
 list_w = 520;
