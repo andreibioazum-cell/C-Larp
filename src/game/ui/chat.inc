@@ -82,6 +82,11 @@ static double admin_handle(const char *msg) {
     if (net_chat_is_ban(msg) == 1) {
         const char *t1 = net_chat_ban_target(msg);
         if (str_len(t1) > 0) {
+            if (admin_slot(t1) != 0) {
+                net_chat_send(tr_admin_ban_protected());
+                ds_log("admin ban blocked for protected account %s", t1);
+                return 1;
+            }
             net_ban_set(t1, 1);
             net_chat_send(ds_concat(ds_concat(t1, " BANNED by "), by));
             ds_log("admin ban %s", t1);

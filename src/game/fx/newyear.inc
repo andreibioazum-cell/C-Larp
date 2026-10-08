@@ -6,13 +6,7 @@ static double newyear_menu_active(void) {
     if (newyear_active() == 0) {
         return 0;
     }
-    if (game_state != ST_LOBBY && game_state != ST_MODES && game_state != ST_SETTINGS) {
-        return 0;
-    }
-    if (warn_open == 1 || studio_open == 1) {
-        return 0;
-    }
-    return 1;
+    return game_state == ST_LOBBY || game_state == ST_MODES || game_state == ST_SETTINGS;
 }
 
 static void update_newyear_snow(void) {
@@ -165,9 +159,6 @@ static double newyear_music_active(void) {
     if (game_state == ST_SOLO || game_state == ST_ONLINE) {
         return 0;
     }
-    if (warn_open == 1 || studio_open == 1) {
-        return 0;
-    }
     return 1;
 }
 
@@ -183,11 +174,16 @@ static void update_newyear_jingle(void) {
         return;
     }
     if (newyear_music_active() == 1) {
+        /* The lobby loop used to keep this branch waiting, which left the
+         * winter theme with ordinary music during the startup notice. Switch
+         * tracks decisively; the regular track fades back in when winter is
+         * disabled or gameplay begins. */
+        if (snd_playing(LOBBY_MUSIC) == 1) {
+            snd_stop(LOBBY_MUSIC);
+        }
+        music_level = 0;
         snd_volume(WINTER_JINGLE, music_volume / 100 * winter_jingle_volume);
         if (snd_playing(WINTER_JINGLE) == 0) {
-            if (music_ok == 1 && snd_playing(LOBBY_MUSIC) == 1) {
-                return;
-            }
             snd_loop(WINTER_JINGLE);
         }
         return;

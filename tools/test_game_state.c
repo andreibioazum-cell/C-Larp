@@ -21,6 +21,10 @@ static uint32_t last_ground_fill;
 static const char *last_ground;
 static int showdown_playing;
 static int showdown_play_calls;
+static int lobby_playing;
+static int winter_playing;
+static int winter_loop_calls;
+static int snowflake_draws;
 
 struct DSArray {
     double *data;
@@ -87,6 +91,9 @@ void ds_log(const char *format, ...) {
 }
 double dist(double x, double y, double a, double b) {
     return hypot(x - a, y - b);
+}
+double ds_mod(double value, double divisor) {
+    return (double)((int)value % (int)divisor);
 }
 int str_eq(const char *a, const char *b) {
     return a && b && strcmp(a, b) == 0 ? 1 : 0;
@@ -229,10 +236,28 @@ int snd_play(const char *name) {
     }
     return 1;
 }
+int snd_loop(const char *name) {
+    if (name && LOBBY_MUSIC && strcmp(name, LOBBY_MUSIC) == 0) {
+        lobby_playing = 1;
+    }
+    if (name && WINTER_JINGLE && strcmp(name, WINTER_JINGLE) == 0) {
+        winter_playing = 1;
+        winter_loop_calls++;
+    }
+    return 1;
+}
 int snd_playing(const char *name) {
+    if (name && LOBBY_MUSIC && strcmp(name, LOBBY_MUSIC) == 0)
+        return lobby_playing;
+    if (name && WINTER_JINGLE && strcmp(name, WINTER_JINGLE) == 0)
+        return winter_playing;
     return name && SHOWDOWN_MUSIC && strcmp(name, SHOWDOWN_MUSIC) == 0 ? showdown_playing : 0;
 }
 void snd_stop(const char *name) {
+    if (name && LOBBY_MUSIC && strcmp(name, LOBBY_MUSIC) == 0)
+        lobby_playing = 0;
+    if (name && WINTER_JINGLE && strcmp(name, WINTER_JINGLE) == 0)
+        winter_playing = 0;
     if (name && SHOWDOWN_MUSIC && strcmp(name, SHOWDOWN_MUSIC) == 0)
         showdown_playing = 0;
 }
@@ -261,6 +286,8 @@ void tex(float x, float y, const char *name, float angle, float scale) {
     (void)scale;
     ground_tiles++;
     last_ground = name;
+    if (name && SNOWFLAKE_TEX && strcmp(name, SNOWFLAKE_TEX) == 0)
+        snowflake_draws++;
 }
 
 int main(void) {
@@ -318,6 +345,31 @@ int main(void) {
     assert(circle_hits_box(0, 0, 5, 8, 0, 0, 4) == 1);
     assert(circle_hits_box(0, 0, 2, 8, 0, 0, 4) == 0);
 
+    /* The virtual stick now gives full directional speed beyond its small
+     * deadzone: near-center and rim positions travel the same distance. */
+    joy.x = 120;
+    joy.y = 90;
+    joy.r = 70;
+    joy_id = -1;
+    player_class = CLASS_ORDINARY;
+    player->x = 160;
+    player->y = 90;
+    joy_touch(joy.x + 14, joy.y, 0, 7);
+    assert(fabs(joy.dx - 1) < 1e-9 && fabs(joy.dy) < 1e-9);
+    move_player();
+    double near_stick_move = player->x - 160;
+    player->x = 160;
+    joy_touch(joy.x + joy.r, joy.y, 2, 7);
+    assert(fabs(joy.dx - 1) < 1e-9 && fabs(joy.dy) < 1e-9);
+    move_player();
+    assert(fabs((player->x - 160) - near_stick_move) < 1e-9);
+    player->x = 160;
+    joy_touch(joy.x + 5, joy.y, 2, 7);
+    assert(joy.dx == 0 && joy.dy == 0);
+    move_player();
+    assert(fabs(player->x - 160) < 1e-9);
+    joy_touch(joy.x + 5, joy.y, 1, 7);
+
     player->x = 400;
     player->y = 400;
     enemy->x = 399;
@@ -353,11 +405,35 @@ int main(void) {
     assert(newyear_active() == 1);
     assert(newyear_menu_active() == 0);
     game_state = ST_LOBBY;
-    warn_open = studio_open = 0;
+    warn_open = 1;
+    studio_open = 0;
     newyear_jingle_ok = 1;
     assert(snow_active() == 0);
     assert(newyear_menu_active() == 1);
     assert(newyear_music_active() == 1);
+    newyear_snow_t = 0;
+    update_newyear_snow();
+    assert(newyear_snow_t > 0);
+    snowflake_draws = 0;
+    draw_newyear_menu_fx();
+    assert(snowflake_draws == (int)newyear_menu_flakes);
+    /* The jingle must take over even while the startup notice is visible; do
+     * not let the ordinary lobby loop block it. */
+    music_ok = 1;
+    music_level = 1;
+    lobby_playing = 1;
+    winter_playing = 0;
+    winter_loop_calls = 0;
+    update_newyear_jingle();
+    assert(lobby_playing == 0 && winter_playing == 1);
+    assert(winter_loop_calls == 1 && music_level == 0);
+    update_music();
+    assert(lobby_playing == 0);
+    winter_theme = 0;
+    update_newyear_jingle();
+    assert(winter_playing == 0);
+    winter_theme = 1;
+    warn_open = 0;
 
     assert(strcmp(SHOWDOWN_MUSIC, "astra_azum_showdown.wav") == 0);
     finished = 0;
@@ -400,6 +476,9 @@ int main(void) {
     assert(astra_rw_of(CLASS_ASTRA, SKIN_SPECIAL) == 1);
     assert(astra_rw_of(CLASS_ASTRA, SKIN_NORMAL) == 0);
     assert(astra_rw_of(CLASS_AZUM, SKIN_SPECIAL) == 0);
+    assert(admin_slot("DIMASI4EK229") == 1);
+    assert(admin_slot("QWERTYUIOPAJ1234") == 2);
+    assert(admin_slot("regular_player") == 0);
     stub_login_status = 2;
     snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", ADMIN_NICK);
     snprintf(stub_login_pass, sizeof(stub_login_pass), "%s", ADMIN_PASS);
@@ -410,6 +489,17 @@ int main(void) {
     stub_login_pass[1] = 0;
     astra_rw_refresh();
     assert(astra_rw_allowed() == 0);
+    snprintf(stub_login_pass, sizeof(stub_login_pass), "%s", ADMIN_PASS);
+    astra_rw_refresh();
+    assert(astra_rw_allowed() == 1);
+    snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", ADMIN2_NICK);
+    snprintf(stub_login_pass, sizeof(stub_login_pass), "%s", ADMIN2_PASS);
+    astra_rw_refresh();
+    assert(astra_rw_allowed() == 1 && astra_rw_is_dev() == 1);
+    stub_login_pass[0] = 'x';
+    astra_rw_refresh();
+    assert(astra_rw_allowed() == 0);
+    snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", ADMIN_NICK);
     snprintf(stub_login_pass, sizeof(stub_login_pass), "%s", ADMIN_PASS);
     astra_rw_refresh();
     assert(astra_rw_allowed() == 1);
@@ -449,7 +539,9 @@ int main(void) {
     player->size = 45;
     player->x = 150;
     player->y = 90;
+    astra_punch_t = 0.05;
     start_grab_now();
+    assert(astra_punch_t == 0);
     assert(fabs(player->x - 150) < 1e-9);
     assert(astra_x > 150 && astra_x - 150 <= astra_rw_lunge_dist + 1e-9);
     assert(fabs(astra_y - 90) < 1e-9);
@@ -467,7 +559,34 @@ int main(void) {
     assert(fabs(player->x - astra_x) < 1e-9);
     assert(fabs(player->y - astra_y) < 1e-9);
     assert(lunge_frames * dt >= astra_rw_lunge_time);
+    assert(astra_rw_zone_live_for(astra_rw_lunge_time / 2, 0, 1) == 0);
+    assert(astra_rw_zone_live_for(astra_rw_lunge_time, 0, 1) == 1);
     astra_state = 0;
+    astra_cd = 0;
+    /* The grab/catch waits for the visual dash to finish; its first hit is
+     * still scheduled before regular Astra's first beat. */
+    player->x = 100;
+    player->y = 90;
+    player->hp = 10;
+    enemy->hp = enemy->max_hp = 10;
+    enemy_revive_prot = 0;
+    enemy->y = player->y;
+    game_state = ST_SOLO;
+    start_grab_now();
+    enemy->x = astra_x + 70;
+    for (int frame = 0; frame < 9; frame++) {
+        tick_astra();
+        assert(astra_caught == 0 && astra_hits_done == 0);
+    }
+    assert(astra_caught == 0 && enemy->hp == 10);
+    tick_astra();
+    assert(astra_caught == 1 && astra_hits_done == 0);
+    for (int frame = 10; frame < 22; frame++)
+        tick_astra();
+    assert(astra_hits_done == 0);
+    tick_astra();
+    assert(astra_hits_done == 1 && astra_punch_t > 0);
+    astra_release(0);
     astra_cd = 0;
     /* selecting the variant in the shop (Astra -> Skins) toggles the switch and
      * the skin that goes out over the network with it */
@@ -594,7 +713,10 @@ int main(void) {
     arr_set(remotes, 1 * remote_fields + 10, CLASS_ASTRA);
     arr_set(remotes, 1 * remote_fields + 11, SKIN_SPECIAL);
     stub_grab[1] = 2;
-    for (int frame = 0; frame < 45; frame++)
+    for (int frame = 0; frame < 9; frame++)
+        update_remote_grabs();
+    assert(pgrab_active == 0 && pgrab_hits == 0);
+    for (int frame = 9; frame < 45; frame++)
         update_remote_grabs();
     assert(pgrab_hits == 3);
     assert(fabs((double)pgrab_t - 45 * dt) < 1e-9);

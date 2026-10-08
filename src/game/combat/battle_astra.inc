@@ -137,7 +137,13 @@ static void start_grab_now(void) {
     astra_seq = astra_seq + 1;
     astra_pub = 0;
     queued_super = 0;
-    astra_swing_now();
+    /* Regular Astra keeps the cast pose. Rework waits to show a punch until
+     * the lunge has completed and a real beat is due. */
+    if (astra_rw_lunge_time_for(astra_rw_local()) == 0) {
+        astra_swing_now();
+    } else {
+        astra_punch_t = 0;
+    }
     punch->active = 0;
     punch->hit = 0;
     punch_left = 0;
@@ -311,7 +317,7 @@ static void tick_astra(void) {
     }
     astra_t = astra_t + dt;
     if (astra_caught == 0) {
-        if (astra_try_catch() == 1) {
+        if (astra_t >= astra_rw_lunge_time_for(rw) && astra_try_catch() == 1) {
             astra_state = 2;
         } else if (astra_t > astra_rw_catch_time_for(rw)) {
             astra_release(0);

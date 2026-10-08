@@ -49,6 +49,11 @@ def check_firebase_rules() -> None:
     missing = body_keys("room_control.inc") - banner
     assert not missing, f"В правилах баннера нет полей: {sorted(missing)}"
 
+    ban_write = rules["bans"]["$nick"][".write"]
+    assert "newData.exists()" in ban_write
+    assert "$nick.toLowerCase() != 'dimasi4ek229'" in ban_write
+    assert "$nick.toLowerCase() != 'qwertyuiopaj1234'" in ban_write
+
 
 def check_assets() -> None:
     names: set[str] = set()

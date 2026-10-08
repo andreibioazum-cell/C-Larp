@@ -72,7 +72,7 @@ static double update_remote_grab(double slot) {
     double gdy = remote_grab_get(slot, GRAB_DY);
     if (remote_grab_get(slot, GRAB_CAUGHT) == 0) {
         if (t <= astra_rw_catch_time_for(rw)) {
-            if (pgrab_active == 0 && revive_prot <= 0 && player->hp > 0) {
+            if (t >= astra_rw_lunge_time_for(rw) && pgrab_active == 0 && revive_prot <= 0 && player->hp > 0) {
                 if (astra_zone_hits_player(gx, gy, gdx, gdy, lv) == 1) {
                     remote_grab_set(slot, GRAB_CAUGHT, 1);
                     pgrab_active = 1;

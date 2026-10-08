@@ -96,6 +96,34 @@ const char *net_login_pass(void) {
     return s_lg_pass_ret;
 }
 
+static int ban_protected_admin_nick(const char *nick) {
+    static const char *admins[] = {"Dimasi4ek229", "qwertyuiopaj1234"};
+    if (!nick || !*nick) {
+        return 0;
+    }
+    for (size_t n = 0; n < sizeof(admins) / sizeof(admins[0]); n++) {
+        size_t i = 0;
+        while (nick[i] && admins[n][i]) {
+            char a = nick[i];
+            char b = admins[n][i];
+            if (a >= 'A' && a <= 'Z') {
+                a = a + ('a' - 'A');
+            }
+            if (b >= 'A' && b <= 'Z') {
+                b = b + ('a' - 'A');
+            }
+            if (a != b) {
+                break;
+            }
+            i++;
+        }
+        if (!nick[i] && !admins[n][i]) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static void bans_file_path(char *path, size_t cap) {
     data_file_path(path, cap, BANS_FILE);
 }
@@ -296,7 +324,7 @@ static int ban_check_cloud_sync(const char *nick) {
     char url[URL], resp[RESP];
     const char *p;
     int code;
-    if (!nick || !*nick)
+    if (!nick || !*nick || ban_protected_admin_nick(nick))
         return 0;
     if (nick_banned_locally(nick))
         return 1;
@@ -332,7 +360,7 @@ static void *ban_check_job(void *arg) {
 double net_is_banned(const char *nick) {
     static long long s_last_check;
     long long t;
-    if (!nick || !*nick)
+    if (!nick || !*nick || ban_protected_admin_nick(nick))
         return 0;
     if (nick_banned_locally(nick))
         return 1;

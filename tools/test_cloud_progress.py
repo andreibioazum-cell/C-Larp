@@ -110,6 +110,25 @@ static int run_astra_rework(const char *dir) {
     return 0;
 }
 
+static int run_admin_ban_guard(const char *dir) {
+    net_set_data_path(dir);
+    net_ban_set("Dimasi4ek229", 1);
+    net_ban_set("QWERTYUIOPAJ1234", 1);
+    assert(net_is_banned("Dimasi4ek229") == 0);
+    assert(net_is_banned("qwertyuiopaj1234") == 0);
+    char path[320];
+    snprintf(path, sizeof(path), "%s/bans.dat", dir);
+    FILE *f = fopen(path, "r");
+    assert(f == NULL);
+
+    net_ban_set("ordinary_player", 1);
+    assert(net_is_banned("ordinary_player") == 1);
+    net_ban_set("ordinary_player", 0);
+    assert(net_is_banned("ordinary_player") == 0);
+    puts("moderation: neither administrator can be banned; ordinary bans still work");
+    return 0;
+}
+
 int main(int argc, char **argv) {
     if (argc < 3) { fprintf(stderr, "usage: test <mode> <dir>\n"); return 2; }
     if (strcmp(argv[1], "first-save") == 0) return run_first_save(argv[2]);
@@ -117,6 +136,7 @@ int main(int argc, char **argv) {
     if (strcmp(argv[1], "clean") == 0) return run_clean(argv[2]);
     if (strcmp(argv[1], "astra") == 0) return run_astra(argv[2]);
     if (strcmp(argv[1], "astra-rework") == 0) return run_astra_rework(argv[2]);
+    if (strcmp(argv[1], "admin-ban-guard") == 0) return run_admin_ban_guard(argv[2]);
     fprintf(stderr, "unknown mode '%s'\n", argv[1]);
     return 2;
 }
@@ -172,6 +192,10 @@ def main():
         subprocess.run([*run, "astra-rework", str(rework)], check=True)
         saved = (rework / "progress.dat").read_text(encoding="utf-8").split()
         assert len(saved) == 22 and saved[18:] == ["1", "3", "3", "0"], saved
+
+        bans = temp / "bans"
+        bans.mkdir()
+        subprocess.run([*run, "admin-ban-guard", str(bans)], check=True)
     return 0
 
 if __name__ == "__main__":

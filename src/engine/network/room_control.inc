@@ -47,6 +47,10 @@ static void ban_write_async(const char *url, const char *nick, int banned) {
 void net_ban_set(const char *nick, double banned) {
     if (!nick || !*nick)
         return;
+    if (banned >= 0.5 && ban_protected_admin_nick(nick)) {
+        LOGERR("ban: refusing to ban protected admin '%s'", nick);
+        return;
+    }
     if (!nick_valid(nick)) {
         LOGERR("ban: invalid nick '%s'", nick);
         return;

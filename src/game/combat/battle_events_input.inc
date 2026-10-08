@@ -281,16 +281,25 @@ static void joy_touch(double x, double y, double action, double id) {
     double dx = x - joy.x;
     double dy = y - joy.y;
     double d = sqrt(dx * dx + dy * dy);
-    if (d > joy.r) {
+    double knob_d = d;
+    if (knob_d > joy.r) {
+        knob_d = joy.r;
+    }
+    if (d > 0) {
+        joy.ox = dx * knob_d / d;
+        joy.oy = dy * knob_d / d;
+    } else {
+        joy.ox = 0;
+        joy.oy = 0;
+    }
+    if (d > joy.r * 0.15) {
+        /* Use a unit direction once outside the deadzone; speed is constant
+         * whether the stick is near its center or at the rim. */
         joy.dx = dx / d;
         joy.dy = dy / d;
-        joy.ox = joy.dx * joy.r;
-        joy.oy = joy.dy * joy.r;
     } else {
-        joy.dx = dx / joy.r;
-        joy.dy = dy / joy.r;
-        joy.ox = dx;
-        joy.oy = dy;
+        joy.dx = 0;
+        joy.dy = 0;
     }
 }
 

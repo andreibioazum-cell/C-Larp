@@ -25,7 +25,7 @@
  *     of the step, taken at cast time, so hitbox and network traffic stay
  *     exactly what they were.
  *
- * Only ADMIN_NICK / ADMIN_PASS (the developer account) can unlock or select
+ * Only the two configured administrator accounts can unlock or select
  * it; every other account sees Astra exactly as before.
  *
  * Porting into regular Astra later: move these numbers into the astra_*
@@ -38,8 +38,9 @@ static const double astra_rw_punch_factor = 0.93;
 static const double astra_rw_interval_factor = 0.8;
 static const double astra_rw_final_delay = 0.4;
 static const double astra_rw_throw_factor = 1.35;
-static const double astra_rw_lunge_dist = 34;
+static const double astra_rw_lunge_dist = 37.4;
 static const double astra_rw_lunge_time = 0.16;
+static const double astra_rw_catch_buffer = 0.06;
 static const double astra_rw_tint_rgb = 0xE040FB;
 static const double astra_rw_tint_a = 0.35;
 
@@ -62,7 +63,12 @@ static double astra_rw_is_dev(void) {
     if (net_login_status() != 2) {
         return 0;
     }
-    if (str_eq(net_login_nick(), ADMIN_NICK) == 1 && str_eq(net_login_pass(), ADMIN_PASS) == 1) {
+    const char *nick = net_login_nick();
+    const char *pass = net_login_pass();
+    if (str_eq(nick, ADMIN_NICK) == 1 && str_eq(pass, ADMIN_PASS) == 1) {
+        return 1;
+    }
+    if (str_eq(nick, ADMIN2_NICK) == 1 && str_eq(pass, ADMIN2_PASS) == 1) {
         return 1;
     }
     return 0;
@@ -111,8 +117,20 @@ static double astra_rw_hit_interval_for(double rw) {
     return astra_hit_interval;
 }
 
+static double astra_rw_lunge_time_for(double rw) {
+    if (rw == 1) {
+        return astra_rw_lunge_time;
+    }
+    return 0;
+}
+
+/* Keep a short catch window after the body completes its lunge. This stops the
+ * initial zone from grabbing someone during the visual dash while still giving
+ * online clients 0.10 s to register the catch. */
 static double astra_rw_catch_time_for(double rw) {
-    (void)rw;
+    if (rw == 1) {
+        return astra_rw_lunge_time_for(rw) + astra_rw_catch_buffer;
+    }
     return astra_catch_time;
 }
 
@@ -146,7 +164,7 @@ static double astra_rw_beats_done_for(double t, double rw) {
 }
 
 static double astra_rw_zone_live_for(double t, double caught, double rw) {
-    if (t <= astra_rw_catch_time_for(rw)) {
+    if (t >= astra_rw_lunge_time_for(rw) && t <= astra_rw_catch_time_for(rw)) {
         return 1;
     }
     if (caught != 1) {

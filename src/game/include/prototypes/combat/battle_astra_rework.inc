@@ -8,6 +8,7 @@ static double astra_rw_local(void);
 static void astra_rw_select(double on);
 static const char *astra_rw_desc(void);
 static double astra_rw_hit_interval_for(double rw);
+static double astra_rw_lunge_time_for(double rw);
 static double astra_rw_catch_time_for(double rw);
 static double astra_rw_beat_time_for(double i, double rw);
 static double astra_rw_final_delay_for(double rw);

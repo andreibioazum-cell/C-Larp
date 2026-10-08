@@ -22,7 +22,7 @@
     "bans": {
       ".read": "auth != null && auth.token.email.matches(/@cb4[.]game$/) && auth.token.firebase.sign_in_provider == 'password'",
       "$nick": {
-        ".write": "auth != null && (auth.token.email.toLowerCase() == 'dimasi4ek229@cb4.game' || auth.token.email.toLowerCase() == 'qwertyuiopaj1234@cb4.game')",
+        ".write": "auth != null && (auth.token.email.toLowerCase() == 'dimasi4ek229@cb4.game' || auth.token.email.toLowerCase() == 'qwertyuiopaj1234@cb4.game') && (!newData.exists() || ($nick.toLowerCase() != 'dimasi4ek229' && $nick.toLowerCase() != 'qwertyuiopaj1234'))",
         ".validate": "$nick.matches(/^[A-Za-z0-9_]{1,16}$/) && newData.isBoolean()"
       }
     },

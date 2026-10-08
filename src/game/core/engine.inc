@@ -102,11 +102,12 @@ static void logic_init(void) {
     }
     net_set_firebase_key(FB_KEY);
     net_autologin(FIREBASE);
-    start_music();
-    showdown_music_load();
     progress_from_storage();
     settings_from_storage();
     apply_winter_theme();
+    start_music();
+    showdown_music_load();
+    update_newyear_jingle();
     ds_log("init: ready");
 }
 
@@ -316,7 +317,6 @@ static void logic_draw(void) {
         rect(0, 0, screen_w, screen_h, 0xFF000000);
     } else {
         draw_screen();
-        draw_newyear_menu_fx();
         if (t_fade > 0) {
             rect(0, 0, screen_w, screen_h, (1 + floor(t_fade * 254)) * 0x1000000);
         }
@@ -327,6 +327,9 @@ static void logic_draw(void) {
     if (studio_open == 1) {
         draw_studio();
     }
+    /* Keep flakes above the startup panels and transition curtain so winter
+     * is visible from the first frame, not only after the notice disappears. */
+    draw_newyear_menu_fx();
     draw_achievement_toast();
 }
 
