@@ -143,10 +143,11 @@ static void draw_class_card(double vi) {
     button_scaled(class_pick_label(cls), x + class_pick_inset(), class_pick_y(), class_pick_w(), class_pick_h, 0.55);
 }
 
-static void draw_stat_row(const char *label, double x, double y, double w, double h, double cur, double maxv,
-                          uint32_t c) {
-    text_scaled(label, x, y - 26, text_color, 0.5);
-    hud_bar(x, y, w, h, cur, maxv, c, 0);
+static double stat_star_rating(double cur, double maxv) {
+    if (maxv <= 0) {
+        return 0;
+    }
+    return round(clamp(cur, 0, maxv) / maxv * 5);
 }
 
 static void draw_class_stats(void) {
@@ -156,10 +157,9 @@ static void draw_class_stats(void) {
     double power = class_power_of(player_class);
     const char *smotto = class_desc_of(player_class);
     ctext_scaled(smotto, stat_motto_y(), text_color, fit_text_scale(smotto, screen_w - 2 * screen_margin, 0.8));
-    draw_stat_row(ds_concat(ds_concat(tr_hp(), ": "), ds_num_to_string((double)(hp))), x, stat_hp_y(), w, stat_bar_h(),
-                  hp, 20, stat_hp_color);
-    draw_stat_row(ds_concat(ds_concat(tr_strength(), ": "), ds_num_to_string((double)(power))), x, stat_power_y(), w,
-                  stat_bar_h(), power, 2, stat_power_color);
+    draw_star_row(tr_hp(), x, stat_hp_y(), w, stat_bar_h(), stat_star_rating(hp, 20), 5, stat_hp_color, card_ring);
+    draw_star_row(tr_strength(), x, stat_power_y(), w, stat_bar_h(), stat_star_rating(power, 2), 5, stat_power_color,
+                  card_ring);
 }
 
 static void draw_classes(void) {

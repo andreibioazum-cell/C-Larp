@@ -104,15 +104,15 @@ static double class_render_px(void) {
     return (84 + t * (108 - 84)) * 0.88;
 }
 
-static double class_sprite_y(void) { return classes_top() + 4; }
+static double class_sprite_y(void) { return classes_top() + 14; }
 
 static double class_title_scale(void) { return 0.85; }
 
-static double class_title_y(void) { return classes_top() + 116; }
+static double class_title_y(void) { return classes_top() + 126; }
 
-static double class_desc_y(void) { return classes_top() + 151; }
+static double class_desc_y(void) { return classes_top() + 161; }
 
-static double class_level_y(void) { return classes_top() + 175; }
+static double class_level_y(void) { return classes_top() + 185; }
 
 static double class_pick_inset(void) { return 24; }
 
