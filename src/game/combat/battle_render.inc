@@ -121,7 +121,6 @@ static void finish_game(double result) {
         }
         save_progress();
         grant_achievement(ACH_FIRST_WIN);
-        quest_on_win(result);
         ds_log("win +%g cups +%g candies", cup_win, candy_win);
     }
     if (result == 2 && cups_awarded == 0) {
@@ -131,7 +130,6 @@ static void finish_game(double result) {
             cups = 0;
         }
         save_progress();
-        quest_on_win(result);
         ds_log("lose -%g cups", cup_lose);
     }
 }

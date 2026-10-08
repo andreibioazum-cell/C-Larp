@@ -53,17 +53,11 @@ static double newyear_snow_band1_hi(void) {
 }
 
 static double newyear_snow_band2_lo(void) {
-    if (game_state != ST_LOBBY) {
-        return newyear_snow_band1_hi();
-    }
-    return lobby_quests_x() - newyear_snow_col_pad;
+    return newyear_snow_band1_hi();
 }
 
 static double newyear_snow_band2_hi(void) {
-    if (game_state != ST_LOBBY) {
-        return newyear_snow_band1_hi();
-    }
-    return lobby_quests_x() + btn_w + newyear_snow_col_pad;
+    return newyear_snow_band1_hi();
 }
 
 static double newyear_snow_x_of(double hx) {

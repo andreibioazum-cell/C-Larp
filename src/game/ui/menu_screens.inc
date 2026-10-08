@@ -45,7 +45,6 @@ static void draw_lobby(void) {
     draw_menu_button(2, tr_settings());
     draw_menu_button(3, tr_account());
     draw_menu_button(4, tr_achievements());
-    button(tr_quests(), lobby_quests_x(), lobby_quests_y(), btn_w, btn_h);
     draw_lobby_nick();
     draw_lobby_money();
     if (str_len(banned_msg) > 0) {

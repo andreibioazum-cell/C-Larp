@@ -112,7 +112,6 @@ static void progress_from_storage(void) {
     sync_selected_class();
     progress_push_to_net();
     check_achievements();
-    quest_load();
 }
 
 static void settings_from_storage(void) {

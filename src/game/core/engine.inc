@@ -30,10 +30,6 @@ static double enter_screen(double state) {
         login_open();
         return 1;
     }
-    if (state == ST_QUESTS) {
-        quest_load();
-        return 1;
-    }
     if (state == ST_LEADERBOARD) {
         open_leaderboard();
         return 1;
@@ -270,7 +266,6 @@ static void logic_update(void) {
     update_music();
     update_showdown_music();
     reload_textures();
-    quest_tick();
     tick_achievement_toast();
     tick_fps_meter();
     if (game_state == ST_SOLO) {
@@ -309,8 +304,6 @@ static void draw_screen(void) {
         draw_achievements();
     } else if (game_state == ST_PROMO) {
         draw_promo();
-    } else if (game_state == ST_QUESTS) {
-        draw_quests();
     } else if (game_state == ST_PRIVACY) {
         draw_privacy();
     } else {
@@ -364,10 +357,6 @@ static double logic_back(void) {
     }
     if (game_state == ST_LEADERBOARD || game_state == ST_PROMO) {
         start_transition(ST_MODES);
-        return 1;
-    }
-    if (game_state == ST_QUESTS) {
-        start_transition(ST_LOBBY);
         return 1;
     }
     if (game_state == ST_PRIVACY) {

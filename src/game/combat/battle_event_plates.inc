@@ -125,7 +125,6 @@ static void plates_collect_candies(void) {
                 candies = candies + candy_give;
                 plates_dirty = 1;
                 arr_set(plates_candies, b, 0);
-                quest_on_candy();
                 ds_log("event candy picked -> %g", candies);
             }
         }

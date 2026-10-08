@@ -60,14 +60,6 @@ static double lobby_money_y(void) { return menu_row(lobby_rows - 1) + btn_h + 12
 
 static double lobby_msg_y(void) { return lobby_money_y() + money_line_h + 6; }
 
-static double lobby_quests_x(void) { return screen_w - btn_w - 20; }
-
-static double lobby_quests_y(void) { return screen_h - btn_h - 20; }
-
-static double hit_lobby_quests(double px, double py) {
-    return hit_rect_pad(px, py, lobby_quests_x(), lobby_quests_y(), btn_w, btn_h);
-}
-
 static double classes_card_w(void) {
     double n = classes_visible_count();
     if (n < 1) {
@@ -256,18 +248,6 @@ static double modes_row(double i) { return modes_top() + i * menu_stride(); }
 
 static double hit_modes_row(double px, double py, double i) {
     return hit_rect_pad(px, py, menu_x(), modes_row(i), btn_w, btn_h);
-}
-
-static double quest_w(void) { return fit_w(760); }
-
-static double quest_x(void) { return center_x(quest_w()); }
-
-static double quest_top(void) { return content_top(); }
-
-static double quest_row_y(double i) { return quest_top() + i * (ach_card_h + ach_card_gap); }
-
-static GAME_MAYBE_UNUSED double hit_quest_row(double px, double py, double i) {
-    return hit_rect(px, py, quest_x(), quest_row_y(i), quest_w(), ach_card_h);
 }
 
 static double warn_btn_w(void) { return fit_w(560); }
