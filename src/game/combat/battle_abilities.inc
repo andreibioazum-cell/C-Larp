@@ -298,7 +298,6 @@ static void tick_candies(void) {
                 if (dist(arr_get(candy_x, ci), arr_get(candy_y, ci), player->x, player->y) < player->size * 0.65 + 18) {
                     candies = candies + candy_give;
                     save_progress();
-                    quest_on_candy();
                     ds_log("candy picked -> %g", candies);
                     candy_rand_pos(ci);
                     arr_set(candy_pick, ci, 0);

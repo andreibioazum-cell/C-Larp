@@ -60,14 +60,6 @@ static double lobby_money_y(void) { return menu_row(lobby_rows - 1) + btn_h + 12
 
 static double lobby_msg_y(void) { return lobby_money_y() + money_line_h + 6; }
 
-static double lobby_quests_x(void) { return screen_w - btn_w - 20; }
-
-static double lobby_quests_y(void) { return screen_h - btn_h - 20; }
-
-static double hit_lobby_quests(double px, double py) {
-    return hit_rect_pad(px, py, lobby_quests_x(), lobby_quests_y(), btn_w, btn_h);
-}
-
 static double classes_card_w(void) {
     double n = classes_visible_count();
     if (n < 1) {
@@ -90,17 +82,37 @@ static double classes_top(void) { return back_y + btn_h + title_gap; }
 
 static double classes_card_x(double vi) { return center_x(classes_total_w()) + vi * (classes_card_w() + class_gap); }
 
-static double class_sprite_scale(void) { return 1.55; }
+/* On-screen size (in px) of the shop card render. Bumped up from the old
+ * tiny 50*1.55 = 77.5px pixel sprite so the higher-resolution character art
+ * in the shop reads as a proper picture rather than a cube icon;
+ * class_title_y/class_desc_y/class_level_y below are shifted down to match,
+ * keeping the same clearance to the buy button as before.
+ *
+ * classes_card_w() shrinks toward class_card_min_w on narrow screens (small
+ * phones with a low-resolution screen_w), while the render kept a fixed
+ * 108px box - on those phones it filled most of the card's width and almost
+ * reached the name/description text below it. Scale the render down together
+ * with the card width so small screens keep a comfortable gap above the
+ * text, while wide/high-res screens still get the full-size 108px render.
+ *
+ * The 0.88 factor on top shrinks the whole render by another ~12% - the
+ * renders still read as too big for the card at full size. */
+static double class_render_px(void) {
+    double w = classes_card_w();
+    double t = (w - class_card_min_w) / (class_card_max_w - class_card_min_w);
+    t = clamp(t, 0, 1);
+    return (84 + t * (108 - 84)) * 0.88;
+}
 
-static double class_sprite_y(void) { return classes_top() + 12; }
+static double class_sprite_y(void) { return classes_top() + 14; }
 
 static double class_title_scale(void) { return 0.85; }
 
-static double class_title_y(void) { return classes_top() + 82; }
+static double class_title_y(void) { return classes_top() + 126; }
 
-static double class_desc_y(void) { return classes_top() + 114; }
+static double class_desc_y(void) { return classes_top() + 161; }
 
-static double class_level_y(void) { return classes_top() + 136; }
+static double class_level_y(void) { return classes_top() + 185; }
 
 static double class_pick_inset(void) { return 24; }
 
@@ -236,18 +248,6 @@ static double modes_row(double i) { return modes_top() + i * menu_stride(); }
 
 static double hit_modes_row(double px, double py, double i) {
     return hit_rect_pad(px, py, menu_x(), modes_row(i), btn_w, btn_h);
-}
-
-static double quest_w(void) { return fit_w(760); }
-
-static double quest_x(void) { return center_x(quest_w()); }
-
-static double quest_top(void) { return content_top(); }
-
-static double quest_row_y(double i) { return quest_top() + i * (ach_card_h + ach_card_gap); }
-
-static GAME_MAYBE_UNUSED double hit_quest_row(double px, double py, double i) {
-    return hit_rect(px, py, quest_x(), quest_row_y(i), quest_w(), ach_card_h);
 }
 
 static double warn_btn_w(void) { return fit_w(560); }

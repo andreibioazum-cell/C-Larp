@@ -121,8 +121,6 @@ static double class_skin_of(double cls) {
 
 static double current_skin(void) { return class_skin_of(player_class); }
 
-static double class_skin_active(double cls) { return skin_is_active(cls, class_skin_of(cls)); }
-
 static double skin_unlocked_for(double cls, double skin) {
     if (skin == SKIN_NORMAL) {
         return 1;

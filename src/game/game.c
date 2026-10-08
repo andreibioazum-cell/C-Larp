@@ -27,7 +27,6 @@
 #include "ui/layout.inc"
 #include "ui/chat.inc"
 #include "ui/menu_screens.inc"
-#include "ui/quests.inc"
 #include "ui/menu_input.inc"
 #include "ui/menu_input_part2.inc"
 #include "combat/battle_rules.inc"

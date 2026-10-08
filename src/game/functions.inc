@@ -11,7 +11,6 @@
 #include "include/prototypes/ui/layout.inc"
 #include "include/prototypes/ui/chat.inc"
 #include "include/prototypes/ui/menu_screens.inc"
-#include "include/prototypes/ui/quests.inc"
 #include "include/prototypes/ui/menu_input.inc"
 #include "include/prototypes/combat/battle_rules.inc"
 #include "include/prototypes/combat/hit_geometry.inc"

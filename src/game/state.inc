@@ -37,22 +37,6 @@ static void state_create(void) {
 }
 
 static void state_destroy(void) {
-    if (quest_type) {
-        arr_free(quest_type);
-        quest_type = NULL;
-    }
-    if (quest_prog) {
-        arr_free(quest_prog);
-        quest_prog = NULL;
-    }
-    if (quest_need) {
-        arr_free(quest_need);
-        quest_need = NULL;
-    }
-    if (quest_next) {
-        arr_free(quest_next);
-        quest_next = NULL;
-    }
     if (enemy_turret_x) {
         arr_free(enemy_turret_x);
         enemy_turret_x = NULL;

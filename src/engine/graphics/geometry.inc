@@ -330,6 +330,88 @@ static int geo_tex(float x, float y, float ang, float sc, float tw, float th_, u
     return geo_quad(q);
 }
 
+/* Same silhouette as geo_roundrect (a center strip, two side strips and four
+ * corner fans), but every vertex also carries a UV computed from its
+ * position within the (x, y, w, h) box, so the shape samples a texture
+ * instead of a flat color - this is how textured renders get rounded
+ * corners without needing a fragment-shader change. */
+static int geo_tex_round(float x, float y, float sc, float tw, float th_, float rad, uint32_t c) {
+    if (!isfinite(x + y + sc) || sc <= 0 || tw <= 0 || th_ <= 0)
+        return 1;
+    float w = tw * sc, h = th_ * sc;
+    if (!isfinite(w + h + rad) || w <= 0 || h <= 0)
+        return 1;
+    if (rad < 0)
+        rad = 0;
+    if (rad > w * 0.5f)
+        rad = w * 0.5f;
+    if (rad > h * 0.5f)
+        rad = h * 0.5f;
+#define GEO_TEX_RUV_X(px) (((px)-x) / w)
+#define GEO_TEX_RUV_Y(py) (((py)-y) / h)
+    if (rad < 0.5f) {
+        GeoVert q[4] = {
+            {x, y, 0, 0, c},
+            {x + w, y, 1, 0, c},
+            {x + w, y + h, 1, 1, c},
+            {x, y + h, 0, 1, c},
+        };
+        return geo_quad(q);
+    }
+    GeoVert q1[4] = {
+        {x + rad, y, GEO_TEX_RUV_X(x + rad), GEO_TEX_RUV_Y(y), c},
+        {x + w - rad, y, GEO_TEX_RUV_X(x + w - rad), GEO_TEX_RUV_Y(y), c},
+        {x + w - rad, y + h, GEO_TEX_RUV_X(x + w - rad), GEO_TEX_RUV_Y(y + h), c},
+        {x + rad, y + h, GEO_TEX_RUV_X(x + rad), GEO_TEX_RUV_Y(y + h), c},
+    };
+    if (!geo_quad(q1))
+        return 0;
+    GeoVert q2[4] = {
+        {x, y + rad, GEO_TEX_RUV_X(x), GEO_TEX_RUV_Y(y + rad), c},
+        {x + rad, y + rad, GEO_TEX_RUV_X(x + rad), GEO_TEX_RUV_Y(y + rad), c},
+        {x + rad, y + h - rad, GEO_TEX_RUV_X(x + rad), GEO_TEX_RUV_Y(y + h - rad), c},
+        {x, y + h - rad, GEO_TEX_RUV_X(x), GEO_TEX_RUV_Y(y + h - rad), c},
+    };
+    if (!geo_quad(q2))
+        return 0;
+    GeoVert q3[4] = {
+        {x + w - rad, y + rad, GEO_TEX_RUV_X(x + w - rad), GEO_TEX_RUV_Y(y + rad), c},
+        {x + w, y + rad, GEO_TEX_RUV_X(x + w), GEO_TEX_RUV_Y(y + rad), c},
+        {x + w, y + h - rad, GEO_TEX_RUV_X(x + w), GEO_TEX_RUV_Y(y + h - rad), c},
+        {x + w - rad, y + h - rad, GEO_TEX_RUV_X(x + w - rad), GEO_TEX_RUV_Y(y + h - rad), c},
+    };
+    if (!geo_quad(q3))
+        return 0;
+
+    int n = (int)ceilf(rad * 0.35f);
+    if (n < 6)
+        n = 6;
+    if (n > 20)
+        n = 20;
+    static const float cxs[4] = {1, 0, 0, 1}, cys[4] = {1, 1, 0, 0};
+    static const float a0s[4] = {0, (float)M_PI * 0.5f, (float)M_PI, (float)M_PI * 1.5f};
+    for (int k = 0; k < 4; k++) {
+        float cx = x + cxs[k] * (w - rad) + (cxs[k] ? 0 : rad);
+        float cy = y + cys[k] * (h - rad) + (cys[k] ? 0 : rad);
+        size_t base = geo_vn;
+        if (!geo_push_vert(cx, cy, GEO_TEX_RUV_X(cx), GEO_TEX_RUV_Y(cy), c))
+            return 0;
+        for (int i = 0; i <= n; i++) {
+            float a = a0s[k] + (float)((double)i / n * M_PI * 0.5);
+            float px = cx + cosf(a) * rad, py = cy + sinf(a) * rad;
+            if (!geo_push_vert(px, py, GEO_TEX_RUV_X(px), GEO_TEX_RUV_Y(py), c))
+                return 0;
+        }
+        for (int i = 1; i <= n; i++)
+            if (!geo_push_index((uint16_t)base) || !geo_push_index((uint16_t)(base + i)) ||
+                !geo_push_index((uint16_t)(base + i + 1)))
+                return 0;
+    }
+#undef GEO_TEX_RUV_X
+#undef GEO_TEX_RUV_Y
+    return 1;
+}
+
 static int geo_text(const char *s, float x, float y, uint32_t c, float sc, const DSFont *fnt) {
     if (!s || !fnt || !isfinite(x + y + sc) || sc <= 0)
         return 1;

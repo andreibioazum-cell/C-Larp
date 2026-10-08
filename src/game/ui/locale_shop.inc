@@ -67,7 +67,7 @@ static const char *tr_class_astra(void) {
 }
 
 static const char *tr_class_astra_desc(void) {
-    return "Hold still";
+    return "I love you, Azum...";
 }
 
 static const char *tr_class_ebuc(void) {

@@ -45,7 +45,6 @@ static void draw_lobby(void) {
     draw_menu_button(2, tr_settings());
     draw_menu_button(3, tr_account());
     draw_menu_button(4, tr_achievements());
-    button(tr_quests(), lobby_quests_x(), lobby_quests_y(), btn_w, btn_h);
     draw_lobby_nick();
     draw_lobby_money();
     if (str_len(banned_msg) > 0) {
@@ -104,6 +103,23 @@ static void draw_card_look(double look, double x, double y, double scale) {
     rect(x, y, side, side, fighter_fallback_rgb);
 }
 
+/* Draws the shop/lobby render for a class+skin combo into a target_px square
+ * at (x, y), the same box the old tiny battle sprite used to occupy. Prefers
+ * the high-resolution card art; while it hasn't finished uploading (or is
+ * missing) it falls back to the familiar small pixel sprite scaled to fill
+ * the same box, so the shop never shows a blank hole.
+ *
+ * The card art itself is a plain square PNG - tex_round() rounds its corners
+ * at draw time (same silhouette the card background panel already uses),
+ * so the source art can stay a simple square image. */
+static void draw_class_render(double cls, double skin, double x, double y, double target_px) {
+    if (class_card_render_ready(cls, skin) == 1) {
+        tex_round(x, y, class_card_tex(cls, skin), target_px / CARD_RENDER_PX, target_px * card_render_radius_frac);
+        return;
+    }
+    draw_card_look(card_look(cls, skin), x, y, target_px / 50);
+}
+
 static void draw_class_card(double vi) {
     double cls = visible_class_at(vi);
     double x = classes_card_x(vi);
@@ -113,14 +129,12 @@ static void draw_class_card(double vi) {
         selected = 1;
     }
     card(x, classes_top(), w, class_card_h, selected);
-    double scale = class_sprite_scale();
-    double sprite = 50 * scale;
+    double sprite = class_render_px();
     double sx = x + (w - sprite) / 2;
-    double card = card_look(cls, SKIN_NORMAL);
-    if (class_skin_active(cls) == 1) {
-        card = card_look(cls, SKIN_SPECIAL);
-    }
-    draw_card_look(card, sx, class_sprite_y(), scale);
+    /* The shop card always shows the class's base look, regardless of which
+     * skin is currently equipped - picking a skin in the Skins screen should
+     * not change what the character looks like in the class list. */
+    draw_class_render(cls, SKIN_NORMAL, sx, class_sprite_y(), sprite);
     centered_text(class_name_of(cls), x, w, class_title_y(), text_color, class_title_scale());
     const char *motto = class_desc_of(cls);
     centered_text(motto, x, w, class_desc_y(), text_color, fit_text_scale(motto, w - 16, 0.5));
@@ -129,10 +143,11 @@ static void draw_class_card(double vi) {
     button_scaled(class_pick_label(cls), x + class_pick_inset(), class_pick_y(), class_pick_w(), class_pick_h, 0.55);
 }
 
-static void draw_stat_row(const char *label, double x, double y, double w, double h, double cur, double maxv,
-                          uint32_t c) {
-    text_scaled(label, x, y - 26, text_color, 0.5);
-    hud_bar(x, y, w, h, cur, maxv, c, 0);
+static double stat_star_rating(double cur, double maxv) {
+    if (maxv <= 0) {
+        return 0;
+    }
+    return round(clamp(cur, 0, maxv) / maxv * 5);
 }
 
 static void draw_class_stats(void) {
@@ -142,10 +157,9 @@ static void draw_class_stats(void) {
     double power = class_power_of(player_class);
     const char *smotto = class_desc_of(player_class);
     ctext_scaled(smotto, stat_motto_y(), text_color, fit_text_scale(smotto, screen_w - 2 * screen_margin, 0.8));
-    draw_stat_row(ds_concat(ds_concat(tr_hp(), ": "), ds_num_to_string((double)(hp))), x, stat_hp_y(), w, stat_bar_h(),
-                  hp, 20, stat_hp_color);
-    draw_stat_row(ds_concat(ds_concat(tr_strength(), ": "), ds_num_to_string((double)(power))), x, stat_power_y(), w,
-                  stat_bar_h(), power, 2, stat_power_color);
+    draw_star_row(tr_hp(), x, stat_hp_y(), w, stat_bar_h(), stat_star_rating(hp, 20), 5, stat_hp_color, card_ring);
+    draw_star_row(tr_strength(), x, stat_power_y(), w, stat_bar_h(), stat_star_rating(power, 2), 5, stat_power_color,
+                  card_ring);
 }
 
 static void draw_classes(void) {
@@ -200,10 +214,9 @@ static void draw_skin_card(double skin) {
         selected = 1;
     }
     card_state(x, skins_top(), w, skin_card_h, selected, locked);
-    double scale = skin_preview_scale();
-    double sprite = 50 * scale;
+    double sprite = 50 * skin_preview_scale();
     double sx = x + (w - sprite) / 2;
-    draw_card_look(card_look(player_class, skin), sx, skin_preview_y(), scale);
+    draw_class_render(player_class, skin, sx, skin_preview_y(), sprite);
     uint32_t c = panel_text(locked);
     const char *status = skin_hint_for(player_class);
     if (locked == 0) {

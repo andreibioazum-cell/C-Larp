@@ -229,11 +229,6 @@ static void touch_lobby(double x, double y, double action) {
     }
     if (hit_menu_row(x, y, 4) == 1) {
         start_transition(ST_ACHIEVEMENTS);
-        return;
-    }
-    if (hit_lobby_quests(x, y) == 1) {
-        quest_load();
-        start_transition(ST_QUESTS);
     }
 }
 

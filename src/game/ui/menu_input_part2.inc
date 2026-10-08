@@ -5,7 +5,7 @@ static double menu_button_hit(double x, double y) {
             if (hit_menu_row(x, y, i) == 1) return 1;
             i = i + 1;
         }
-        return hit_lobby_quests(x, y);
+        return 0;
     }
     if (game_state == ST_MODES) {
         while (i <= 5) {
@@ -54,8 +54,7 @@ static double menu_button_hit(double x, double y) {
         double fx = center_x(w);
         return back_hit(x, y) == 1 || hit_rect_pad(x, y, fx, promo_btn_y(), w, btn_h) == 1;
     }
-    if (game_state == ST_ACHIEVEMENTS || game_state == ST_LEADERBOARD || game_state == ST_PRIVACY ||
-        game_state == ST_QUESTS) {
+    if (game_state == ST_ACHIEVEMENTS || game_state == ST_LEADERBOARD || game_state == ST_PRIVACY) {
         return back_hit(x, y);
     }
     return 0;
@@ -99,10 +98,6 @@ static void touch_menu(double x, double y, double action) {
     }
     if (game_state == ST_PROMO) {
         touch_promo(x, y, action);
-        return;
-    }
-    if (game_state == ST_QUESTS) {
-        touch_quests(x, y, action);
         return;
     }
     if (game_state == ST_PRIVACY) {

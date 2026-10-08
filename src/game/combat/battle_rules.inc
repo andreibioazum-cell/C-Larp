@@ -83,6 +83,34 @@ static double card_look(double cls, double skin) {
     return LOOK_NONE;
 }
 
+/* High-resolution shop/lobby render for a class+skin combo, used by the shop
+ * (class cards and skin cards) instead of the tiny in-battle pixel sprite.
+ * Unlike class_look(), Astra gets its own dedicated render here rather than
+ * silently borrowing Ordinary's look. */
+static const char *class_card_tex(double cls, double skin) {
+    if (cls == CLASS_AZUM) {
+        if (skin_is_active(cls, skin) == 1) {
+            return AZUM_ZOMBIE_CARD_TEX;
+        }
+        return AZUM_CARD_TEX;
+    }
+    if (cls == CLASS_SANTA) {
+        return SANTA_CARD_TEX;
+    }
+    if (cls == CLASS_EBUC) {
+        if (skin_is_active(cls, skin) == 1) {
+            return EBUC_ELF_CARD_TEX;
+        }
+        return EBUC_CARD_TEX;
+    }
+    if (cls == CLASS_ASTRA) {
+        return ASTRA_CARD_TEX;
+    }
+    return ORDINARY_CARD_TEX;
+}
+
+static double class_card_render_ready(double cls, double skin) { return tex_ready(class_card_tex(cls, skin)); }
+
 static GAME_MAYBE_UNUSED const char *class_idle_tex(double cls) { return look_idle_tex(class_look(cls, SKIN_NORMAL)); }
 
 static GAME_MAYBE_UNUSED const char *class_punch_tex(double cls) {
