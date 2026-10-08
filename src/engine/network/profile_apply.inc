@@ -1,4 +1,5 @@
 static void apply_user_json(const char *resp) {
+    int astra_rw;
     int cups = (int)num(resp, "cups", 0);
     int candies = (int)num(resp, "candies", 0);
     int cls = (int)num(resp, "cls", 0);
@@ -115,6 +116,9 @@ static void apply_user_json(const char *resp) {
         azum_skin = 0;
     if (azum_skin > SKIN_FLAGS_MAX)
         azum_skin = SKIN_FLAGS_MAX;
+    /* Astra (Rework) is a local developer switch and is deliberately absent
+     * from the synced profile: preserve the value already on this device. */
+    astra_rw = (int)net_load_astra_rw();
     pg_lock();
     pg.cups = cups;
     pg.candies = candies;
@@ -144,7 +148,8 @@ static void apply_user_json(const char *resp) {
     pending_skin = SKIN_OF_CLASS(azum_skin, cls);
     progress_write(cups, candies, cls, azum, santa, ebuc, level, levels_unlocked, ordinary_level,
                    ordinary_levels_unlocked, azum_level, azum_levels_unlocked, santa_level, santa_levels_unlocked,
-                   ebuc_level, ebuc_levels_unlocked, bp_level, azum_skin, astra, astra_level, astra_levels_unlocked);
+                   ebuc_level, ebuc_levels_unlocked, bp_level, azum_skin, astra, astra_level, astra_levels_unlocked,
+                   astra_rw);
 
     int cloud_ach_flags = (int)num(resp, "ach_flags", -1);
     int cloud_ach_revives = (int)num(resp, "ach_revives", -1);
@@ -367,14 +372,14 @@ static int apply_user_json_keep_local(const char *resp) {
     int al = pg.azum_level, au = pg.azum_levels_unlocked;
     int sl = pg.santa_level, su = pg.santa_levels_unlocked;
     int el = pg.ebuc_level, eul = pg.ebuc_levels_unlocked;
-    int bp = pg.bp_level, sk = pg.azum_skin;
+    int bp = pg.bp_level, sk = pg.azum_skin, arw = pg.astra_rw;
     pg_unlock();
     if (restored) {
         pending_cls = cls;
         pending_level = lv;
         pending_skin = SKIN_OF_CLASS(sk, cls);
         progress_write(cups, candies, cls, azum, santa, ebuc, lv, lu, ol, ou, al, au, sl, su, el, eul, bp, sk, at, atl,
-                       atu);
+                       atu, arw);
         LOG("restored locally bought progress over cloud (azum=%d santa=%d ebuc=%d astra=%d cls=%d)", azum, santa, ebuc,
             at, cls);
         return 1;

@@ -37,47 +37,11 @@ static double astra_throw_stun_for(double lv) {
     return astra_throw_stun;
 }
 
-static double astra_beat_time(double i) { return astra_catch_time + astra_hit_interval * i; }
+static double astra_final_time(void) { return astra_rw_final_time_for(0); }
 
-static double astra_final_time(void) {
-    return astra_catch_time + astra_hit_interval * astra_hit_count + astra_final_delay;
-}
+static double astra_beats_done(double t) { return astra_rw_beats_done_for(t, 0); }
 
-static double astra_grab_time(void) { return astra_final_time() + astra_throw_time; }
-
-static double astra_beats_done(double t) {
-    double n = 0;
-    double i = 1;
-    while (i <= astra_hit_count) {
-        if (t >= astra_beat_time(i)) {
-            n = n + 1;
-        }
-        i = i + 1;
-    }
-    return n;
-}
-
-static double astra_zone_live(double t, double caught) {
-    if (t <= astra_catch_time) {
-        return 1;
-    }
-    if (caught != 1) {
-        return 0;
-    }
-    double i = 1;
-    while (i <= astra_hit_count) {
-        double bt = astra_beat_time(i);
-        if (t >= bt && t <= bt + astra_hit_show) {
-            return 1;
-        }
-        i = i + 1;
-    }
-    double ft = astra_final_time();
-    if (t >= ft && t <= ft + astra_hit_show) {
-        return 1;
-    }
-    return 0;
-}
+static double astra_zone_live(double t, double caught) { return astra_rw_zone_live_for(t, caught, 0); }
 
 static void astra_swing_now(void) { astra_punch_t = astra_hit_show; }
 
@@ -158,6 +122,7 @@ static void grab_cancel_actions(void) {
 }
 
 static void start_grab_now(void) {
+    astra_rw_lunge_now();
     astra_state = 1;
     astra_t = 0;
     astra_hits_done = 0;
@@ -319,12 +284,14 @@ static double astra_final_solo(void) {
     if (enemy->hp <= 0) {
         return 1;
     }
-    throw_enemy(astra_dx, astra_dy, astra_throw_dist_for(player_level), astra_throw_stun_for(player_level));
+    throw_enemy(astra_dx, astra_dy, astra_rw_throw_dist_for(player_level, astra_rw_local()),
+                astra_rw_throw_stun_for(player_level, astra_rw_local()));
     ds_log("astra throw");
     return 0;
 }
 
 static void tick_astra(void) {
+    double rw = astra_rw_local();
     astra_cd = tick_down(astra_cd);
     tick_astra_poses();
     tick_grab_quiet();
@@ -342,7 +309,7 @@ static void tick_astra(void) {
     if (astra_caught == 0) {
         if (astra_try_catch() == 1) {
             astra_state = 2;
-        } else if (astra_t > astra_catch_time) {
+        } else if (astra_t > astra_rw_catch_time_for(rw)) {
             astra_release(0);
             return;
         }
@@ -355,10 +322,10 @@ static void tick_astra(void) {
             astra_release(1);
             return;
         }
-        stun_enemy(astra_hit_interval);
-        grab_quiet_enemy(astra_hit_interval);
+        stun_enemy(astra_rw_hit_interval_for(rw));
+        grab_quiet_enemy(astra_rw_hit_interval_for(rw));
     }
-    double due = astra_beats_done(astra_t);
+    double due = astra_rw_beats_done_for(astra_t, rw);
     while (astra_hits_done < due) {
         astra_hits_done = astra_hits_done + 1;
         astra_swing_now();
@@ -367,7 +334,7 @@ static void tick_astra(void) {
             return;
         }
     }
-    if (astra_t >= astra_final_time()) {
+    if (astra_t >= astra_rw_final_time_for(rw)) {
         astra_swing_now();
         /* astra_release() clears the active state in this frame. Keep the
          * final damage zone visible while it fades so the finishing hit has

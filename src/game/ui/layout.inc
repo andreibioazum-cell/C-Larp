@@ -144,6 +144,11 @@ static double class_has_skins(double cls) {
     if (cls == CLASS_AZUM || cls == CLASS_EBUC) {
         return 1;
     }
+    /* Astra's skin slot holds the developer-only Rework variant, so the skins
+     * screen only opens for the developer account. */
+    if (cls == CLASS_ASTRA) {
+        return astra_rw_allowed();
+    }
     return 0;
 }
 

@@ -168,6 +168,7 @@ static void draw_player_body_layer(void) {
     double punching = fighter_pose_of(FLOOK_ME, player_punching_now());
     double look = fighter_look_of(FLOOK_ME);
     draw_fighter_body(player->x, player->y, player->angle, look, punching);
+    draw_fighter_tint(player->x, player->y, player->angle, look, punching, player_scale, astra_rw_tint_local());
     draw_fighter_hurt(player->x, player->y, player->angle, look, punching, player_scale, player_hurt_a);
 }
 

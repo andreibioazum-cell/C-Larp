@@ -88,6 +88,9 @@ void ds_log(const char *format, ...) {
 double dist(double x, double y, double a, double b) {
     return hypot(x - a, y - b);
 }
+int str_eq(const char *a, const char *b) {
+    return a && b && strcmp(a, b) == 0 ? 1 : 0;
+}
 void keyboard_hide(void) {}
 static double stub_net_slot = -1;
 static double stub_online[4];
@@ -143,6 +146,41 @@ void net_save_astra(double owned, double level, double unlocked) {
     (void)owned;
     (void)level;
     (void)unlocked;
+}
+static double stub_astra_rw;
+static double stub_login_status;
+static char stub_login_nick[24];
+static char stub_login_pass[24];
+double net_load_astra_rw(void) {
+    return stub_astra_rw;
+}
+void net_save_astra_rw(double on) {
+    stub_astra_rw = on ? 1 : 0;
+}
+double net_login_status(void) {
+    return stub_login_status;
+}
+const char *net_login_nick(void) {
+    return stub_login_nick;
+}
+const char *net_login_pass(void) {
+    return stub_login_pass;
+}
+void ring(float x, float y, float r, float t, uint32_t color) {
+    (void)x;
+    (void)y;
+    (void)r;
+    (void)t;
+    (void)color;
+}
+void tex_tint(float x, float y, const char *name, float angle, float scale, uint32_t color) {
+    (void)x;
+    (void)y;
+    (void)angle;
+    (void)scale;
+    (void)color;
+    ground_tiles++;
+    last_ground = name;
 }
 void net_save_progress_all(double a, double b, double c, double d, double e, double f, double g, double h, double i,
                            double j, double k, double l, double m, double n, double o, double p, double q, double r) {
@@ -242,7 +280,7 @@ int main(void) {
     assert(punch_forward_offset == 19 && astra_grab_forward_offset == 19);
     assert(fabs(astra_hit_interval - 0.2) < 1e-9);
     assert(fabs(astra_final_delay - 0.85) < 1e-9);
-    assert(fabs(astra_final_time() - astra_beat_time(astra_hit_count) - astra_final_delay) < 1e-9);
+    assert(fabs(astra_final_time() - astra_rw_beat_time_for(astra_hit_count, 0) - astra_final_delay) < 1e-9);
     assert(class_cost_of(CLASS_AZUM) == 65);
     assert(class_cost_of(CLASS_SANTA) == 100);
     assert(class_cost_of(CLASS_EBUC) == 120);
@@ -357,6 +395,94 @@ int main(void) {
     update_showdown_music();
     assert(showdown_play_calls == 1);
     showdown_music_reset();
+    /* Astra (Rework): developer-only Astra variant. It shares class 4 and only
+     * differs in numbers, gated on the developer account. */
+    assert(astra_rw_of(CLASS_ASTRA, SKIN_SPECIAL) == 1);
+    assert(astra_rw_of(CLASS_ASTRA, SKIN_NORMAL) == 0);
+    assert(astra_rw_of(CLASS_AZUM, SKIN_SPECIAL) == 0);
+    stub_login_status = 2;
+    snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", ADMIN_NICK);
+    snprintf(stub_login_pass, sizeof(stub_login_pass), "%s", ADMIN_PASS);
+    astra_rw_refresh();
+    assert(astra_rw_allowed() == 1);
+    assert(astra_rw_is_dev() == 1);
+    stub_login_pass[0] = 'x';
+    stub_login_pass[1] = 0;
+    astra_rw_refresh();
+    assert(astra_rw_allowed() == 0);
+    snprintf(stub_login_pass, sizeof(stub_login_pass), "%s", ADMIN_PASS);
+    astra_rw_refresh();
+    assert(astra_rw_allowed() == 1);
+
+    player_class = CLASS_ASTRA;
+    player_level = 0;
+    astra_skin = 1;
+    assert(astra_rw_on() == 1 && astra_rw_local() == 1);
+    assert(class_skin_of(CLASS_ASTRA) == SKIN_SPECIAL);
+    assert(current_skin() == SKIN_SPECIAL);
+    assert(strcmp(astra_rw_desc(), "devdevdev") == 0);
+    assert(fabs(astra_rw_max_hp_for(CLASS_ASTRA, 1) - astra_hp * 0.95) < 1e-9);
+    assert(astra_rw_max_hp_for(CLASS_ASTRA, 1) < astra_hp);
+    assert(astra_rw_max_hp_for(CLASS_AZUM, 1) == azum_hp);
+    assert(fabs(astra_rw_punch_damage_for(CLASS_ASTRA, 0, 1) - punch_damage * 0.93) < 1e-9);
+    assert(astra_rw_punch_damage_for(CLASS_ASTRA, 0, 1) < astra_rw_punch_damage_for(CLASS_ASTRA, 0, 0));
+    assert(fabs(astra_rw_punch_damage_net(CLASS_ASTRA, 0, SKIN_SPECIAL) -
+                astra_rw_punch_damage_for(CLASS_ASTRA, 0, 1)) < 1e-9);
+    assert(astra_rw_hit_interval_for(1) < astra_rw_hit_interval_for(0));
+    /* the first three beats land sooner... */
+    assert(astra_rw_beat_time_for(1, 1) < astra_rw_beat_time_for(1, 0));
+    assert(astra_rw_beat_time_for(3, 1) < astra_rw_beat_time_for(3, 0));
+    assert(astra_rw_beats_done_for(astra_rw_beat_time_for(3, 1), 1) == 3);
+    /* ...while the finisher and the whole grab keep the regular Astra timing,
+     * so clients without the variant still see the same last hit and throw. */
+    assert(fabs(astra_rw_final_time_for(1) - astra_rw_final_time_for(0)) < 1e-9);
+    assert(fabs(astra_rw_grab_time_for(1) - astra_rw_grab_time_for(0)) < 1e-9);
+    assert(astra_rw_throw_dist_for(0, 1) > astra_rw_throw_dist_for(0, 0));
+    assert(astra_rw_throw_stun_for(0, 1) == astra_rw_throw_stun_for(0, 0));
+    assert(astra_rw_tint() != 0 && astra_rw_tint_local() == astra_rw_tint());
+    /* pressing the ultimate lunges forward a little, from the cast position */
+    player->angle = 0;
+    player->size = 45;
+    player->x = 150;
+    player->y = 90;
+    double lunge_x = player->x;
+    start_grab_now();
+    assert(player->x > lunge_x && player->x - lunge_x <= 60 + 1e-9);
+    assert(fabs(player->y - 90) < 1e-9);
+    assert(fabs(astra_x - player->x) < 1e-9);
+    astra_state = 0;
+    astra_cd = 0;
+    /* selecting the variant in the shop (Astra -> Skins) toggles the switch and
+     * the skin that goes out over the network with it */
+    assert(class_has_skins(CLASS_ASTRA) == 1);
+    assert(skins_btn_visible() == 1);
+    pick_skin(SKIN_NORMAL);
+    assert(astra_skin == 0 && astra_rw_local() == 0 && current_skin() == SKIN_NORMAL);
+    pick_skin(SKIN_SPECIAL);
+    assert(astra_skin == 1 && astra_rw_local() == 1 && current_skin() == SKIN_SPECIAL);
+    assert(strcmp(skin_name_of(SKIN_SPECIAL), "Astra (Rework)") == 0);
+    assert(strcmp(skin_hint_for(CLASS_ASTRA), "devdevdev") == 0);
+    assert(fabs(class_hp_of(CLASS_ASTRA) - astra_hp * 0.95) < 1e-9);
+    assert(class_hp_of(CLASS_ASTRA) < astra_hp);
+    /* no developer account, no rework: same save file cannot enable it */
+    stub_login_nick[0] = 'x';
+    stub_login_nick[1] = 0;
+    astra_rw_refresh();
+    assert(astra_rw_allowed() == 0 && astra_rw_local() == 0);
+    assert(class_skin_of(CLASS_ASTRA) == SKIN_NORMAL);
+    assert(current_skin() == SKIN_NORMAL);
+    assert(astra_rw_tint_local() == 0);
+    player->angle = 0;
+    player->x = 150;
+    player->y = 90;
+    double plain_x = player->x;
+    start_grab_now();
+    assert(fabs(player->x - plain_x) < 1e-9);
+    astra_state = 0;
+    astra_cd = 0;
+    player_class = CLASS_ORDINARY;
+    astra_skin = 0;
+
     stub_net_slot = -1;
     online_ready = 0;
 
@@ -421,6 +547,40 @@ int main(void) {
         update_remote_grabs();
     assert(fabs(player->hp - 5.5) < 1e-6);
     assert(pthrow_t > 0);
+    double plain_throw = pthrow_speed * astra_throw_time;
+
+    /* The same grab from an Astra (Rework) attacker: the variant is read from
+     * the synced class/skin snapshot, the three hits land sooner, the total
+     * damage and the finisher stay as they were and the throw goes farther. */
+    pgrab_active = 0;
+    pgrab_slot = -1;
+    pthrow_t = 0;
+    pgrab_hits = 0;
+    finished = 0;
+    player->x = 470;
+    player->y = 400;
+    player->hp = player->max_hp = 10;
+    arr_set(remotes, 1 * remote_fields + 10, CLASS_ASTRA);
+    arr_set(remotes, 1 * remote_fields + 11, SKIN_SPECIAL);
+    stub_grab[1] = 2;
+    for (int frame = 0; frame < 40; frame++)
+        update_remote_grabs();
+    assert(pgrab_hits == 3);
+    assert(fabs((double)pgrab_t - 40 * dt) < 1e-9);
+    assert(astra_rw_beat_time_for(3, 1) < astra_rw_beat_time_for(3, 0));
+    assert(40 * dt > astra_rw_beat_time_for(3, 1) && 40 * dt < astra_rw_beat_time_for(3, 0) + 1e-9);
+    for (int frame = 0; frame < 400 && pthrow_t <= 0; frame++)
+        update_remote_grabs();
+    assert(fabs(player->hp - 5.5) < 1e-6);
+    assert(pthrow_t > 0);
+    assert(pthrow_speed * astra_throw_time > plain_throw);
+    assert(fabs(pthrow_speed * astra_throw_time - plain_throw * 1.35) < 1e-6);
+    pgrab_active = 0;
+    pgrab_slot = -1;
+    pthrow_t = 0;
+    stub_grab[1] = 0;
+    arr_set(remotes, 1 * remote_fields + 10, CLASS_ORDINARY);
+    arr_set(remotes, 1 * remote_fields + 11, SKIN_NORMAL);
     stub_net_slot = -1;
 
     player->hp = 1;

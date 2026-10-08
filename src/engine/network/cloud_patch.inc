@@ -239,7 +239,7 @@ void net_save_progress_all(double cups, double candies, double cls, double azum,
     int el = (int)ebuc_level, eul = (int)ebuc_levels_unlocked;
     int bp = (int)bp_level, sk = (int)azum_skin;
 
-    int at = 0, atl = 0, atu = 0;
+    int at = 0, atl = 0, atu = 0, arw = 0;
     if (sk < 0)
         sk = 0;
     if (sk > SKIN_FLAGS_MAX)
@@ -278,6 +278,7 @@ void net_save_progress_all(double cups, double candies, double cls, double azum,
         if (pg.ebuc_level > el)
             el = pg.ebuc_level;
         at = pg.astra ? 1 : 0;
+        arw = pg.astra_rw;
         atl = pg.astra_level;
         atu = pg.astra_levels_unlocked;
     }
@@ -343,7 +344,7 @@ void net_save_progress_all(double cups, double candies, double cls, double azum,
     pending_cls = k;
     pending_level = lv;
     pending_skin = SKIN_OF_CLASS(sk, k);
-    progress_write(c, cd, k, a, sn, eu, lv, lu, ol, ou, al, au, sl, su, el, eul, bp, sk, at, atl, atu);
+    progress_write(c, cd, k, a, sn, eu, lv, lu, ol, ou, al, au, sl, su, el, eul, bp, sk, at, atl, atu, arw);
 
     char nick[LOGIN_NICK_MAX + 1] = "";
     lg_lock();

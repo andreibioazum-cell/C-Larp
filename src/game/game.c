@@ -42,6 +42,7 @@
 #include "combat/battle_enemy_dash.inc"
 #include "combat/battle_enemy_turrets.inc"
 #include "combat/battle_shield.inc"
+#include "combat/battle_astra_rework.inc"
 #include "combat/battle_astra.inc"
 #include "combat/battle_astra_online.inc"
 #include "combat/battle_astra_bot.inc"

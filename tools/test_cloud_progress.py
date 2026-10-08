@@ -90,12 +90,33 @@ static int run_astra(const char *dir) {
     return 0;
 }
 
+static int run_astra_rework(const char *dir) {
+    net_set_data_path(dir);
+    assert(net_load_astra_rw() == 0);
+    net_save_astra(1, 3, 3);
+    net_save_astra_rw(1);
+    assert(net_load_astra_rw() == 1);
+    /* The developer switch stays on the device: a full profile save and a
+     * cloud sync must not carry it away or bring it in from another phone. */
+    net_save_progress_all(90, 20, 4, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    assert(net_load_astra_rw() == 1);
+    assert(apply_user_json_keep_local(CLOUD_NO_ASTRA) == 1);
+    assert(net_load_astra_rw() == 1);
+    net_save_astra(1, 3, 3);
+    assert(net_load_astra_rw() == 1);
+    net_save_astra_rw(0);
+    assert(net_load_astra_rw() == 0);
+    puts("astra rework: the developer-only variant is local, and survives every save path");
+    return 0;
+}
+
 int main(int argc, char **argv) {
     if (argc < 3) { fprintf(stderr, "usage: test <mode> <dir>\n"); return 2; }
     if (strcmp(argv[1], "first-save") == 0) return run_first_save(argv[2]);
     if (strcmp(argv[1], "offline-buy") == 0) return run_offline_buy(argv[2]);
     if (strcmp(argv[1], "clean") == 0) return run_clean(argv[2]);
     if (strcmp(argv[1], "astra") == 0) return run_astra(argv[2]);
+    if (strcmp(argv[1], "astra-rework") == 0) return run_astra_rework(argv[2]);
     fprintf(stderr, "unknown mode '%s'\n", argv[1]);
     return 2;
 }
@@ -144,7 +165,13 @@ def main():
         astra.mkdir()
         subprocess.run([*run, "astra", str(astra)], check=True)
         saved = (astra / "progress.dat").read_text(encoding="utf-8").split()
-        assert len(saved) == 21 and saved[18:] == ["1", "3", "3"], saved
+        assert len(saved) == 22 and saved[18:] == ["1", "3", "3", "0"], saved
+
+        rework = temp / "rework"
+        rework.mkdir()
+        subprocess.run([*run, "astra-rework", str(rework)], check=True)
+        saved = (rework / "progress.dat").read_text(encoding="utf-8").split()
+        assert len(saved) == 22 and saved[18:] == ["1", "3", "3", "0"], saved
     return 0
 
 if __name__ == "__main__":

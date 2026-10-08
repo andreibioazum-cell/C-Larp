@@ -170,8 +170,6 @@ static double ebuc_universe_damage_for(double lv) {
     return d;
 }
 
-static double class_punch_damage(double cls) { return class_punch_damage_for(cls, player_level); }
-
 static double santa_poison_time_for(double lv) {
     (void)lv;
     return santa_poison_time;

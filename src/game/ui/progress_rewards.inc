@@ -32,6 +32,9 @@ static void save_progress(void) {
                           class_level_of(CLASS_SANTA), class_unlocked_of(CLASS_SANTA), class_level_of(CLASS_EBUC),
                           class_unlocked_of(CLASS_EBUC), bp_lv, skin_flags());
     net_save_astra(class_owned_of(CLASS_ASTRA), class_level_of(CLASS_ASTRA), class_unlocked_of(CLASS_ASTRA));
+    /* Astra (Rework) stays in progress.dat: it is a developer switch, so it is
+     * never uploaded with the rest of the profile. */
+    net_save_astra_rw(astra_skin);
     progress_push_to_net();
 }
 
@@ -53,6 +56,10 @@ static void progress_push_to_net(void) {
 }
 
 static void progress_normalize(void) {
+    astra_skin = astra_skin == 1 ? 1 : 0;
+    /* Re-check the developer account as soon as the profile is (re)loaded, so
+     * logging in or out immediately refreshes Astra (Rework) availability. */
+    astra_rw_refresh();
     if (azum_skin < SKIN_NORMAL || azum_skin >= SKIN_COUNT) {
         azum_skin = SKIN_NORMAL;
     }
@@ -98,6 +105,8 @@ static void progress_from_storage(void) {
     set_class_progress(CLASS_SANTA, net_load_santa_level(), net_load_santa_levels_unlocked());
     set_class_progress(CLASS_EBUC, net_load_ebuc_level(), net_load_ebuc_levels_unlocked());
     set_class_progress(CLASS_ASTRA, net_load_astra_level(), net_load_astra_levels_unlocked());
+    astra_skin = net_load_astra_rw() == 1 ? 1 : 0;
+    astra_rw_refresh();
     double skins = net_load_azum_skin();
     ebuc_skin = SKIN_NORMAL;
     if (skins >= 2) {

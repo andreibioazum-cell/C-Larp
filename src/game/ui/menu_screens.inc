@@ -217,6 +217,11 @@ static void draw_skin_card(double skin) {
     double sprite = 50 * skin_preview_scale();
     double sx = x + (w - sprite) / 2;
     draw_class_render(player_class, skin, sx, skin_preview_y(), sprite);
+    if (astra_rw_of(player_class, skin) == 1) {
+        /* Asterisk the developer-only variant so the two Astra renders are not
+         * mistaken for each other on the skins screen. */
+        ring(sx + sprite / 2, skin_preview_y() + sprite / 2, sprite / 2 + 3, 3, astra_rw_tint());
+    }
     uint32_t c = panel_text(locked);
     const char *status = skin_hint_for(player_class);
     if (locked == 0) {
@@ -227,6 +232,11 @@ static void draw_skin_card(double skin) {
     }
     centered_text(skin_name_of(skin), x, w, skin_name_y(), c, 0.8);
     centered_text(status, x, w, skin_status_y(), c, 0.45);
+    if (astra_rw_of(player_class, skin) == 1) {
+        /* The variant keeps its own motto visible, the same slot a class card
+         * uses for its description. */
+        centered_text(astra_rw_desc(), x, w, skin_status_y() + 20, c, 0.45);
+    }
 }
 
 static void draw_skins(void) {
@@ -237,7 +247,7 @@ static void draw_skins(void) {
         skin = skin + 1;
     }
     skin_msg_t = tick_down(skin_msg_t);
-    draw_msg(tr_skins_need_legends(), skins_msg_y(), skin_msg_t);
+    draw_msg(tr_skins_note_for(player_class), skins_msg_y(), skin_msg_t);
     draw_back();
 }
 

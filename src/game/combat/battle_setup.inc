@@ -1,9 +1,12 @@
 static void reset_battle(void) {
     showdown_music_reset();
+    /* Re-check the Astra (Rework) permission once per battle instead of on
+     * every frame that needs the variant. */
+    astra_rw_refresh();
     player->x = screen_w / 2;
     player->y = screen_h / 2;
     player->angle = 0;
-    player->max_hp = player_max_hp_for(player_class);
+    player->max_hp = astra_rw_max_hp_for(player_class, astra_rw_local());
     player->hp = player->max_hp;
     player->size = 25 * player_scale;
     enemy->size = 25 * enemy_scale;

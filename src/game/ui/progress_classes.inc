@@ -78,9 +78,13 @@ static const char *class_desc_of(double cls) {
     return tr_class_ordinary_desc();
 }
 
-static double class_hp_of(double cls) { return player_max_hp_for(cls); }
+static double class_hp_of(double cls) {
+    return astra_rw_max_hp_for(cls, astra_rw_of(cls, class_skin_of(cls)));
+}
 
-static double class_power_of(double cls) { return class_punch_damage_for(cls, class_level_of(cls)); }
+static double class_power_of(double cls) {
+    return astra_rw_punch_damage_for(cls, class_level_of(cls), astra_rw_of(cls, class_skin_of(cls)));
+}
 
 static const char *class_pick_label(double cls) {
     if (player_class == cls) {
@@ -116,6 +120,11 @@ static double class_skin_of(double cls) {
     if (cls == CLASS_AZUM) {
         return azum_skin;
     }
+    if (cls == CLASS_ASTRA) {
+        /* Astra's skin slot carries the Rework variant (SKIN_SPECIAL) and is
+         * what gets published as the player's skin over the network. */
+        return astra_rw_on() == 1 ? SKIN_SPECIAL : SKIN_NORMAL;
+    }
     return SKIN_NORMAL;
 }
 
@@ -131,6 +140,9 @@ static double skin_unlocked_for(double cls, double skin) {
     if (cls == CLASS_AZUM && has_achievement(ACH_LEGENDS) == 1) {
         return 1;
     }
+    if (cls == CLASS_ASTRA && astra_rw_allowed() == 1) {
+        return 1;
+    }
     return 0;
 }
 
@@ -143,6 +155,9 @@ static const char *skin_name_for(double cls, double skin) {
     if (cls == CLASS_EBUC) {
         return tr_skin_elf();
     }
+    if (cls == CLASS_ASTRA) {
+        return tr_skin_astra_rw();
+    }
     return tr_skin_zombie();
 }
 
@@ -151,6 +166,9 @@ static const char *skin_name_of(double skin) { return skin_name_for(player_class
 static const char *skin_hint_for(double cls) {
     if (cls == CLASS_EBUC) {
         return tr_skin_elf_hint();
+    }
+    if (cls == CLASS_ASTRA) {
+        return astra_rw_desc();
     }
     return tr_skin_legends_hint();
 }
@@ -168,6 +186,9 @@ static void pick_skin(double skin) {
     }
     if (player_class == CLASS_EBUC) {
         ebuc_skin = skin;
+    } else if (player_class == CLASS_ASTRA) {
+        astra_rw_select(skin);
+        return;
     } else {
         azum_skin = skin;
     }
