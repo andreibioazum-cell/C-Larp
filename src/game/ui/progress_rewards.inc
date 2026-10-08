@@ -1,13 +1,13 @@
-static double has_achievement(double bit) {
-    double shifted = floor(achievement_mask / bit);
+static double has_unlock_flag(double bit) {
+    double shifted = floor(unlock_flags / bit);
     return shifted - floor(shifted * 0.5) * 2;
 }
 
-static double grant_achievement(double bit) {
-    if (has_achievement(bit) == 1) {
+static double grant_unlock_flag(double bit) {
+    if (has_unlock_flag(bit) == 1) {
         return 0;
     }
-    achievement_mask = achievement_mask + bit;
+    unlock_flags = unlock_flags + bit;
     net_mark_achievement_flag(bit);
     return 1;
 }
@@ -47,7 +47,7 @@ static void progress_normalize(void) {
     if (ebuc_skin < SKIN_NORMAL || ebuc_skin >= SKIN_COUNT) {
         ebuc_skin = SKIN_NORMAL;
     }
-    if (azum_skin == SKIN_ZOMBIE && has_achievement(ACH_LEGENDS) == 0) {
+    if (azum_skin == SKIN_ZOMBIE && has_unlock_flag(FLAG_ZOMBIE_SKIN) == 0) {
         azum_skin = SKIN_NORMAL;
     }
     double cls = CLASS_ORDINARY;
@@ -72,7 +72,7 @@ static void progress_normalize(void) {
 static void progress_from_storage(void) {
     cups = net_load_cups();
     candies = net_load_candies();
-    achievement_mask = net_load_achievement_flags();
+    unlock_flags = net_load_achievement_flags();
     azum_revive_count = net_load_azum_revives();
     player_class = net_load_class();
     set_class_owned(CLASS_AZUM, net_load_azum());
@@ -93,8 +93,8 @@ static void progress_from_storage(void) {
         skins = skins - 2;
     }
     azum_skin = skins;
-    if (azum_skin == SKIN_ZOMBIE && has_achievement(ACH_LEGENDS) == 0) {
-        grant_achievement(ACH_LEGENDS);
+    if (azum_skin == SKIN_ZOMBIE && has_unlock_flag(FLAG_ZOMBIE_SKIN) == 0) {
+        grant_unlock_flag(FLAG_ZOMBIE_SKIN);
     }
     progress_normalize();
     sync_selected_class();

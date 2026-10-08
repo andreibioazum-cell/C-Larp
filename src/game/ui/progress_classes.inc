@@ -128,7 +128,7 @@ static double skin_unlocked_for(double cls, double skin) {
     if (cls == CLASS_EBUC) {
         return 1;
     }
-    if (cls == CLASS_AZUM && has_achievement(ACH_LEGENDS) == 1) {
+    if (cls == CLASS_AZUM && has_unlock_flag(FLAG_ZOMBIE_SKIN) == 1) {
         return 1;
     }
     return 0;

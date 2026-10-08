@@ -79,9 +79,9 @@ static double try_revive(void) {
     }
     azum_revive_count = azum_revive_count + 1;
     net_save_azum_revives(azum_revive_count);
-    ds_log("azum revived (%g/%g)", azum_revive_count, ACH_LEGENDS_NEED);
-    if (azum_revive_count >= ACH_LEGENDS_NEED) {
-        grant_achievement(ACH_LEGENDS);
+    ds_log("azum revived (%g/%g)", azum_revive_count, ZOMBIE_REVIVE_NEED);
+    if (azum_revive_count >= ZOMBIE_REVIVE_NEED) {
+        grant_unlock_flag(FLAG_ZOMBIE_SKIN);
     }
     return 1;
 }
