@@ -279,9 +279,9 @@ static const char *tr_skin_legends_hint(void) {
 
 static const char *tr_skins_need_legends(void) {
     if (language == 1) {
-        return "Скин «Зомби»: возродись за Азума 7 раз, не выходя из игры";
+        return "Скин «Зомби»: достижение «Легенды не умирают...»";
     }
-    return "Zombie skin: revive as Azum 7 times without leaving the game";
+    return "Zombie skin: \"Legends never die...\" achievement";
 }
 
 static const char *tr_cups_reward(double amount) {

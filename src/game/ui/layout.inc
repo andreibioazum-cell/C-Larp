@@ -214,6 +214,14 @@ static double hit_skin_card(double px, double py, double i) {
     return hit_rect(px, py, skins_card_x(i), skins_top(), skin_card_w, skin_card_h);
 }
 
+static double ach_w(void) { return fit_w(760); }
+
+static double ach_x(void) { return center_x(ach_w()); }
+
+static double ach_top(void) { return content_top(); }
+
+static double ach_card_y(double i) { return ach_top() + i * (ach_card_h + ach_card_gap); }
+
 static double lb_w(void) { return fit_w(lb_w_max); }
 
 static double lb_x(void) { return center_x(lb_w()); }

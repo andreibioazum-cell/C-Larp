@@ -1,15 +1,27 @@
-static double has_unlock_flag(double bit) {
-    double shifted = floor(unlock_flags / bit);
+static double has_achievement(double bit) {
+    double shifted = floor(achievement_mask / bit);
     return shifted - floor(shifted * 0.5) * 2;
 }
 
-static double grant_unlock_flag(double bit) {
-    if (has_unlock_flag(bit) == 1) {
+static void show_achievement_toast(double bit) {
+    ach_toast_bit = bit;
+    ach_toast_t = ACH_TOAST_DURATION;
+}
+
+static double grant_achievement(double bit) {
+    if (has_achievement(bit) == 1) {
         return 0;
     }
-    unlock_flags = unlock_flags + bit;
+    achievement_mask = achievement_mask + bit;
     net_mark_achievement_flag(bit);
+    show_achievement_toast(bit);
     return 1;
+}
+
+static void check_achievements(void) {
+    if (class_owned_of(CLASS_AZUM) == 1 && class_owned_of(CLASS_SANTA) == 1 && class_owned_of(CLASS_EBUC) == 1) {
+        grant_achievement(ACH_ALL_CHARACTERS);
+    }
 }
 
 static void save_progress(void) {
@@ -47,7 +59,7 @@ static void progress_normalize(void) {
     if (ebuc_skin < SKIN_NORMAL || ebuc_skin >= SKIN_COUNT) {
         ebuc_skin = SKIN_NORMAL;
     }
-    if (azum_skin == SKIN_ZOMBIE && has_unlock_flag(FLAG_ZOMBIE_SKIN) == 0) {
+    if (azum_skin == SKIN_ZOMBIE && has_achievement(ACH_LEGENDS) == 0) {
         azum_skin = SKIN_NORMAL;
     }
     double cls = CLASS_ORDINARY;
@@ -72,7 +84,7 @@ static void progress_normalize(void) {
 static void progress_from_storage(void) {
     cups = net_load_cups();
     candies = net_load_candies();
-    unlock_flags = net_load_achievement_flags();
+    achievement_mask = net_load_achievement_flags();
     azum_revive_count = net_load_azum_revives();
     player_class = net_load_class();
     set_class_owned(CLASS_AZUM, net_load_azum());
@@ -93,12 +105,13 @@ static void progress_from_storage(void) {
         skins = skins - 2;
     }
     azum_skin = skins;
-    if (azum_skin == SKIN_ZOMBIE && has_unlock_flag(FLAG_ZOMBIE_SKIN) == 0) {
-        grant_unlock_flag(FLAG_ZOMBIE_SKIN);
+    if (azum_skin == SKIN_ZOMBIE && has_achievement(ACH_LEGENDS) == 0) {
+        grant_achievement(ACH_LEGENDS);
     }
     progress_normalize();
     sync_selected_class();
     progress_push_to_net();
+    check_achievements();
     quest_load();
 }
 

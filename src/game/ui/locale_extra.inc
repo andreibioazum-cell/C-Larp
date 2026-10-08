@@ -53,10 +53,3 @@ static const char *tr_quest_reward(double c, double cd) {
     }
     return out;
 }
-
-static const char *tr_quest_claimed(void) {
-    if (language == 1) {
-        return "Получено";
-    }
-    return "Claimed";
-}

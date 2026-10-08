@@ -1,5 +1,7 @@
-static double has_unlock_flag(double bit);
-static double grant_unlock_flag(double bit);
+static double has_achievement(double bit);
+static void show_achievement_toast(double bit);
+static double grant_achievement(double bit);
+static void check_achievements(void);
 static void save_progress(void);
 static double skin_flags(void);
 static void progress_push_to_net(void);

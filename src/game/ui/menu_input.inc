@@ -227,6 +227,10 @@ static void touch_lobby(double x, double y, double action) {
         start_transition(ST_LOGIN);
         return;
     }
+    if (hit_menu_row(x, y, 4) == 1) {
+        start_transition(ST_ACHIEVEMENTS);
+        return;
+    }
     if (hit_lobby_quests(x, y) == 1) {
         quest_load();
         start_transition(ST_QUESTS);
@@ -355,6 +359,15 @@ static void touch_skins(double x, double y, double action) {
             return;
         }
         skin = skin + 1;
+    }
+}
+
+static void touch_achievements(double x, double y, double action) {
+    if (action != 0) {
+        return;
+    }
+    if (back_hit(x, y) == 1) {
+        start_transition(ST_LOBBY);
     }
 }
 

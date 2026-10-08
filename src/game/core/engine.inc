@@ -193,6 +193,10 @@ static void update_alpha_notice(void) {
     alpha_notice_show(language);
 }
 
+static void tick_achievement_toast(void) {
+    ach_toast_t = tick_down(ach_toast_t);
+}
+
 static void tick_fps_meter(void) {
     if (show_fps == 0) {
         fps_acc = 0;
@@ -211,6 +215,53 @@ static void tick_fps_meter(void) {
     fps_frames = 0;
 }
 
+static const char *achievement_toast_text(void) {
+    if (ach_toast_bit == ACH_FIRST_WIN) {
+        return tr_achievement_first_win();
+    }
+    if (ach_toast_bit == ACH_ALL_CHARACTERS) {
+        return tr_achievement_grass();
+    }
+    return tr_achievement_legends();
+}
+
+static void draw_achievement_toast(void) {
+    if (ach_toast_bit <= 0 || ach_toast_t <= 0) {
+        return;
+    }
+    double elapsed = ACH_TOAST_DURATION - ach_toast_t;
+    double w = fit_w(460);
+    double h = 70;
+    double x = center_x(w);
+    double home_y = 64;
+    double off = home_y + h + 8;
+    double y = home_y;
+    if (elapsed < ACH_TOAST_FADE_IN) {
+        double k = elapsed / ACH_TOAST_FADE_IN;
+        double ease = 1 - (1 - k) * (1 - k);
+        y = home_y - off * (1 - ease);
+    } else if (elapsed > ACH_TOAST_FADE_IN + ACH_TOAST_HOLD) {
+        double k2 = (elapsed - ACH_TOAST_FADE_IN - ACH_TOAST_HOLD) / ACH_TOAST_EXIT;
+        y = home_y - off * clamp(k2, 0, 1) * clamp(k2, 0, 1);
+    }
+    if (y + h <= 0) {
+        return;
+    }
+    roundrect(x, y, w, h, btn_radius, ui_purple);
+    const char *head = tr_achievement_toast_title();
+    const char *body = achievement_toast_text();
+    double hs = 0.42;
+    double bs = 0.62;
+    double gap = 6;
+    double hh = text_ink_height(head) * hs;
+    double ht = text_ink_top(head) * hs;
+    double bh = text_ink_height(body) * bs;
+    double bt = text_ink_top(body) * bs;
+    double top = y + (h - hh - gap - bh) / 2;
+    ctext_scaled(head, top - ht, text_color, hs);
+    ctext_scaled(body, top + hh + gap - bt, text_color, bs);
+}
+
 static void logic_update(void) {
     update_warning();
     update_studio();
@@ -220,6 +271,7 @@ static void logic_update(void) {
     update_showdown_music();
     reload_textures();
     quest_tick();
+    tick_achievement_toast();
     tick_fps_meter();
     if (game_state == ST_SOLO) {
         update_game();
@@ -253,6 +305,8 @@ static void draw_screen(void) {
         draw_skins();
     } else if (game_state == ST_LEADERBOARD) {
         draw_leaderboard();
+    } else if (game_state == ST_ACHIEVEMENTS) {
+        draw_achievements();
     } else if (game_state == ST_PROMO) {
         draw_promo();
     } else if (game_state == ST_QUESTS) {
@@ -280,6 +334,7 @@ static void logic_draw(void) {
     if (studio_open == 1) {
         draw_studio();
     }
+    draw_achievement_toast();
 }
 
 static double logic_back(void) {
