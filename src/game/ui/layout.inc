@@ -169,13 +169,11 @@ static double class_msg_y(void) { return class_actions_y() + btn_h + 14; }
 
 static double stat_bar_w(void) { return fit_w(520); }
 
-static double stat_bar_h(void) { return 26; }
+static double stat_star_r(void) { return 26; }
 
-static double stat_hp_y(void) { return screen_h - 110; }
+static double stat_stars_y(void) { return screen_h - 138; }
 
-static double stat_power_y(void) { return screen_h - 46; }
-
-static double stat_motto_y(void) { return stat_hp_y() - 72; }
+static double stat_motto_y(void) { return stat_stars_y() - 46; }
 
 static double levels_w(void) { return fit_w(list_w); }
 

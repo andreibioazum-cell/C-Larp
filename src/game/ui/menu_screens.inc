@@ -143,23 +143,41 @@ static void draw_class_card(double vi) {
     button_scaled(class_pick_label(cls), x + class_pick_inset(), class_pick_y(), class_pick_w(), class_pick_h, 0.55);
 }
 
-static double stat_star_rating(double cur, double maxv) {
-    if (maxv <= 0) {
-        return 0;
+/* The bottom stat block: one row of five stars instead of the raw HP / power
+ * numbers. A filled star is yellow and burns - it carries a soft pulsing halo
+ * - and the free slots stay black (with a light rim so they still read on
+ * the dark background). The filled count is the class's imbalance rating; the
+ * rating itself lives in class_imbalance_of(), the only place to tune it. */
+static void draw_imbalance_stars(void) {
+    stat_glow_t = stat_glow_t + dt;
+    if (stat_glow_t > 1000) {
+        stat_glow_t = 0;
     }
-    return round(clamp(cur, 0, maxv) / maxv * 5);
+    double rating = class_imbalance_of(player_class);
+    double r = stat_star_r();
+    double w = stat_bar_w();
+    double gap = r * 0.9;
+    double sx = center_x(w) + (w - (5 * r * 2 + 4 * gap)) / 2 + r;
+    double cy = stat_stars_y() + r;
+    double pulse = 0.5 + 0.5 * sin(stat_glow_t * 5);
+    double i = 0;
+    while (i < 5) {
+        double cx = sx + i * (r * 2 + gap);
+        if (i < rating) {
+            draw_star(cx, cy, r * (1.35 + 0.12 * pulse), (80 + 60 * pulse) * 0x1000000 + stat_star_on_color);
+            draw_star(cx, cy, r * (1 + 0.05 * pulse), stat_star_on_color);
+        } else {
+            draw_star(cx, cy, r, stat_star_rim_color);
+            draw_star(cx, cy, r * 0.78, stat_star_off_color);
+        }
+        i = i + 1;
+    }
 }
 
 static void draw_class_stats(void) {
-    double w = stat_bar_w();
-    double x = center_x(w);
-    double hp = class_hp_of(player_class);
-    double power = class_power_of(player_class);
     const char *smotto = class_desc_of(player_class);
     ctext_scaled(smotto, stat_motto_y(), text_color, fit_text_scale(smotto, screen_w - 2 * screen_margin, 0.8));
-    draw_star_row(tr_hp(), x, stat_hp_y(), w, stat_bar_h(), stat_star_rating(hp, 20), 5, stat_hp_color, card_ring);
-    draw_star_row(tr_strength(), x, stat_power_y(), w, stat_bar_h(), stat_star_rating(power, 2), 5, stat_power_color,
-                  card_ring);
+    draw_imbalance_stars();
 }
 
 static void draw_classes(void) {

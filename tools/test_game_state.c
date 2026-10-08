@@ -433,23 +433,40 @@ int main(void) {
     assert(astra_rw_beat_time_for(1, 1) < astra_rw_beat_time_for(1, 0));
     assert(astra_rw_beat_time_for(3, 1) < astra_rw_beat_time_for(3, 0));
     assert(astra_rw_beats_done_for(astra_rw_beat_time_for(3, 1), 1) == 3);
-    /* ...while the finisher and the whole grab keep the regular Astra timing,
-     * so clients without the variant still see the same last hit and throw. */
-    assert(fabs(astra_rw_final_time_for(1) - astra_rw_final_time_for(0)) < 1e-9);
-    assert(fabs(astra_rw_grab_time_for(1) - astra_rw_grab_time_for(0)) < 1e-9);
+    /* ...and then the throw waits only ~0.4 s after the last beat, so the
+     * whole ultimate reads as fast hits, a short pause, the throw. */
+    assert(fabs(astra_rw_final_delay_for(1) - 0.4) < 1e-9);
+    assert(fabs(astra_rw_final_time_for(1) - astra_rw_beat_time_for(3, 1) - 0.4) < 1e-9);
+    assert(astra_rw_final_time_for(1) < astra_rw_final_time_for(0));
+    assert(astra_rw_grab_time_for(1) < astra_rw_grab_time_for(0));
     assert(astra_rw_throw_dist_for(0, 1) > astra_rw_throw_dist_for(0, 0));
     assert(astra_rw_throw_stun_for(0, 1) == astra_rw_throw_stun_for(0, 0));
     assert(astra_rw_tint() != 0 && astra_rw_tint_local() == astra_rw_tint());
-    /* pressing the ultimate lunges forward a little, from the cast position */
+    /* pressing the ultimate takes a small forward step: the grab origin is
+     * the end of the step, while the body slides there smoothly frame by
+     * frame instead of jumping in one go */
     player->angle = 0;
     player->size = 45;
     player->x = 150;
     player->y = 90;
-    double lunge_x = player->x;
     start_grab_now();
-    assert(player->x > lunge_x && player->x - lunge_x <= 60 + 1e-9);
-    assert(fabs(player->y - 90) < 1e-9);
-    assert(fabs(astra_x - player->x) < 1e-9);
+    assert(fabs(player->x - 150) < 1e-9);
+    assert(astra_x > 150 && astra_x - 150 <= astra_rw_lunge_dist + 1e-9);
+    assert(fabs(astra_y - 90) < 1e-9);
+    double lunge_prev = player->x;
+    astra_rw_lunge_tick();
+    assert(player->x > lunge_prev && player->x < astra_x);
+    lunge_prev = player->x;
+    int lunge_frames = 1;
+    while (lunge_frames < 60 && player->x < astra_x) {
+        astra_rw_lunge_tick();
+        assert(player->x >= lunge_prev);
+        lunge_prev = player->x;
+        lunge_frames = lunge_frames + 1;
+    }
+    assert(fabs(player->x - astra_x) < 1e-9);
+    assert(fabs(player->y - astra_y) < 1e-9);
+    assert(lunge_frames * dt >= astra_rw_lunge_time);
     astra_state = 0;
     astra_cd = 0;
     /* selecting the variant in the shop (Astra -> Skins) toggles the switch and
@@ -464,6 +481,18 @@ int main(void) {
     assert(strcmp(skin_hint_for(CLASS_ASTRA), "devdevdev") == 0);
     assert(fabs(class_hp_of(CLASS_ASTRA) - astra_hp * 0.95) < 1e-9);
     assert(class_hp_of(CLASS_ASTRA) < astra_hp);
+    /* the classes screen rates imbalance in stars: plain classes low, the
+     * developer variant on top of the 0..5 scale, never outside it */
+    assert(class_imbalance_of(CLASS_ORDINARY) == 1);
+    assert(class_imbalance_of(CLASS_SANTA) == 2);
+    assert(class_imbalance_of(CLASS_AZUM) == 3);
+    assert(class_imbalance_of(CLASS_EBUC) == 3);
+    assert(class_imbalance_of(CLASS_ASTRA) == 5);
+    double star_cls = 0;
+    while (star_cls < class_count) {
+        assert(class_imbalance_of(star_cls) >= 0 && class_imbalance_of(star_cls) <= 5);
+        star_cls = star_cls + 1;
+    }
     /* no developer account, no rework: same save file cannot enable it */
     stub_login_nick[0] = 'x';
     stub_login_nick[1] = 0;
@@ -472,6 +501,7 @@ int main(void) {
     assert(class_skin_of(CLASS_ASTRA) == SKIN_NORMAL);
     assert(current_skin() == SKIN_NORMAL);
     assert(astra_rw_tint_local() == 0);
+    assert(class_imbalance_of(CLASS_ASTRA) == 4);
     player->angle = 0;
     player->x = 150;
     player->y = 90;
@@ -550,8 +580,9 @@ int main(void) {
     double plain_throw = pthrow_speed * astra_throw_time;
 
     /* The same grab from an Astra (Rework) attacker: the variant is read from
-     * the synced class/skin snapshot, the three hits land sooner, the total
-     * damage and the finisher stay as they were and the throw goes farther. */
+     * the synced class/skin snapshot, the three hits land sooner, the throw
+     * waits only ~0.4 s after the last beat and goes farther; the total
+     * damage of the grab is unchanged. */
     pgrab_active = 0;
     pgrab_slot = -1;
     pthrow_t = 0;
@@ -563,12 +594,12 @@ int main(void) {
     arr_set(remotes, 1 * remote_fields + 10, CLASS_ASTRA);
     arr_set(remotes, 1 * remote_fields + 11, SKIN_SPECIAL);
     stub_grab[1] = 2;
-    for (int frame = 0; frame < 40; frame++)
+    for (int frame = 0; frame < 45; frame++)
         update_remote_grabs();
     assert(pgrab_hits == 3);
-    assert(fabs((double)pgrab_t - 40 * dt) < 1e-9);
+    assert(fabs((double)pgrab_t - 45 * dt) < 1e-9);
     assert(astra_rw_beat_time_for(3, 1) < astra_rw_beat_time_for(3, 0));
-    assert(40 * dt > astra_rw_beat_time_for(3, 1) && 40 * dt < astra_rw_beat_time_for(3, 0) + 1e-9);
+    assert(45 * dt > astra_rw_beat_time_for(3, 1) && 45 * dt < astra_rw_beat_time_for(3, 0) + 1e-9);
     for (int frame = 0; frame < 400 && pthrow_t <= 0; frame++)
         update_remote_grabs();
     assert(fabs(player->hp - 5.5) < 1e-6);

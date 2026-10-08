@@ -122,13 +122,16 @@ static void grab_cancel_actions(void) {
 }
 
 static void start_grab_now(void) {
-    astra_rw_lunge_now();
+    /* Arms the little forward step (regular Astra: no step, target = here) and
+     * captures the grab origin at the end of it: the body then glides onto
+     * that origin while the hitbox and the published zone are already there. */
+    astra_rw_lunge_start();
     astra_state = 1;
     astra_t = 0;
     astra_hits_done = 0;
     astra_caught = 0;
-    astra_x = player->x;
-    astra_y = player->y;
+    astra_x = astra_rw_lunge_tx;
+    astra_y = astra_rw_lunge_ty;
     astra_dx = cos(player->angle);
     astra_dy = sin(player->angle);
     astra_seq = astra_seq + 1;
@@ -294,6 +297,7 @@ static void tick_astra(void) {
     double rw = astra_rw_local();
     astra_cd = tick_down(astra_cd);
     tick_astra_poses();
+    astra_rw_lunge_tick();
     tick_grab_quiet();
     if (game_state != ST_ONLINE) {
         tick_enemy_throw();

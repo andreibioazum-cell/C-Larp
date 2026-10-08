@@ -205,22 +205,6 @@ static void draw_star(double cx, double cy, double r, uint32_t c) {
     circle(cx, cy, h * 0.6, c);
 }
 
-static void draw_star_row(const char *label, double x, double y, double w, double h, double rating, double max_stars,
-                           uint32_t on_color, uint32_t off_color) {
-    text_scaled(label, x, y - 26, text_color, 0.5);
-    double r = h * 0.42;
-    double gap = r * 0.9;
-    double total_w = max_stars * (r * 2) + (max_stars - 1) * gap;
-    double sx = x + (w - total_w) / 2 + r;
-    double cy = y + h / 2;
-    double i = 0;
-    while (i < max_stars) {
-        uint32_t c = (i < rating) ? on_color : off_color;
-        draw_star(sx + i * (r * 2 + gap), cy, r, c);
-        i = i + 1;
-    }
-}
-
 static void hud_bar(double bx, double by, double w, double h, double cur, double max, uint32_t c, double from_right) {
     roundrect(bx, by, w, h, h / 2, 0xDD171923);
     double shown = clamp(cur, 0, max);

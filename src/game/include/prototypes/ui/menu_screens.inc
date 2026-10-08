@@ -8,7 +8,7 @@ static void draw_privacy(void);
 static void draw_card_look(double look, double x, double y, double scale);
 static void draw_class_render(double cls, double skin, double x, double y, double target_px);
 static void draw_class_card(double vi);
-static double stat_star_rating(double cur, double maxv);
+static void draw_imbalance_stars(void);
 static void draw_class_stats(void);
 static void draw_classes(void);
 static void draw_level_row(double n);

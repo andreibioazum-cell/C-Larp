@@ -78,12 +78,35 @@ static const char *class_desc_of(double cls) {
     return tr_class_ordinary_desc();
 }
 
-static double class_hp_of(double cls) {
+/* Kept (and used by tools/test_game_state.c) together with the star rating:
+ * the raw numbers are still the source of truth for the fight, they are just
+ * no longer printed on the classes screen. */
+static GAME_MAYBE_UNUSED double class_hp_of(double cls) {
     return astra_rw_max_hp_for(cls, astra_rw_of(cls, class_skin_of(cls)));
 }
 
-static double class_power_of(double cls) {
+static GAME_MAYBE_UNUSED double class_power_of(double cls) {
     return astra_rw_punch_damage_for(cls, class_level_of(cls), astra_rw_of(cls, class_skin_of(cls)));
+}
+
+/* How imbalanced (overpowered) each class is judged to be, 0..5 - the five
+ * stars under the class cards. Astra (Rework) is the deliberately broken
+ * developer variant, so it tops the scale while the plain Astra is already a
+ * strong class. Tune the numbers here and nothing else has to change. */
+static double class_imbalance_of(double cls) {
+    if (cls == CLASS_ASTRA) {
+        if (astra_rw_of(cls, class_skin_of(cls)) == 1) {
+            return 5;
+        }
+        return 4;
+    }
+    if (cls == CLASS_AZUM || cls == CLASS_EBUC) {
+        return 3;
+    }
+    if (cls == CLASS_SANTA) {
+        return 2;
+    }
+    return 1;
 }
 
 static const char *class_pick_label(double cls) {

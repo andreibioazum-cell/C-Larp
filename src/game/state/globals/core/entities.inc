@@ -88,6 +88,13 @@ double astra_cd;
 double astra_seq;
 double astra_pub;
 double astra_box_a;
+/* Astra (Rework) lunge: elapsed time, step start and step end. The end
+ * point doubles as the grab origin captured when the ultimate is cast. */
+double astra_rw_lunge_t;
+double astra_rw_lunge_fx;
+double astra_rw_lunge_fy;
+double astra_rw_lunge_tx;
+double astra_rw_lunge_ty;
 double pgrab_active;
 double pgrab_slot;
 double pgrab_t;

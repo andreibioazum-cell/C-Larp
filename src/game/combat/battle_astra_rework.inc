@@ -12,12 +12,18 @@
  *   HP              -5%       astra_rw_hp_factor      <- astra_hp
  *   punch           -7%       astra_rw_punch_factor   <- astra punch damage
  *   ult hits 1..3   faster    astra_rw_interval_factor <- astra_hit_interval
- *     The finisher still lands at exactly the same moment as regular Astra:
- *     the final delay grows by the time the three faster beats saved, so a
- *     client that does not know this variant (older build) still sees the
- *     same grab length, the same last hit and the same throw.
+ *   ult finisher    sooner    astra_rw_final_delay     <- astra_final_delay
+ *     Three quick beats, then only ~0.4 s of wind-up before the throw, so the
+ *     ultimate reads as "fast hits, short pause, throw". The whole grab is
+ *     thus shorter than the regular one - deliberate: the variant is
+ *     developer-only and every client resolves it from the synced class/skin
+ *     pair (astra_rw_of_slot()), never from a timer of its own.
  *   ult throw       +35%      astra_rw_throw_factor   <- astra_throw_dist
- *   small lunge on ult cast   astra_rw_lunge_dist
+ *   small lunge on ult cast   astra_rw_lunge_dist / astra_rw_lunge_time
+ *     A small forward step, eased over astra_rw_lunge_time instead of an
+ *     instant teleport. The grab origin (hitbox + published zone) is the end
+ *     of the step, taken at cast time, so hitbox and network traffic stay
+ *     exactly what they were.
  *
  * Only ADMIN_NICK / ADMIN_PASS (the developer account) can unlock or select
  * it; every other account sees Astra exactly as before.
@@ -29,9 +35,11 @@
 
 static const double astra_rw_hp_factor = 0.95;
 static const double astra_rw_punch_factor = 0.93;
-static const double astra_rw_interval_factor = 0.65;
+static const double astra_rw_interval_factor = 0.8;
+static const double astra_rw_final_delay = 0.4;
 static const double astra_rw_throw_factor = 1.35;
-static const double astra_rw_lunge_dist = 60;
+static const double astra_rw_lunge_dist = 34;
+static const double astra_rw_lunge_time = 0.16;
 static const double astra_rw_tint_rgb = 0xE040FB;
 static const double astra_rw_tint_a = 0.35;
 
@@ -114,7 +122,7 @@ static double astra_rw_beat_time_for(double i, double rw) {
 
 static double astra_rw_final_delay_for(double rw) {
     if (rw == 1) {
-        return astra_final_delay + (astra_hit_interval - astra_rw_hit_interval_for(rw)) * astra_hit_count;
+        return astra_rw_final_delay;
     }
     return astra_final_delay;
 }
@@ -198,19 +206,48 @@ static double astra_rw_self_damage(void) {
     return astra_rw_punch_damage_for(player_class, player_level, astra_rw_local());
 }
 
-/* The tiny forward hop Astra (Rework) does when the ultimate is pressed. It is
- * applied once, at cast time, before the grab origin is captured: the zone the
- * other clients get published then already contains the hop, so it costs no
- * extra frame of state and no extra network write. */
-static void astra_rw_lunge_now(void) {
+/* The tiny forward step Astra (Rework) takes when the ultimate is pressed.
+ *
+ * It is small and smooth: the body glides to the target over
+ * astra_rw_lunge_time with a smoothstep ease instead of jumping there in one
+ * frame. The grab origin - the hitbox and the zone published to the other
+ * clients - is the end of the step, captured at cast time, exactly where the
+ * old instant hop put it, so the grab stays identical for everyone and no
+ * extra network write is needed. The glide itself is ordinary local movement
+ * (a few pixels per frame, movement is locked during the grab anyway). */
+static void astra_rw_lunge_start(void) {
+    astra_rw_lunge_t = 0;
+    astra_rw_lunge_fx = player->x;
+    astra_rw_lunge_fy = player->y;
+    astra_rw_lunge_tx = player->x;
+    astra_rw_lunge_ty = player->y;
     if (astra_rw_local() == 0) {
         return;
     }
     double dx = cos(player->angle);
     double dy = sin(player->angle);
-    player->x = clamp(player->x + dx * astra_rw_lunge_dist, player->size, screen_w - player->size);
-    player->y = clamp(player->y + dy * astra_rw_lunge_dist, player->size, screen_h - player->size);
-    dust_trail(player->x, player->y, dx, dy);
+    astra_rw_lunge_tx = clamp(player->x + dx * astra_rw_lunge_dist, player->size, screen_w - player->size);
+    astra_rw_lunge_ty = clamp(player->y + dy * astra_rw_lunge_dist, player->size, screen_h - player->size);
+    dust_trail(astra_rw_lunge_tx, astra_rw_lunge_ty, dx, dy);
+}
+
+static void astra_rw_lunge_tick(void) {
+    if (astra_rw_lunge_fx == astra_rw_lunge_tx && astra_rw_lunge_fy == astra_rw_lunge_ty) {
+        return;
+    }
+    astra_rw_lunge_t = astra_rw_lunge_t + dt;
+    if (astra_rw_lunge_t >= astra_rw_lunge_time) {
+        astra_rw_lunge_t = astra_rw_lunge_time;
+        astra_rw_lunge_fx = astra_rw_lunge_tx;
+        astra_rw_lunge_fy = astra_rw_lunge_ty;
+        player->x = astra_rw_lunge_tx;
+        player->y = astra_rw_lunge_ty;
+        return;
+    }
+    double p = astra_rw_lunge_t / astra_rw_lunge_time;
+    p = p * p * (3 - 2 * p);
+    player->x = astra_rw_lunge_fx + (astra_rw_lunge_tx - astra_rw_lunge_fx) * p;
+    player->y = astra_rw_lunge_fy + (astra_rw_lunge_ty - astra_rw_lunge_fy) * p;
 }
 
 static double astra_rw_tint(void) {

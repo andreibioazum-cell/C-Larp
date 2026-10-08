@@ -10,6 +10,7 @@ static const char *class_name_of(double cls);
 static const char *class_desc_of(double cls);
 static double class_hp_of(double cls);
 static double class_power_of(double cls);
+static double class_imbalance_of(double cls);
 static const char *class_pick_label(double cls);
 static const char *class_msg_text(void);
 static double skin_is_active(double cls, double skin);
