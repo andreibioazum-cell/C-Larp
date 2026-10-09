@@ -12,4 +12,7 @@ static void draw_newyear_snow(void);
 static double newyear_music_active(void);
 static void update_newyear_jingle(void);
 static void update_newyear(void);
-static void draw_newyear_menu_fx(void);
+static double newyear_snow_under_notice_active(void);
+static double newyear_snow_over_notice_active(void);
+static void draw_newyear_under_notices(void);
+static void draw_newyear_over_notices(void);

@@ -25,7 +25,7 @@ static int lobby_playing;
 static int winter_playing;
 static int winter_loop_calls;
 static int snowflake_draws;
-static uint8_t last_snow_alpha;
+static int snowflake_tinted;
 static int star_line_count;
 
 struct DSArray {
@@ -187,11 +187,11 @@ void tex_tint(float x, float y, const char *name, float angle, float scale, uint
     (void)y;
     (void)angle;
     (void)scale;
+    (void)color;
     ground_tiles++;
     last_ground = name;
     if (name && SNOWFLAKE_TEX && strcmp(name, SNOWFLAKE_TEX) == 0) {
-        snowflake_draws++;
-        last_snow_alpha = (uint8_t)(color >> 24);
+        snowflake_tinted++;
     }
 }
 void net_save_progress_all(double a, double b, double c, double d, double e, double f, double g, double h, double i,
@@ -301,8 +301,9 @@ void tex(float x, float y, const char *name, float angle, float scale) {
     (void)scale;
     ground_tiles++;
     last_ground = name;
-    if (name && SNOWFLAKE_TEX && strcmp(name, SNOWFLAKE_TEX) == 0)
+    if (name && SNOWFLAKE_TEX && strcmp(name, SNOWFLAKE_TEX) == 0) {
         snowflake_draws++;
+    }
 }
 
 int main(void) {
@@ -438,48 +439,60 @@ int main(void) {
     studio_open = 0;
     newyear_jingle_ok = 1;
     assert(snow_active() == 0);
-    assert(newyear_menu_active() == 0);
+    /* The startup notice and transitions do not pause the snow clock. */
+    assert(newyear_menu_active() == 1);
     assert(newyear_music_active() == 1);
     newyear_snow_t = 0;
     update_newyear_snow();
-    assert(newyear_snow_t == 0);
-    warn_open = 0;
-    snowflake_draws = 0;
-    draw_newyear_menu_fx();
-    assert(newyear_menu_flakes == 8 && snowflake_draws == (int)newyear_menu_flakes);
-    assert(newyear_snow_tint == 0x88FFFFFF && last_snow_alpha == 0x88);
-    assert(newyear_spin_min + newyear_spin_range <= 0.06);
-    game_state = ST_LOBBY;
+    assert(newyear_snow_t > 0);
+    t_fade = 0.5;
+    t_dir = 1;
+    update_newyear_snow();
     t_fade = 0;
     t_dir = 0;
+    assert(newyear_snow_t >= 2 * dt);
+    assert(newyear_menu_flakes == 22);
+
+    /* Startup notice open: nothing beneath the panel, every flake above it, plain tex. */
     snowflake_draws = 0;
-    assert(newyear_menu_fx_allowed() == 1);
-    draw_newyear_menu_if_allowed();
+    snowflake_tinted = 0;
+    assert(newyear_snow_under_notice_active() == 0 && newyear_snow_over_notice_active() == 1);
+    draw_newyear_under_notices();
+    assert(snowflake_draws == 0);
+    draw_newyear_over_notices();
+    assert(snowflake_draws == (int)newyear_menu_flakes && snowflake_tinted == 0);
+
+    /* A transition curtain over the notice: no flakes are drawn above black. */
+    t_fade = 0.5;
+    t_dir = 1;
+    snowflake_draws = 0;
+    assert(newyear_snow_over_notice_active() == 0);
+    draw_newyear_over_notices();
+    assert(snowflake_draws == 0);
+    t_fade = 0;
+    t_dir = 0;
+
+    /* Notice closed: flakes draw beneath the curtain and keep drawing through a fade. */
+    warn_open = 0;
+    assert(newyear_snow_under_notice_active() == 1 && newyear_snow_over_notice_active() == 0);
+    snowflake_draws = 0;
+    draw_newyear_under_notices();
     assert(snowflake_draws == (int)newyear_menu_flakes);
     t_fade = 0.5;
     t_dir = 1;
     snowflake_draws = 0;
-    assert(newyear_menu_fx_allowed() == 0);
-    draw_newyear_menu_if_allowed();
-    assert(snowflake_draws == 0);
-    t_fade = 1;
-    t_dir = 2;
-    assert(newyear_menu_fx_allowed() == 0);
-    draw_newyear_menu_if_allowed();
-    assert(snowflake_draws == 0);
+    draw_newyear_under_notices();
+    assert(snowflake_draws == (int)newyear_menu_flakes);
     t_fade = 0;
     t_dir = 0;
-    warn_open = 1;
-    snowflake_draws = 0;
-    assert(newyear_menu_fx_allowed() == 0);
-    draw_newyear_menu_if_allowed();
-    assert(snowflake_draws == 0);
-    warn_open = 0;
+
+    /* The studio splash is an opaque notice too. */
     studio_open = 1;
-    assert(newyear_menu_fx_allowed() == 0);
-    snowflake_draws = 0;
-    draw_newyear_menu_if_allowed();
-    assert(snowflake_draws == 0);
+    assert(newyear_snow_under_notice_active() == 0 && newyear_snow_over_notice_active() == 1);
+    studio_open = 0;
+
+    t_fade = 0;
+    t_dir = 0;
     studio_open = 0;
     warn_open = 1;
     /* The jingle must take over even while the startup notice is visible; do
