@@ -236,6 +236,19 @@ public final class GameActivity extends NativeActivity {
         });
     }
 
+    /** The farewell on the way out: C has already decided what to say, or to stay silent. */
+    public void showByeNotice(final String text) {
+        runOnUiThread(new Runnable() {
+            @Override public void run() {
+                try {
+                    GameNotifier.postBye(getApplicationContext(), text);
+                } catch (RuntimeException ignored) {
+                    // The goodbye is optional; the game must close regardless.
+                }
+            }
+        });
+    }
+
     private void claimEditorFocus() {
         if (chatEditor == null || !wantKeyboard) return;
         if (chatEditor.getVisibility() != View.VISIBLE) chatEditor.setVisibility(View.VISIBLE);

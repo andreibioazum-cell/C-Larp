@@ -74,6 +74,7 @@ const char *str_lower(const char *s);
 const char *str_upper(const char *s);
 void ds_set_activity(void *activity);
 void alpha_notice_show(double russian);
+void bye_notice_show(const char *text);
 void keyboard_show(void);
 void keyboard_hide(void);
 const char *keyboard_get_text(void);

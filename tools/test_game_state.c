@@ -102,7 +102,21 @@ double ds_mod(double value, double divisor) {
 int str_eq(const char *a, const char *b) {
     return a && b && strcmp(a, b) == 0 ? 1 : 0;
 }
+double str_len(const char *s) {
+    return s ? (double)strlen(s) : 0;
+}
+/* Склейка строк, как в рантайме: два чередующихся буфера, чтобы вызов
+ * ds_concat(ds_concat(a, b), c) не затирал сам себя. */
+char *ds_concat(const char *left, const char *right) {
+    static char buffers[4][512];
+    static int turn = 0;
+    turn = (turn + 1) & 3;
+    snprintf(buffers[turn], sizeof(buffers[turn]), "%s%s", left ? left : "", right ? right : "");
+    return buffers[turn];
+}
 void keyboard_hide(void) {}
+void keyboard_clear(void) {}
+void keyboard_show(void) {}
 static double stub_net_slot = -1;
 static double stub_online[4];
 static double stub_level[4];
@@ -176,6 +190,12 @@ const char *net_login_nick(void) {
 }
 const char *net_login_pass(void) {
     return stub_login_pass;
+}
+static char last_bye[256];
+static int bye_calls;
+void bye_notice_show(const char *text) {
+    bye_calls++;
+    snprintf(last_bye, sizeof(last_bye), "%s", text ? text : "");
 }
 void ring(float x, float y, float r, float t, uint32_t color) {
     (void)x;
@@ -459,19 +479,34 @@ int main(void) {
     assert(newyear_snow_t >= 2 * dt);
     assert(newyear_menu_flakes == 22);
 
-    /* Startup notice open: nothing beneath the panel, every flake above it, plain tex. */
+    /* Startup notice open and fully opaque: the epilepsy warning keeps every
+     * flake under its panel, and nothing is ever drawn above its text. */
     snowflake_draws = 0;
     snowflake_tinted = 0;
-    assert(newyear_snow_under_notice_active() == 0 && newyear_snow_over_notice_active() == 1);
+    warn_open = 1;
+    warn_a = 1;
+    assert(newyear_snow_under_notice_active() == 0 && newyear_snow_over_notice_active() == 0);
     draw_newyear_under_notices();
     assert(snowflake_draws == 0);
     draw_newyear_over_notices();
-    assert(snowflake_draws == (int)newyear_menu_flakes && snowflake_tinted == 0);
+    assert(snowflake_draws == 0);
 
-    /* Over the startup notice the snow spans the full width, including the centre
-     * column where the notice text sits. Beneath the lobby the menu column stays
-     * clear. Closing the notice must not move any flake: the over-pass at zero
-     * opacity has to match the lobby layout exactly. */
+    /* The panel is fading: the lobby - and its snow - shows through beneath it,
+     * still never on top of the legal text, and still in the lobby layout. */
+    warn_a = 0.4;
+    assert(newyear_snow_under_notice_active() == 1 && newyear_snow_over_notice_active() == 0);
+    snowflake_draws = 0;
+    snowflake_tinted = 0;
+    draw_newyear_under_notices();
+    assert(snowflake_draws == (int)newyear_menu_flakes && snowflake_tinted == 0);
+    draw_newyear_over_notices();
+    assert(snowflake_draws == (int)newyear_menu_flakes);
+    warn_a = 1;
+
+    /* Over the studio splash the snow spans the full width, including the centre
+     * column. Beneath the lobby the menu column stays clear. Closing the splash
+     * must not move any flake: the over-pass at zero opacity has to match the
+     * lobby layout exactly. */
     {
         int saved_w = screen_w;
         int saved_h = screen_h;
@@ -493,6 +528,8 @@ int main(void) {
             int j = 0;
             newyear_snow_t = 1.0 + k * 0.173;
 
+            studio_open = 0;
+            studio_a = 0;
             warn_open = 0;
             warn_a = 0;
             snowflake_centre_n = 0;
@@ -505,8 +542,8 @@ int main(void) {
                 }
             }
 
-            warn_open = 1;
-            warn_a = 0;
+            studio_open = 1;
+            studio_a = 0;
             snowflake_centre_n = 0;
             draw_newyear_over_notices();
             assert(snowflake_centre_n == (int)newyear_menu_flakes);
@@ -517,7 +554,7 @@ int main(void) {
                 }
             }
 
-            warn_a = 1;
+            studio_a = 1;
             snowflake_centre_n = 0;
             draw_newyear_over_notices();
             assert(snowflake_centre_n == (int)newyear_menu_flakes);
@@ -535,16 +572,29 @@ int main(void) {
         screen_w = saved_w;
         screen_h = saved_h;
         newyear_snow_t = saved_t;
+        studio_open = 0;
+        studio_a = 0;
         warn_open = 1;
         warn_a = 1;
     }
 
-    /* A transition curtain over the notice: no flakes are drawn above black. */
+    /* A transition curtain over the studio splash: no flakes are drawn above
+     * black, and the epilepsy warning is never snowed over either. */
+    studio_open = 1;
+    studio_a = 1;
     t_fade = 0.5;
     t_dir = 1;
     snowflake_draws = 0;
     assert(newyear_snow_over_notice_active() == 0);
+    assert(newyear_snow_under_notice_active() == 0);
     draw_newyear_over_notices();
+    assert(snowflake_draws == 0);
+    studio_open = 0;
+    studio_a = 0;
+    warn_open = 1;
+    warn_a = 1;
+    snowflake_draws = 0;
+    draw_newyear_under_notices();
     assert(snowflake_draws == 0);
     t_fade = 0;
     t_dir = 0;
@@ -589,6 +639,96 @@ int main(void) {
     assert(winter_playing == 0);
     winter_theme = 1;
     warn_open = 0;
+
+    /* Leaving the game: half of the exits stay silent, the rest say one of the
+     * three farewells, and the nick line needs a logged-in account. */
+    {
+        int i = 0;
+        int silent = 0;
+        int sorry = 0;
+        int cubes = 0;
+        int nick_line = 0;
+        int empty_nick = 0;
+        int other = 0;
+        game_state = ST_LOBBY;
+        warn_open = 0;
+        studio_open = 0;
+        t_dir = 0;
+        t_fade = 0;
+        language = 1;
+        stub_login_status = 2;
+        snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", "Дима");
+        for (i = 0; i < 4000; i++) {
+            bye_calls = 0;
+            last_bye[0] = 0;
+            bye_notice_roll();
+            if (bye_calls == 0) {
+                silent++;
+                continue;
+            }
+            assert(bye_calls == 1);
+            if (strcmp(last_bye, "Нам жаль что вы вышли, удачи!") == 0) {
+                sorry++;
+            } else if (strcmp(last_bye, "Пока, кубы будут вас ждать!") == 0) {
+                cubes++;
+            } else if (strcmp(last_bye, "Пока, Дима, удачи!") == 0) {
+                nick_line++;
+            } else {
+                other++;
+            }
+        }
+        assert(other == 0);
+        /* A 50/50 roll over 4000 exits, with a wide band for the random draw. */
+        assert(silent > 1700 && silent < 2300);
+        assert(sorry > 400 && cubes > 400 && nick_line > 400);
+
+        /* Without an account the nick line is never picked: no "Пока, , удачи!". */
+        stub_login_nick[0] = 0;
+        empty_nick = 0;
+        for (i = 0; i < 4000; i++) {
+            bye_calls = 0;
+            last_bye[0] = 0;
+            bye_notice_roll();
+            if (bye_calls == 1 && strstr(last_bye, ", , ") != NULL) {
+                empty_nick++;
+            }
+        }
+        assert(empty_nick == 0);
+
+        /* The English wording follows the language setting. */
+        language = 0;
+        snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", "Dima");
+        other = 0;
+        for (i = 0; i < 4000; i++) {
+            bye_calls = 0;
+            last_bye[0] = 0;
+            bye_notice_roll();
+            if (bye_calls == 0) {
+                continue;
+            }
+            if (strcmp(last_bye, "Sorry that you left, good luck!") != 0 &&
+                strcmp(last_bye, "Bye, the cubes will be waiting for you!") != 0 &&
+                strcmp(last_bye, "Bye, Dima, good luck!") != 0) {
+                other++;
+            }
+        }
+        assert(other == 0);
+
+        /* Back in the lobby closes the game and says goodbye; an ordinary back
+         * from a sub-screen only returns to the lobby, without a farewell. */
+        language = 1;
+        game_state = ST_LOBBY;
+        bye_calls = 0;
+        assert(logic_back() == 0);
+        assert(bye_calls <= 1);
+        game_state = ST_SETTINGS;
+        bye_calls = 0;
+        assert(logic_back() == 1);
+        assert(bye_calls == 0);
+        t_dir = 0;
+        t_target = ST_LOBBY;
+        game_state = ST_LOBBY;
+    }
 
     assert(strcmp(SHOWDOWN_MUSIC, "astra_azum_showdown.wav") == 0);
     finished = 0;

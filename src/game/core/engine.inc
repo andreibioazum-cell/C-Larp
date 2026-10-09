@@ -330,13 +330,42 @@ static void logic_draw(void) {
     if (studio_open == 1) {
         draw_studio();
     }
-    /* Snow above the opaque startup notices, but never above the curtain. */
+    /* Snow above the studio splash, but never above the curtain or the
+     * epilepsy warning. */
     draw_newyear_over_notices();
     draw_achievement_toast();
 }
 
+/* Leaving the game says goodbye through the Android notification tray, but only
+ * on half of the exits: the other half stay silent. The nick line needs a
+ * logged-in account, otherwise the two fixed lines are used, so the text never
+ * reads "Пока, , удачи!". rand() is seeded once at startup. */
+static void bye_notice_roll(void) {
+    const char *nick;
+    double pick;
+    if (rand() % 100 >= 50) {
+        return;
+    }
+    nick = net_login_nick();
+    pick = rand() % 3;
+    if (pick >= 2 && str_len(nick) == 0) {
+        pick = rand() % 2;
+    }
+    if (pick >= 2) {
+        bye_notice_show(ds_concat(ds_concat(tr_bye_nick_pre(), nick), tr_bye_nick_post()));
+        return;
+    }
+    if (pick == 1) {
+        bye_notice_show(tr_bye_cubes());
+        return;
+    }
+    bye_notice_show(tr_bye_sorry());
+}
+
 static double logic_back(void) {
     if (warn_open == 1) {
+        /* Back is not consumed here, so the system closes the game. */
+        bye_notice_roll();
         return 0;
     }
     if (studio_open == 1) {
@@ -382,6 +411,8 @@ static double logic_back(void) {
         start_transition(ST_LOBBY);
         return 1;
     }
+    /* Back in the lobby closes the game. */
+    bye_notice_roll();
     return 0;
 }
 

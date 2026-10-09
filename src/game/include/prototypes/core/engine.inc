@@ -16,5 +16,6 @@ static void draw_achievement_toast(void);
 static void logic_update(void);
 static void draw_screen(void);
 static void logic_draw(void);
+static void bye_notice_roll(void);
 static double logic_back(void);
 static void logic_touch(double x, double y, double action, double id);
