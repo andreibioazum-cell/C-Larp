@@ -10,5 +10,6 @@ void game_draw(struct Buffer *buffer);
 void game_touch(float x, float y, int action, int pointer_id);
 int game_back(void);
 void game_reset(void);
+void game_bye(void);
 
 #endif

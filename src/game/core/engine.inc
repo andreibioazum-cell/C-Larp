@@ -336,10 +336,12 @@ static void logic_draw(void) {
     draw_achievement_toast();
 }
 
-/* Leaving the game says goodbye through the Android notification tray, but only
- * on half of the exits: the other half stay silent. The nick line needs a
- * logged-in account, otherwise the two fixed lines are used, so the text never
- * reads "Пока, , удачи!". rand() is seeded once at startup. */
+/* Saying goodbye when the game is left: half of the exits stay silent, the
+ * other half post one of the three lines into the Android notification tray.
+ * Called from game_bye() once the activity pauses or stops - that covers the
+ * back button, the swipe-up gesture and the app being swiped out of recents.
+ * The nick line needs a logged-in account, otherwise the two fixed lines are
+ * used, so the text never reads "Пока, , удачи!". */
 static void bye_notice_roll(void) {
     const char *nick;
     double pick;
@@ -364,8 +366,6 @@ static void bye_notice_roll(void) {
 
 static double logic_back(void) {
     if (warn_open == 1) {
-        /* Back is not consumed here, so the system closes the game. */
-        bye_notice_roll();
         return 0;
     }
     if (studio_open == 1) {
@@ -411,8 +411,8 @@ static double logic_back(void) {
         start_transition(ST_LOBBY);
         return 1;
     }
-    /* Back in the lobby closes the game. */
-    bye_notice_roll();
+    /* Back in the lobby closes the game; the farewell is said when the
+     * activity actually stops, so every way of leaving is covered. */
     return 0;
 }
 

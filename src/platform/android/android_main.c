@@ -66,6 +66,24 @@ static int back_consumed = 0;
 typedef struct {
     int handled;
 } BackCall;
+/* Пока 1 - при следующем уходе в фон можно проститься. Снимается после первого
+ * же прощания и ставится снова, когда игрок вернулся в игру. */
+static int bye_armed = 0;
+static void protected_game_bye(void *userdata) {
+    (void)userdata;
+    game_bye();
+}
+/* Прощание при выходе. Вешаемся и на паузу, и на остановку, и на уничтожение:
+ * свайп снизу вверх уводит приложение в фон (пауза + остановка), выгрузка из
+ * недавних убивает процесс уже после остановки, а «назад» закрывает активность.
+ * За один уход прощание говорится один раз. */
+static void say_goodbye(void) {
+    if (!game_active || !bye_armed) {
+        return;
+    }
+    bye_armed = 0;
+    (void)ds_call_protected(protected_game_bye, NULL, "goodbye");
+}
 static void protected_game_back(void *userdata) {
     BackCall *call = (BackCall *)userdata;
     call->handled = game_back();
@@ -104,6 +122,7 @@ static int start_game(int reset_state) {
     restart_failures = 0;
     game_active = 1;
     game_started_once = 1;
+    bye_armed = 1;
     return 1;
 }
 static void restart_game_if_due(void) {
@@ -221,6 +240,15 @@ static void handle_cmd(struct android_app *app, int32_t command) {
         break;
     case APP_CMD_LOST_FOCUS:
         ds_sound_pause();
+        break;
+    case APP_CMD_PAUSE:
+    case APP_CMD_STOP:
+    case APP_CMD_DESTROY:
+        say_goodbye();
+        break;
+    case APP_CMD_RESUME:
+    case APP_CMD_START:
+        bye_armed = 1;
         break;
     default:
         break;

@@ -640,8 +640,9 @@ int main(void) {
     winter_theme = 1;
     warn_open = 0;
 
-    /* Leaving the game: half of the exits stay silent, the rest say one of the
-     * three farewells, and the nick line needs a logged-in account. */
+    /* Leaving the game (game_bye, called when the activity pauses or stops):
+     * half of the exits stay silent, the rest say one of the three farewells,
+     * and the nick line needs a logged-in account. */
     {
         int i = 0;
         int silent = 0;
@@ -661,7 +662,7 @@ int main(void) {
         for (i = 0; i < 4000; i++) {
             bye_calls = 0;
             last_bye[0] = 0;
-            bye_notice_roll();
+            game_bye();
             if (bye_calls == 0) {
                 silent++;
                 continue;
@@ -688,7 +689,7 @@ int main(void) {
         for (i = 0; i < 4000; i++) {
             bye_calls = 0;
             last_bye[0] = 0;
-            bye_notice_roll();
+            game_bye();
             if (bye_calls == 1 && strstr(last_bye, ", , ") != NULL) {
                 empty_nick++;
             }
@@ -702,7 +703,7 @@ int main(void) {
         for (i = 0; i < 4000; i++) {
             bye_calls = 0;
             last_bye[0] = 0;
-            bye_notice_roll();
+            game_bye();
             if (bye_calls == 0) {
                 continue;
             }
@@ -714,15 +715,16 @@ int main(void) {
         }
         assert(other == 0);
 
-        /* Back in the lobby closes the game and says goodbye; an ordinary back
-         * from a sub-screen only returns to the lobby, without a farewell. */
+        /* Back in the lobby closes the game, but the farewell itself is said by
+         * the lifecycle hook (game_bye): one goodbye per exit, whichever way the
+         * player leaves - back button, swipe-up gesture, swipe out of recents.
+         * An ordinary back from a sub-screen only returns to the lobby. */
         language = 1;
         game_state = ST_LOBBY;
         bye_calls = 0;
         assert(logic_back() == 0);
-        assert(bye_calls <= 1);
+        assert(bye_calls == 0);
         game_state = ST_SETTINGS;
-        bye_calls = 0;
         assert(logic_back() == 1);
         assert(bye_calls == 0);
         t_dir = 0;
