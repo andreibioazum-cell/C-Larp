@@ -45,6 +45,8 @@ static double look_ready(double look) {
 
 static double look_swing_ready(double look) { return look_ready(look); }
 
+static double class_is_astra(double cls) { return cls == CLASS_ASTRA || cls == CLASS_ASTRA_REWORK; }
+
 static double class_look(double cls, double skin) {
     if (skin_is_active(cls, skin) == 1) {
         if (cls == CLASS_EBUC) {
@@ -83,10 +85,8 @@ static double card_look(double cls, double skin) {
     return LOOK_NONE;
 }
 
-/* High-resolution shop/lobby render for a class+skin combo, used by the shop
- * (class cards and skin cards) instead of the tiny in-battle pixel sprite.
- * Unlike class_look(), Astra gets its own dedicated render here rather than
- * silently borrowing Ordinary's look. */
+/* High-resolution shop/lobby render. Rework deliberately uses Ordinary's
+ * cube icon; regular Astra keeps its dedicated card art. */
 static const char *class_card_tex(double cls, double skin) {
     if (cls == CLASS_AZUM) {
         if (skin_is_active(cls, skin) == 1) {
@@ -102,6 +102,9 @@ static const char *class_card_tex(double cls, double skin) {
             return EBUC_ELF_CARD_TEX;
         }
         return EBUC_CARD_TEX;
+    }
+    if (cls == CLASS_ASTRA_REWORK) {
+        return ORDINARY_CARD_TEX;
     }
     if (cls == CLASS_ASTRA) {
         return ASTRA_CARD_TEX;
@@ -122,7 +125,7 @@ static GAME_MAYBE_UNUSED const char *skin_idle_tex_for(double cls, double skin) 
 }
 
 static double class_has_super(double cls) {
-    if (cls == CLASS_AZUM || cls == CLASS_SANTA || cls == CLASS_EBUC || cls == CLASS_ASTRA) {
+    if (cls == CLASS_AZUM || cls == CLASS_SANTA || cls == CLASS_EBUC || class_is_astra(cls)) {
         return 1;
     }
     return 0;
@@ -148,7 +151,7 @@ static double player_max_hp_for(double cls) {
     if (cls == CLASS_AZUM) {
         return azum_hp;
     }
-    if (cls == CLASS_ASTRA) {
+    if (class_is_astra(cls)) {
         return astra_hp;
     }
     return 10;
@@ -169,8 +172,6 @@ static double ebuc_universe_damage_for(double lv) {
     }
     return d;
 }
-
-static double class_punch_damage(double cls) { return class_punch_damage_for(cls, player_level); }
 
 static double santa_poison_time_for(double lv) {
     (void)lv;

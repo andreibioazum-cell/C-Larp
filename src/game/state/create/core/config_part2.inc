@@ -107,3 +107,5 @@ SANTA_CARD_TEX = "santa_card.png";
 EBUC_CARD_TEX = "ebuc_card.png";
 EBUC_ELF_CARD_TEX = "ebuc_elf_card.png";
 ASTRA_CARD_TEX = "astra_card.png";
+astra_skin = 0;
+astra_rw_ok = 0;

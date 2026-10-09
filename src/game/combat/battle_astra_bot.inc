@@ -118,7 +118,7 @@ static void tick_enemy_grab(void) {
 }
 
 static double enemy_wants_grab(void) {
-    if (enemy_class != CLASS_ASTRA) {
+    if (class_is_astra(enemy_class) == 0) {
         return 0;
     }
     if (enemy_super_cd > 0 || egrab_state != 0) {

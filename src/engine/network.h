@@ -125,6 +125,9 @@ double net_load_astra(void);
 double net_load_astra_level(void);
 double net_load_astra_levels_unlocked(void);
 void net_save_astra(double owned, double level, double levels_unlocked);
+/* Astra (Rework) developer variant: local-only selection bit. */
+double net_load_astra_rw(void);
+void net_save_astra_rw(double on);
 void net_save_progress(double cups, double candies, double cls, double azum, double santa, double ebuc, double level,
                        double levels_unlocked);
 void net_save_progress_all(double cups, double candies, double cls, double azum, double santa, double ebuc,

@@ -168,6 +168,7 @@ static void draw_player_body_layer(void) {
     double punching = fighter_pose_of(FLOOK_ME, player_punching_now());
     double look = fighter_look_of(FLOOK_ME);
     draw_fighter_body(player->x, player->y, player->angle, look, punching);
+    draw_fighter_tint(player->x, player->y, player->angle, look, punching, player_scale, astra_rw_tint_local());
     draw_fighter_hurt(player->x, player->y, player->angle, look, punching, player_scale, player_hurt_a);
 }
 
@@ -245,14 +246,14 @@ static void draw_controls(void) {
             sl = tr_super_ebuc();
         } else if (player_class == CLASS_AZUM) {
             sl = tr_super_azum();
-        } else if (player_class == CLASS_ASTRA) {
+        } else if (class_is_astra(player_class) == 1) {
             sl = tr_super_astra();
         }
         double sls = 0.55;
         double left = super_cd;
         if (player_class == CLASS_AZUM) {
             left = dash_cd;
-        } else if (player_class == CLASS_ASTRA) {
+        } else if (class_is_astra(player_class) == 1) {
             left = astra_cd;
         }
         if (left > 0) {

@@ -2,6 +2,7 @@ static void start_transition(double target) {
     if (t_dir != 0) {
         return;
     }
+    classes_swipe_reset();
     t_target = target;
     t_dir = 1;
 }
@@ -102,11 +103,12 @@ static void logic_init(void) {
     }
     net_set_firebase_key(FB_KEY);
     net_autologin(FIREBASE);
-    start_music();
-    showdown_music_load();
     progress_from_storage();
     settings_from_storage();
     apply_winter_theme();
+    start_music();
+    showdown_music_load();
+    update_newyear_jingle();
     ds_log("init: ready");
 }
 
@@ -311,12 +313,20 @@ static void draw_screen(void) {
     }
 }
 
+static double newyear_menu_fx_allowed(void) { return newyear_menu_active(); }
+
+static void draw_newyear_menu_if_allowed(void) {
+    if (newyear_menu_fx_allowed() == 1) {
+        draw_newyear_menu_fx();
+    }
+}
+
 static void logic_draw(void) {
     if (t_fade >= 1) {
         rect(0, 0, screen_w, screen_h, 0xFF000000);
     } else {
         draw_screen();
-        draw_newyear_menu_fx();
+        draw_newyear_menu_if_allowed();
         if (t_fade > 0) {
             rect(0, 0, screen_w, screen_h, (1 + floor(t_fade * 254)) * 0x1000000);
         }
@@ -382,7 +392,11 @@ static double logic_back(void) {
 
 static void logic_touch(double x, double y, double action, double id) {
     if (t_dir != 0) {
+        classes_swipe_reset();
         return;
+    }
+    if (game_state != ST_CLASSES || warn_open == 1 || studio_open == 1) {
+        classes_swipe_reset();
     }
     if (warn_open == 1) {
         touch_warn(x, y, action);
@@ -392,9 +406,11 @@ static void logic_touch(double x, double y, double action, double id) {
         return;
     }
     /* Lobby has its own input handler, while the other screens use
-     * touch_menu(). Detect menu controls here so every screen gets exactly one
-     * immediate click, including Play and Settings on the lobby screen. */
-    if (action == 0 && game_state != ST_SOLO && game_state != ST_ONLINE && menu_button_hit(x, y) == 1) {
+     * touch_menu(). Detect controls on touch-down; class-card taps wait for
+     * release so a horizontal drag can page without selecting a character. */
+    double class_swipe = game_state == ST_CLASSES && classes_swipe_zone(x, y);
+    if (action == 0 && game_state != ST_SOLO && game_state != ST_ONLINE && class_swipe == 0 &&
+        menu_button_hit(x, y) == 1) {
         play_button_click();
     }
     if (game_state == ST_LOBBY) {
@@ -402,6 +418,6 @@ static void logic_touch(double x, double y, double action, double id) {
     } else if (game_state == ST_SOLO || game_state == ST_ONLINE) {
         touch_game(x, y, action, id);
     } else {
-        touch_menu(x, y, action);
+        touch_menu(x, y, action, id);
     }
 }

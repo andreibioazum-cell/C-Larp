@@ -295,32 +295,6 @@ static void touch_settings(double x, double y) {
     }
 }
 
-static void touch_classes(double x, double y, double action) {
-    if (action != 0) {
-        return;
-    }
-    if (back_hit(x, y) == 1) {
-        start_transition(ST_LOBBY);
-        return;
-    }
-    if (hit_levels_btn(x, y) == 1) {
-        start_transition(ST_LEVELS);
-        return;
-    }
-    if (hit_skins_btn(x, y) == 1) {
-        start_transition(ST_SKINS);
-        return;
-    }
-    double vi = 0;
-    while (vi < classes_visible_count()) {
-        if (hit_class_card(x, y, vi) == 1) {
-            pick_class(visible_class_at(vi));
-            return;
-        }
-        vi = vi + 1;
-    }
-}
-
 static void touch_levels(double x, double y, double action) {
     if (action != 0) {
         return;

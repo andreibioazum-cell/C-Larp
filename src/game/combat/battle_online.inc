@@ -46,7 +46,7 @@ static void read_remotes(void) {
                  * updated network fields every render frame. */
                 double rcls = finite_or(net_player_class(s), CLASS_ORDINARY);
                 double rskin = finite_or(net_player_skin(s), SKIN_NORMAL);
-                if (rcls < CLASS_ORDINARY || rcls > CLASS_ASTRA) {
+                if (rcls < CLASS_ORDINARY || rcls > CLASS_ASTRA_REWORK) {
                     rcls = CLASS_ORDINARY;
                 }
                 if (rskin < SKIN_NORMAL || rskin >= SKIN_COUNT) {
@@ -105,10 +105,14 @@ static void update_remote_punches(void) {
                                                      punch_reach, punch_width);
                 if (target == 0 || (target >= 1 && target <= turret_max)) {
                     double rcls = arr_get(remotes, s * remote_fields + 10);
+                    /* Rework hits softer; its class ID (or legacy Astra/skin
+                     * pair) is the same snapshot used for its appearance. */
+                    double rdmg = astra_rw_punch_damage_net(rcls, net_player_level(s),
+                                                            arr_get(remotes, s * remote_fields + 11));
                     double rlevel = net_player_level(s);
                     if (target == 0) {
                         if (revive_prot <= 0) {
-                            take_damage(class_punch_damage_for(rcls, rlevel));
+                            take_damage(rdmg);
                             if (rcls == CLASS_SANTA) {
                                 if (player_poison <= 0) {
                                     player_poison_tick = santa_poison_tick_interval;
@@ -118,7 +122,7 @@ static void update_remote_punches(void) {
                             }
                         }
                     } else {
-                        damage_turret(target - 1, class_punch_damage_for(rcls, rlevel));
+                        damage_turret(target - 1, rdmg);
                         thud_seq = thud_seq + 1;
                         net_publish_thud(thud_seq);
                         ds_log("remote punch hit turret %g, hp %g", target - 1, arr_get(turret_hp, target - 1));

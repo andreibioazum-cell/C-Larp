@@ -191,33 +191,51 @@ static double panel_text(double locked) {
     return text_color;
 }
 
-/* A small flat "sparkle" star icon built from primitives only (the game
- * font has no star glyph): four overlapping thin rotated bars radiating
- * from the center, rounded off with a small circle in the middle. */
+/* A filled five-point star rasterized into short horizontal strokes. This
+ * keeps the shop icon crisp and recognizable without a texture or glyph. */
 static void draw_star(double cx, double cy, double r, uint32_t c) {
-    double w = r * 2;
-    double h = r * 0.5;
-    double k = 0;
-    while (k < 4) {
-        rect_rot(cx - w / 2, cy - h / 2, w, h, k * (pi / 4), c);
-        k = k + 1;
+    double px[10], py[10], xs[10];
+    double step = r / 10;
+    double y = -r;
+    int i = 0;
+    if (r <= 0) {
+        return;
     }
-    circle(cx, cy, h * 0.6, c);
-}
-
-static void draw_star_row(const char *label, double x, double y, double w, double h, double rating, double max_stars,
-                           uint32_t on_color, uint32_t off_color) {
-    text_scaled(label, x, y - 26, text_color, 0.5);
-    double r = h * 0.42;
-    double gap = r * 0.9;
-    double total_w = max_stars * (r * 2) + (max_stars - 1) * gap;
-    double sx = x + (w - total_w) / 2 + r;
-    double cy = y + h / 2;
-    double i = 0;
-    while (i < max_stars) {
-        uint32_t c = (i < rating) ? on_color : off_color;
-        draw_star(sx + i * (r * 2 + gap), cy, r, c);
-        i = i + 1;
+    if (step < 1) {
+        step = 1;
+    }
+    while (i < 10) {
+        double a = -pi / 2 + i * pi / 5;
+        double point_r = i % 2 == 0 ? r : r * 0.45;
+        px[i] = cos(a) * point_r;
+        py[i] = sin(a) * point_r;
+        i++;
+    }
+    while (y <= r) {
+        int count = 0;
+        i = 0;
+        while (i < 10) {
+            int j = (i + 1) % 10;
+            double y1 = py[i];
+            double y2 = py[j];
+            if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) {
+                double x = px[i] + (px[j] - px[i]) * (y - y1) / (y2 - y1);
+                int pos = count;
+                while (pos > 0 && xs[pos - 1] > x) {
+                    xs[pos] = xs[pos - 1];
+                    pos--;
+                }
+                xs[pos] = x;
+                count++;
+            }
+            i++;
+        }
+        i = 0;
+        while (i + 1 < count) {
+            line(cx + xs[i], cy + y, cx + xs[i + 1], cy + y, step + 0.8, c);
+            i = i + 2;
+        }
+        y = y + step;
     }
 }
 

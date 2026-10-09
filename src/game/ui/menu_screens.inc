@@ -143,31 +143,53 @@ static void draw_class_card(double vi) {
     button_scaled(class_pick_label(cls), x + class_pick_inset(), class_pick_y(), class_pick_w(), class_pick_h, 0.55);
 }
 
-static double stat_star_rating(double cur, double maxv) {
-    if (maxv <= 0) {
-        return 0;
+/* Five steady, filled five-point stars replace the raw HP / power numbers.
+ * Unfilled slots keep a subtle rim against the dark background; the count
+ * comes from class_imbalance_of(). */
+static void draw_imbalance_stars(void) {
+    double rating = class_imbalance_of(player_class);
+    double r = stat_star_r();
+    double w = stat_bar_w();
+    double gap = r * 0.9;
+    double sx = center_x(w) + (w - (5 * r * 2 + 4 * gap)) / 2 + r;
+    double cy = stat_stars_y() + r;
+    double i = 0;
+    while (i < 5) {
+        double cx = sx + i * (r * 2 + gap);
+        if (i < rating) {
+            draw_star(cx, cy, r * 1.1, stat_star_rim_color);
+            draw_star(cx, cy, r, stat_star_on_color);
+        } else {
+            draw_star(cx, cy, r, stat_star_rim_color);
+            draw_star(cx, cy, r * 0.78, stat_star_off_color);
+        }
+        i = i + 1;
     }
-    return round(clamp(cur, 0, maxv) / maxv * 5);
 }
 
 static void draw_class_stats(void) {
-    double w = stat_bar_w();
-    double x = center_x(w);
-    double hp = class_hp_of(player_class);
-    double power = class_power_of(player_class);
     const char *smotto = class_desc_of(player_class);
     ctext_scaled(smotto, stat_motto_y(), text_color, fit_text_scale(smotto, screen_w - 2 * screen_margin, 0.8));
-    draw_star_row(tr_hp(), x, stat_hp_y(), w, stat_bar_h(), stat_star_rating(hp, 20), 5, stat_hp_color, card_ring);
-    draw_star_row(tr_strength(), x, stat_power_y(), w, stat_bar_h(), stat_star_rating(power, 2), 5, stat_power_color,
-                  card_ring);
+    draw_imbalance_stars();
 }
 
 static void draw_classes(void) {
     screen_fill();
-    double vi = 0;
-    while (vi < classes_visible_count()) {
+    classes_page_clamp();
+    double vi = classes_page_start();
+    double last = vi + classes_page_items();
+    while (vi < last) {
         draw_class_card(vi);
         vi = vi + 1;
+    }
+    if (classes_page_count() > 1) {
+        if (classes_page > 0) {
+            button_scaled("<", classes_prev_x(), classes_nav_y(), classes_nav_w(), classes_nav_h(), 0.75);
+        }
+        if (classes_page < classes_page_count() - 1) {
+            button_scaled(">", classes_next_x(), classes_nav_y(), classes_nav_w(), classes_nav_h(), 0.75);
+        }
+        ctext_scaled(classes_page_label(), classes_top() - 16, text_color, 0.42);
     }
     button_scaled(tr_levels(), levels_btn_x(), class_actions_y(), class_action_w(), btn_h, 0.9);
     if (skins_btn_visible() == 1) {
@@ -237,7 +259,7 @@ static void draw_skins(void) {
         skin = skin + 1;
     }
     skin_msg_t = tick_down(skin_msg_t);
-    draw_msg(tr_skins_need_legends(), skins_msg_y(), skin_msg_t);
+    draw_msg(tr_skins_note_for(player_class), skins_msg_y(), skin_msg_t);
     draw_back();
 }
 

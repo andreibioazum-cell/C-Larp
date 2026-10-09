@@ -1,17 +1,3 @@
-static const char *tr_hp(void) {
-    if (language == 1) {
-        return "Здоровье";
-    }
-    return "HP";
-}
-
-static const char *tr_strength(void) {
-    if (language == 1) {
-        return "Сила";
-    }
-    return "Power";
-}
-
 static const char *tr_shop(void) {
     if (language == 1) {
         return "Магазин";

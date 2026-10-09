@@ -241,7 +241,7 @@ static void flush_queued_action(void) {
         return;
     }
     if (queued_super == 1) {
-        if (player_class == CLASS_ASTRA) {
+        if (class_is_astra(player_class) == 1) {
             if (astra_cd <= 0 && astra_state == 0) {
                 queued_super = 0;
                 fire_super();
@@ -346,7 +346,7 @@ static void update_game(void) {
         double enemy_turret_target = enemy_punch_turret_target(punch->x, punch->y, punch->dx, punch->dy);
         if (enemy_turret_target >= 1) {
             punch->hit = 1;
-            enemy_damage_turret(enemy_turret_target - 1, class_punch_damage(player_class));
+            enemy_damage_turret(enemy_turret_target - 1, astra_rw_self_damage());
             if (revive_prot <= 0) {
                 if (take_damage(turret_counter_damage) == 1) {
                     return;
@@ -373,7 +373,7 @@ static void update_game(void) {
                     }
                 }
                 heal_after_attack();
-                if (enemy_apply_damage(class_punch_damage(player_class)) == 1) {
+                if (enemy_apply_damage(astra_rw_self_damage()) == 1) {
                     return;
                 }
             }

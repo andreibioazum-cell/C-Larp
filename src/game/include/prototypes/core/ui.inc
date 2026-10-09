@@ -28,8 +28,6 @@ static void card(double x, double y, double w, double h, double selected);
 static void panel(double x, double y, double w, double h, double locked);
 static double panel_text(double locked);
 static void draw_star(double cx, double cy, double r, uint32_t c);
-static void draw_star_row(const char *label, double x, double y, double w, double h, double rating, double max_stars,
-                           uint32_t on_color, uint32_t off_color);
 static void hud_bar(double bx, double by, double w, double h, double cur, double max, uint32_t c, double from_right);
 static double tick_down(double t);
 static void draw_msg(const char *label, double y, double t);

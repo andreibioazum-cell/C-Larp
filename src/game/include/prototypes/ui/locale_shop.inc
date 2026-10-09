@@ -1,5 +1,3 @@
-static const char *tr_hp(void);
-static const char *tr_strength(void);
 static const char *tr_shop(void);
 static const char *tr_candies(void);
 static const char *tr_class_ordinary(void);

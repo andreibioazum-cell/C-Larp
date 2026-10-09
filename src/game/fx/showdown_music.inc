@@ -1,8 +1,8 @@
 static double showdown_classes(double first, double second) {
-    if (first == CLASS_ASTRA && second == CLASS_AZUM) {
+    if (class_is_astra(first) == 1 && second == CLASS_AZUM) {
         return 1;
     }
-    if (first == CLASS_AZUM && second == CLASS_ASTRA) {
+    if (first == CLASS_AZUM && class_is_astra(second) == 1) {
         return 1;
     }
     return 0;
