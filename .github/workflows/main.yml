@@ -37,6 +37,8 @@ jobs:
           grep -q 'android:versionCode="[0-9]\+"' platform/android/AndroidManifest.xml
           grep -q '^package com.cb4;' platform/android/java/com/cb4/GameActivity.java
           grep -q 'Java_com_cb4_GameActivity_nativeReplaceText' src/platform/android/keyboard.inc
+          grep -q 'Java_com_cb4_PresenceJobService_nativePresence' src/platform/android/presence_job.inc
+          grep -q 'android:name="com.cb4.PresenceJobService"' platform/android/AndroidManifest.xml
           if find . -type f -name '*.ds' -print -quit | grep -q .; then
             echo "::error::The C port must not contain script sources"
             exit 1
@@ -52,6 +54,7 @@ jobs:
           python3 tools/test_settings_storage.py
           python3 tools/test_cloud_progress.py
           python3 tools/test_promo.py
+          python3 tools/test_presence.py
 
       - name: Setup Java for Android build tools
         uses: actions/setup-java@v5

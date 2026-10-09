@@ -68,6 +68,20 @@ static int ds_vk_begin_frame_backend(uint32_t w, uint32_t h, uint32_t ow, uint32
         vk_begun = 1;
     }
     DsVkFrame *f = &vk_frames[vk_frame_cur];
+    /* All frames in flight render into one offscreen image and blit it to the
+     * swapchain. Nothing orders this frame's clear/draw after the previous
+     * submission's blit, so finish every other submitted frame first. */
+    for (int i = 0; i < DS_VK_FRAMES_IN_FLIGHT; i++) {
+        DsVkFrame *o = &vk_frames[i];
+        if (o == f || !o->submitted)
+            continue;
+        VkResult owr = vkWaitForFences(vk_device, 1, &o->fence, VK_TRUE, UINT64_MAX);
+        if (owr == VK_ERROR_DEVICE_LOST)
+            vk_device_lost = 1;
+        if (!ds_vk_check_result(owr, "vkWaitForFences(frame)"))
+            return 0;
+        o->submitted = 0;
+    }
     if (f->submitted) {
         VkResult wr = vkWaitForFences(vk_device, 1, &f->fence, VK_TRUE, UINT64_MAX);
         if (wr == VK_ERROR_DEVICE_LOST)

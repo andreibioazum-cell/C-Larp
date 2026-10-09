@@ -34,7 +34,8 @@ void ds_graphics_end_frame(void) {
         return;
     ds_vk_end_frame_backend();
     ds_vk_pace_frame();
-    cmd_n = 0;
+    /* Frees DS_CMD_TEXT strings as well; a bare count reset leaked them. */
+    discard_commands();
     frame_open = 0;
     cur_buf = NULL;
 }

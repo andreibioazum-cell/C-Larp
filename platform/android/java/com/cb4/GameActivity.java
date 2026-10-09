@@ -2,8 +2,10 @@ package com.cb4;
 
 import android.app.NativeActivity;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -34,6 +36,9 @@ public final class GameActivity extends NativeActivity {
 
     private boolean alphaNoticeShown;
 
+    private static final String POST_NOTIFICATIONS = "android.permission.POST_NOTIFICATIONS";
+    private static final int REQUEST_NOTIFICATIONS = 4201;
+
     private EditText chatEditor;
     private boolean syncingFromNative;
     private boolean keyboardWasVisible;
@@ -63,6 +68,14 @@ public final class GameActivity extends NativeActivity {
         if (nativeReady) try { nativeKeyboardHidden(); } catch (UnsatisfiedLinkError ignored) { }
     }
 
+    /** Android 13+ asks for notification permission at runtime; older versions grant it. */
+    private void requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] { POST_NOTIFICATIONS }, REQUEST_NOTIFICATIONS);
+        }
+    }
+
     @SuppressWarnings("deprecation")
     private void enterImmersiveMode() {
         getWindow().getDecorView().setSystemUiVisibility(
@@ -80,6 +93,13 @@ public final class GameActivity extends NativeActivity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 
         enterImmersiveMode();
+
+        requestNotificationPermission();
+        try {
+            PresenceJobService.schedule(this);
+        } catch (RuntimeException ignored) {
+            // The background call is optional; the game must start regardless.
+        }
 
         if (state != null) alphaNoticeShown = state.getBoolean("alphaNoticeShown", false);
 

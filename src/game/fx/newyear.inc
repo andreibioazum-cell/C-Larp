@@ -1,20 +1,15 @@
-static const uint32_t newyear_snow_tint = 0x88FFFFFF;
-static const double newyear_spin_min = 0.02;
-static const double newyear_spin_range = 0.04;
-
 static double newyear_active(void) {
     return winter_theme_on() == 1;
 }
 
+/* Snow runs on the lobby-family screens for as long as winter is on. The
+ * startup notice and transitions do not pause it: the draw passes at the end
+ * of this file decide what is visible, and the animation clock never stops. */
 static double newyear_menu_active(void) {
-    if (newyear_active() == 0 ||
-        (game_state != ST_LOBBY && game_state != ST_MODES && game_state != ST_SETTINGS)) {
+    if (newyear_active() == 0) {
         return 0;
     }
-    if (warn_open == 1 || studio_open == 1 || t_dir != 0 || t_fade > 0) {
-        return 0;
-    }
-    return 1;
+    return game_state == ST_LOBBY || game_state == ST_MODES || game_state == ST_SETTINGS;
 }
 
 static void update_newyear_snow(void) {
@@ -90,7 +85,7 @@ static double newyear_snow_x_of(double hx) {
     return x;
 }
 
-static void draw_newyear_snow(void) {
+static void draw_newyear_snow(double notice) {
     if (newyear_menu_active() == 0) {
         return;
     }
@@ -106,7 +101,7 @@ static void draw_newyear_snow(void) {
             arr_set(newyear_flake_cache, b + 1, h1);
             arr_set(newyear_flake_cache, b + 2, h2);
         }
-        double fall_time = 6.0 + 4.0 * h1;
+        double fall_time = 3.2 + 3.6 * h1;
         double cyc = floor(newyear_snow_t / fall_time + h2);
         if (arr_get(newyear_flake_cache, b) != cyc) {
             newyear_flake_refresh(b, i, cyc);
@@ -115,9 +110,10 @@ static void draw_newyear_snow(void) {
         double hx = arr_get(newyear_flake_cache, b + 3);
         double hs = arr_get(newyear_flake_cache, b + 5);
         double hr = arr_get(newyear_flake_cache, b + 6);
-        double x = newyear_snow_x_of(hx) + 14 * sin(newyear_snow_t * 0.6 + i * 2.1);
+        double sway = 14 * sin(newyear_snow_t * 0.6 + i * 2.1);
+        double x = newyear_snow_x_of(hx) + sway;
         double y = -40 + ph * (screen_h + 80);
-        double s = 0.30 + 0.25 * hs;
+        double s = 0.35 + 0.5 * hs;
         double hw = 26 * s;
         double hw_safe = hw * 1.5;
         double lo1 = newyear_snow_band1_lo();
@@ -146,13 +142,18 @@ static void draw_newyear_snow(void) {
                 x = hi2 + hw_safe + 2;
             }
         }
+        /* The menu column only exists in the lobby. Over an open notice each flake
+         * moves towards its full-width place, in step with the notice's opacity, so
+         * flakes glide across the screen instead of jumping. notice = 0 leaves the
+         * lobby layout untouched. */
+        x = x + (hx * screen_w + sway - x) * notice;
         double spin_dir = 1;
         if (ds_mod(i, 2) == 0) {
             spin_dir = -1;
         }
-        double spin = spin_dir * (newyear_spin_min + newyear_spin_range * hr);
+        double spin = spin_dir * (0.9 + 1.4 * hr);
         double ang = (hr + newyear_snow_t * spin) * 2 * pi;
-        tex_tint(x - hw, y - hw, SNOWFLAKE_TEX, ang, s, newyear_snow_tint);
+        tex(x - hw, y - hw, SNOWFLAKE_TEX, ang, s);
         i = i + 1;
     }
 }
@@ -206,6 +207,46 @@ static void update_newyear(void) {
     update_newyear_jingle();
 }
 
-static void draw_newyear_menu_fx(void) {
-    draw_newyear_snow();
+/* Snowflakes are drawn in two passes around the lobby notices. Both notices
+ * (startup warning and studio splash) are opaque panels, so flakes must be
+ * lifted above them to be seen from the first frame. The black transition
+ * curtain must never be painted over flakes, so:
+ *   - the under-pass runs before the curtain, and is skipped while a notice is
+ *     open (the notice already covers the lobby beneath it);
+ *   - the over-pass runs after the notices, and is skipped while the curtain is
+ *     up (t_fade > 0), so black is never drawn on top of snow.
+ * Neither pass pauses the animation clock.
+ * The lobby keeps flakes off its menu column so they never sit on a button. An
+ * open notice has no menu, so the over-pass lets flakes cross the full width and
+ * blends them back into the lobby layout as the notice fades (draw_newyear_snow). */
+static double newyear_snow_under_notice_active(void) {
+    return newyear_menu_active() == 1 && warn_open == 0 && studio_open == 0;
+}
+
+static double newyear_snow_over_notice_active(void) {
+    return newyear_menu_active() == 1 && (warn_open == 1 || studio_open == 1) && t_fade <= 0;
+}
+
+/* How far flakes are lifted to the full width: 1 while the notice is fully
+ * opaque, following its fade, and 0 in the lobby layout. */
+static double newyear_notice_mix(void) {
+    if (warn_open == 1) {
+        return clamp(warn_a, 0, 1);
+    }
+    if (studio_open == 1) {
+        return clamp(studio_a, 0, 1);
+    }
+    return 0;
+}
+
+static void draw_newyear_under_notices(void) {
+    if (newyear_snow_under_notice_active() == 1) {
+        draw_newyear_snow(0);
+    }
+}
+
+static void draw_newyear_over_notices(void) {
+    if (newyear_snow_over_notice_active() == 1) {
+        draw_newyear_snow(newyear_notice_mix());
+    }
 }

@@ -313,20 +313,13 @@ static void draw_screen(void) {
     }
 }
 
-static double newyear_menu_fx_allowed(void) { return newyear_menu_active(); }
-
-static void draw_newyear_menu_if_allowed(void) {
-    if (newyear_menu_fx_allowed() == 1) {
-        draw_newyear_menu_fx();
-    }
-}
-
 static void logic_draw(void) {
     if (t_fade >= 1) {
         rect(0, 0, screen_w, screen_h, 0xFF000000);
     } else {
         draw_screen();
-        draw_newyear_menu_if_allowed();
+        /* Snow beneath the transition curtain. */
+        draw_newyear_under_notices();
         if (t_fade > 0) {
             rect(0, 0, screen_w, screen_h, (1 + floor(t_fade * 254)) * 0x1000000);
         }
@@ -337,6 +330,8 @@ static void logic_draw(void) {
     if (studio_open == 1) {
         draw_studio();
     }
+    /* Snow above the opaque startup notices, but never above the curtain. */
+    draw_newyear_over_notices();
     draw_achievement_toast();
 }
 
