@@ -26,6 +26,8 @@ static int winter_playing;
 static int winter_loop_calls;
 static int snowflake_draws;
 static int snowflake_tinted;
+static double snowflake_centres[64];
+static int snowflake_centre_n;
 static int star_line_count;
 
 struct DSArray {
@@ -303,6 +305,10 @@ void tex(float x, float y, const char *name, float angle, float scale) {
     last_ground = name;
     if (name && SNOWFLAKE_TEX && strcmp(name, SNOWFLAKE_TEX) == 0) {
         snowflake_draws++;
+        if (snowflake_centre_n < 64) {
+            /* tex() receives the top-left corner; the game sets hw = 26*scale, so the centre is 26*scale further right. */
+            snowflake_centres[snowflake_centre_n++] = x + 26.0 * scale;
+        }
     }
 }
 
@@ -461,6 +467,77 @@ int main(void) {
     assert(snowflake_draws == 0);
     draw_newyear_over_notices();
     assert(snowflake_draws == (int)newyear_menu_flakes && snowflake_tinted == 0);
+
+    /* Over the startup notice the snow spans the full width, including the centre
+     * column where the notice text sits. Beneath the lobby the menu column stays
+     * clear. Closing the notice must not move any flake: the over-pass at zero
+     * opacity has to match the lobby layout exactly. */
+    {
+        int saved_w = screen_w;
+        int saved_h = screen_h;
+        double saved_t = newyear_snow_t;
+        double lo = 0;
+        double hi = 0;
+        double lobby_x[64];
+        int centre_over = 0;
+        int centre_lobby = 0;
+        int handoff_mismatch = 0;
+        int k = 0;
+
+        assert(newyear_menu_flakes <= 64);
+        screen_w = 1080;
+        screen_h = 2400;
+        lo = menu_x() - newyear_snow_col_pad;
+        hi = menu_x() + btn_w + newyear_snow_col_pad;
+        for (k = 0; k < 200; k++) {
+            int j = 0;
+            newyear_snow_t = 1.0 + k * 0.173;
+
+            warn_open = 0;
+            warn_a = 0;
+            snowflake_centre_n = 0;
+            draw_newyear_under_notices();
+            assert(snowflake_centre_n == (int)newyear_menu_flakes);
+            for (j = 0; j < snowflake_centre_n; j++) {
+                lobby_x[j] = snowflake_centres[j];
+                if (lobby_x[j] >= lo && lobby_x[j] <= hi) {
+                    centre_lobby++;
+                }
+            }
+
+            warn_open = 1;
+            warn_a = 0;
+            snowflake_centre_n = 0;
+            draw_newyear_over_notices();
+            assert(snowflake_centre_n == (int)newyear_menu_flakes);
+            for (j = 0; j < snowflake_centre_n; j++) {
+                double d = snowflake_centres[j] - lobby_x[j];
+                if (d > 1e-3 || d < -1e-3) {
+                    handoff_mismatch++;
+                }
+            }
+
+            warn_a = 1;
+            snowflake_centre_n = 0;
+            draw_newyear_over_notices();
+            assert(snowflake_centre_n == (int)newyear_menu_flakes);
+            for (j = 0; j < snowflake_centre_n; j++) {
+                if (snowflake_centres[j] >= lo && snowflake_centres[j] <= hi) {
+                    centre_over++;
+                }
+            }
+        }
+        /* The centre column is about 31% of a 1080 px screen; require at least 10%. */
+        assert(centre_lobby == 0);
+        assert(handoff_mismatch == 0);
+        assert(centre_over >= 200 * (int)newyear_menu_flakes / 10);
+
+        screen_w = saved_w;
+        screen_h = saved_h;
+        newyear_snow_t = saved_t;
+        warn_open = 1;
+        warn_a = 1;
+    }
 
     /* A transition curtain over the notice: no flakes are drawn above black. */
     t_fade = 0.5;
