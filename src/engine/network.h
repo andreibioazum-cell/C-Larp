@@ -15,6 +15,12 @@
 #define NET_LOGIN_WRONG_PASS 6
 #define NET_LOGIN_BAD_PASS 7
 
+/* Firebase endpoint, web key and room. config.inc and the background presence
+ * check (presence.inc) both read these, so the job works in a cold process. */
+#define NET_FIREBASE_URL "https://cubicbattleserver-19ae2-default-rtdb.firebaseio.com"
+#define NET_FIREBASE_KEY "AIzaSyDJEqopxP5EqEoxP_ehO3jFXbNztu3DgVs"
+#define NET_DEFAULT_ROOM "main"
+
 #ifdef __ANDROID__
 void net_set_java_vm(JavaVM *vm);
 #endif
@@ -25,6 +31,7 @@ void net_set_data_path(const char *path);
 
 void net_set_firebase_key(const char *key);
 void net_autologin(const char *url);
+int net_presence_check(const char *data_dir);
 double net_auth(const char *url, const char *nick, const char *pass);
 double net_set_nick(const char *nick);
 void net_logout(void);
