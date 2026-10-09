@@ -212,10 +212,10 @@ void net_save_progress(double cups, double candies, double cls, double azum, dou
     } else if (k == 3) {
         el = (int)level;
         eu = (int)levels_unlocked;
-    } else if (k == 4) {
+    } else if (k == 4 || k == 5) {
         atl = (int)level;
         atu = (int)levels_unlocked;
-        net_save_astra(1, atl, atu);
+        net_save_astra(k == 4, atl, atu);
     }
     net_save_progress_all(cups, candies, cls, azum, santa, ebuc, level, levels_unlocked, ol, ou, al, au, sl, su, el, eu,
                           bp, sk);
@@ -248,7 +248,7 @@ void net_save_progress_all(double cups, double candies, double cls, double azum,
         c = 0;
     if (cd < 0)
         cd = 0;
-    if (k != 1 && k != 2 && k != 3 && k != 4)
+    if (k != 1 && k != 2 && k != 3 && k != 4 && k != 5)
         k = 0;
 
     progress_read();
@@ -310,7 +310,7 @@ void net_save_progress_all(double cups, double candies, double cls, double azum,
     } else if (k == 2) {
         lv = sl;
         lu = su;
-    } else if (k == 4) {
+    } else if (k == 4 || k == 5) {
         lv = atl;
         lu = atu;
     } else {

@@ -1,52 +1,25 @@
-/* ===========================================================================
- * Astra (Rework) - developer-only variant of Astra.
+/* Astra (Rework) is a separate, administrator-only class (ID 5). It shares
+ * Astra's progression and cube art, but travels online as its own class ID.
+ * The old Astra + special-skin pair is still recognized for mixed-version
+ * matches. Selection is guarded locally and in Firebase rules.
  *
- * It IS the same class as Astra (CLASS_ASTRA); only the numbers differ. The
- * variant travels in the *skin* slot Astra never used (SKIN_SPECIAL), so the
- * wire format is untouched: cls stays 4, skin becomes 1, and every client
- * already publishes, validates and caches that pair (see read_remotes(),
- * which snapshots cls+skin once per remote join). Nothing extra is sent, no
- * new JSON key is added and no per-frame network read is introduced.
- *
- * Deltas vs. regular Astra (every number lives right here):
- *   HP              -5%       astra_rw_hp_factor      <- astra_hp
- *   punch           -7%       astra_rw_punch_factor   <- astra punch damage
- *   ult hits 1..3   faster    astra_rw_interval_factor <- astra_hit_interval
- *   ult finisher    sooner    astra_rw_final_delay     <- astra_final_delay
- *     Three quick beats, then only ~0.4 s of wind-up before the throw, so the
- *     ultimate reads as "fast hits, short pause, throw". The whole grab is
- *     thus shorter than the regular one - deliberate: the variant is
- *     developer-only and every client resolves it from the synced class/skin
- *     pair (astra_rw_of_slot()), never from a timer of its own.
- *   ult throw       +35%      astra_rw_throw_factor   <- astra_throw_dist
- *   small lunge on ult cast   astra_rw_lunge_dist / astra_rw_lunge_time
- *     A small forward step, eased over astra_rw_lunge_time instead of an
- *     instant teleport. The grab origin (hitbox + published zone) is the end
- *     of the step, taken at cast time, so hitbox and network traffic stay
- *     exactly what they were.
- *
- * Only the two configured administrator accounts can unlock or select
- * it; every other account sees Astra exactly as before.
- *
- * Porting into regular Astra later: move these numbers into the astra_*
- * constants in state/create/core/config.inc and delete this file, replacing
- * the astra_rw_*() calls in battle_astra*.inc with the plain astra_* values.
- * =========================================================================== */
+ * Rework tuning: -5% HP, -7% punch, faster ultimate beats, shorter finisher,
+ * a small lunge, and a 10% throw-distance bonus. */
 
 static const double astra_rw_hp_factor = 0.95;
 static const double astra_rw_punch_factor = 0.93;
 static const double astra_rw_interval_factor = 0.8;
 static const double astra_rw_final_delay = 0.4;
-static const double astra_rw_throw_factor = 1.35;
+static const double astra_rw_throw_factor = 1.10;
 static const double astra_rw_lunge_dist = 37.4;
 static const double astra_rw_lunge_time = 0.16;
 static const double astra_rw_catch_buffer = 0.06;
 static const double astra_rw_tint_rgb = 0xE040FB;
 static const double astra_rw_tint_a = 0.35;
 
-/* The variant stored in the skin slot of Astra. */
+/* Accept the former network pair during mixed-version matches. */
 static double astra_rw_of(double cls, double skin) {
-    if (cls == CLASS_ASTRA && skin == SKIN_SPECIAL) {
+    if (cls == CLASS_ASTRA_REWORK || (cls == CLASS_ASTRA && skin == SKIN_SPECIAL)) {
         return 1;
     }
     return 0;
@@ -81,32 +54,12 @@ static void astra_rw_refresh(void) { astra_rw_ok = astra_rw_is_dev(); }
 
 static double astra_rw_allowed(void) { return astra_rw_ok; }
 
-/* Effective variant of the local player: only the developer account may use a
- * saved selection, so a copied progress file cannot fake the variant. */
+/* A copied progress file cannot grant the class to a non-administrator. */
 static double astra_rw_on(void) {
-    if (astra_rw_ok == 1 && astra_skin == 1) {
-        return 1;
-    }
-    return 0;
+    return player_class == CLASS_ASTRA_REWORK && astra_rw_allowed();
 }
 
-static double astra_rw_local(void) {
-    if (player_class == CLASS_ASTRA && astra_rw_on() == 1) {
-        return 1;
-    }
-    return 0;
-}
-
-static void astra_rw_select(double on) {
-    astra_rw_refresh();
-    if (astra_rw_allowed() == 0) {
-        astra_skin = 0;
-        save_progress();
-        return;
-    }
-    astra_skin = on == 1 ? 1 : 0;
-    save_progress();
-}
+static double astra_rw_local(void) { return astra_rw_on(); }
 
 static const char *astra_rw_desc(void) { return "devdevdev"; }
 
@@ -200,7 +153,7 @@ static double astra_rw_throw_stun_for(double lv, double rw) {
 
 static double astra_rw_max_hp_for(double cls, double rw) {
     double hp = player_max_hp_for(cls);
-    if (rw == 1 && cls == CLASS_ASTRA) {
+    if (rw == 1 && class_is_astra(cls)) {
         hp = hp * astra_rw_hp_factor;
     }
     return hp;
@@ -208,7 +161,7 @@ static double astra_rw_max_hp_for(double cls, double rw) {
 
 static double astra_rw_punch_damage_for(double cls, double lv, double rw) {
     double d = class_punch_damage_for(cls, lv);
-    if (rw == 1 && cls == CLASS_ASTRA) {
+    if (rw == 1 && class_is_astra(cls)) {
         d = d * astra_rw_punch_factor;
     }
     return d;

@@ -21,7 +21,7 @@ static void progress_read(void) {
     int ebuc_level = -1, ebuc_levels_unlocked = -1;
     int bp_level = 0, azum_skin = 0;
     int astra = 0, astra_level = -1, astra_levels_unlocked = -1;
-    int astra_rw = 0; /* Astra (Rework) local selection, never synced */
+    int astra_rw = 0; /* Legacy Astra skin marker for migration */
     pg_lock();
     if (pg.loaded) {
         pg_unlock();
@@ -103,7 +103,7 @@ static void progress_read(void) {
         cups = 0;
     if (candies < 0)
         candies = 0;
-    if (cls != 1 && cls != 2 && cls != 3 && cls != 4)
+    if (cls != 1 && cls != 2 && cls != 3 && cls != 4 && cls != 5)
         cls = 0;
     azum = azum ? 1 : 0;
     santa = santa ? 1 : 0;
@@ -132,7 +132,7 @@ static void progress_read(void) {
     } else if (cls == 2) {
         level = santa_level;
         levels_unlocked = santa_levels_unlocked;
-    } else if (cls == 4) {
+    } else if (cls == 4 || cls == 5) {
         level = astra_level;
         levels_unlocked = astra_levels_unlocked;
     } else {
@@ -365,6 +365,9 @@ void net_save_astra(double owned, double level, double levels_unlocked) {
             pg.level = lv;
             pg.levels_unlocked = lu;
         }
+    } else if (pg.cls == 5) {
+        pg.level = lv;
+        pg.levels_unlocked = lu;
     }
     c = pg.cups;
     cd = pg.candies;
@@ -387,7 +390,7 @@ void net_save_astra(double owned, double level, double levels_unlocked) {
     arw = pg.astra_rw;
     pg.loaded = 1;
     pg_unlock();
-    if (k == 4) {
+    if (k == 4 || k == 5) {
         pending_cls = k;
         pending_level = plv;
         pending_skin = 0;
@@ -395,8 +398,7 @@ void net_save_astra(double owned, double level, double levels_unlocked) {
     progress_write(c, cd, k, a, sn, eu, plv, plu, ol, ou, al, au, sl, su, el, eul, bp, sk, own, lv, lu, arw);
 }
 
-/* Astra (Rework) selection. Local-only on purpose: the variant is a developer
- * switch, so it stays in progress.dat and is never pushed to the cloud. */
+/* Obsolete local Astra/Rework skin marker, read only for old-save migration. */
 double net_load_astra_rw(void) {
     double v;
     progress_read();

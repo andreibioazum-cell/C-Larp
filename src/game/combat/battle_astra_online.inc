@@ -1,5 +1,5 @@
 static void push_astra_grab(void) {
-    if (player_class != CLASS_ASTRA) {
+    if (class_is_astra(player_class) == 0) {
         return;
     }
     if (astra_state != 0 && astra_pub == 0) {
@@ -42,10 +42,8 @@ static void remote_grab_begin(double slot) {
     remote_grab_set(slot, GRAB_Y, net_player_grab_y(slot) * screen_h);
     remote_grab_set(slot, GRAB_DX, net_player_grab_dx(slot));
     remote_grab_set(slot, GRAB_DY, net_player_grab_dy(slot));
-    /* Resolve the attacker's Astra variant once, here, from the class/skin
-     * snapshot read_remotes() already keeps: every later frame of this grab
-     * (beats, hitboxes, throw) reads the cached bit instead of touching the
-     * network again. */
+    /* Resolve the Rework bit once from read_remotes()' class ID (or legacy
+     * Astra/skin pair): every later frame reads the cached bit, not the network. */
     remote_grab_set(slot, GRAB_RW, astra_rw_of_slot(slot));
 }
 

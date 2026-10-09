@@ -110,6 +110,7 @@ double CLASS_AZUM;
 double CLASS_SANTA;
 double CLASS_EBUC;
 double CLASS_ASTRA;
+double CLASS_ASTRA_REWORK;
 double player_class;
 double azum_revived;
 double revive_prot;
@@ -328,8 +329,8 @@ double GRAB_DY;
 double GRAB_T;
 double GRAB_CAUGHT;
 double GRAB_HITS;
-/* Cached Astra variant (0 = Astra, 1 = Astra Rework) of a remote attacker,
- * resolved once per grab from the synced class/skin snapshot. */
+/* Cached Rework bit of a remote attacker, resolved once per grab from the
+ * synced class ID (or the legacy Astra/skin pair). */
 double GRAB_RW;
 double grab_fields;
 double grab_slot_bot;

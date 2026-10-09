@@ -98,8 +98,6 @@ const char *SANTA_CARD_TEX;
 const char *EBUC_CARD_TEX;
 const char *EBUC_ELF_CARD_TEX;
 const char *ASTRA_CARD_TEX;
-/* Astra (Rework) - developer-only Astra variant. astra_skin is the persisted
- * selection (the variant lives in Astra's unused skin slot), astra_rw_ok is
- * the cached "logged in as the developer account" permission bit. */
+/* Legacy local skin marker, retained only to migrate old Rework selections. */
 double astra_skin;
 double astra_rw_ok;

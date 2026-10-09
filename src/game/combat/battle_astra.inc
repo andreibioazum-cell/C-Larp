@@ -97,7 +97,7 @@ static double astra_zone_hits_enemy(double gx, double gy, double gdx, double gdy
 }
 
 static double astra_locked(void) {
-    if (player_class != CLASS_ASTRA) {
+    if (class_is_astra(player_class) == 0) {
         return 0;
     }
     if (astra_state == 1 || astra_state == 2) {

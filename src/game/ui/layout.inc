@@ -61,26 +61,22 @@ static double lobby_money_y(void) { return menu_row(lobby_rows - 1) + btn_h + 12
 static double lobby_msg_y(void) { return lobby_money_y() + money_line_h + 6; }
 
 static double classes_card_w(void) {
-    double n = classes_visible_count();
-    if (n < 1) {
-        n = 1;
-    }
+    double n = classes_page_size();
     double total_gap = class_gap * (n - 1);
     double w = (screen_w - 2 * screen_margin - total_gap) / n;
     return clamp(w, class_card_min_w, class_card_max_w);
 }
 
 static double classes_total_w(void) {
-    double n = classes_visible_count();
-    if (n < 1) {
-        n = 1;
-    }
+    double n = classes_page_items();
     return classes_card_w() * n + class_gap * (n - 1);
 }
 
 static double classes_top(void) { return back_y + btn_h + title_gap; }
 
-static double classes_card_x(double vi) { return center_x(classes_total_w()) + vi * (classes_card_w() + class_gap); }
+static double classes_card_x(double vi) {
+    return center_x(classes_total_w()) + (vi - classes_page_start()) * (classes_card_w() + class_gap);
+}
 
 /* On-screen size (in px) of the shop card render. Bumped up from the old
  * tiny 50*1.55 = 77.5px pixel sprite so the higher-resolution character art
@@ -124,6 +120,30 @@ static double hit_class_card(double px, double py, double vi) {
     return hit_rect(px, py, classes_card_x(vi), classes_top(), classes_card_w(), class_card_h);
 }
 
+static double classes_nav_w(void) { return 36; }
+
+static double classes_nav_h(void) { return 48; }
+
+static double classes_nav_y(void) { return classes_top() + (class_card_h - classes_nav_h()) / 2; }
+
+static double classes_prev_x(void) { return 4; }
+
+static double classes_next_x(void) { return screen_w - classes_nav_w() - 4; }
+
+static double hit_classes_prev(double px, double py) {
+    return classes_page > 0 && hit_rect_pad(px, py, classes_prev_x(), classes_nav_y(), classes_nav_w(), classes_nav_h());
+}
+
+static double hit_classes_next(double px, double py) {
+    return classes_page < classes_page_count() - 1 &&
+           hit_rect_pad(px, py, classes_next_x(), classes_nav_y(), classes_nav_w(), classes_nav_h());
+}
+
+static double classes_swipe_zone(double px, double py) {
+    return classes_page_count() > 1 && py >= classes_top() && py <= classes_top() + class_card_h &&
+           hit_classes_prev(px, py) == 0 && hit_classes_next(px, py) == 0;
+}
+
 static double class_actions_y(void) { return classes_top() + class_card_h + class_gap; }
 
 static double class_action_w(void) {
@@ -140,17 +160,7 @@ static double levels_btn_x(void) {
 
 static double skins_btn_x(void) { return screen_w / 2 + class_action_gap / 2; }
 
-static double class_has_skins(double cls) {
-    if (cls == CLASS_AZUM || cls == CLASS_EBUC) {
-        return 1;
-    }
-    /* Astra's skin slot holds the developer-only Rework variant, so the skins
-     * screen only opens for the developer account. */
-    if (cls == CLASS_ASTRA) {
-        return astra_rw_allowed();
-    }
-    return 0;
-}
+static double class_has_skins(double cls) { return cls == CLASS_AZUM || cls == CLASS_EBUC; }
 
 static double skins_btn_visible(void) { return class_has_skins(player_class); }
 
@@ -169,7 +179,7 @@ static double class_msg_y(void) { return class_actions_y() + btn_h + 14; }
 
 static double stat_bar_w(void) { return fit_w(520); }
 
-static double stat_star_r(void) { return 26; }
+static double stat_star_r(void) { return clamp(stat_bar_w() / 13.6, 4, 26); }
 
 static double stat_stars_y(void) { return screen_h - 138; }
 

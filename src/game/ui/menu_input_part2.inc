@@ -1,3 +1,90 @@
+static void classes_swipe_reset(void) {
+    classes_swipe_id = -1;
+    classes_swipe_card = -1;
+}
+
+static double classes_swipe_threshold(void) { return clamp(screen_w * 0.08, 48, 88); }
+
+static void touch_classes(double x, double y, double action, double id) {
+    if (action == 3) {
+        classes_swipe_reset();
+        return;
+    }
+    if (action == 2) {
+        return;
+    }
+    if (action == 1) {
+        if (classes_swipe_id != id) {
+            return;
+        }
+        double dx = x - classes_swipe_start_x;
+        double dy = y - classes_swipe_start_y;
+        double vi = classes_swipe_card;
+        classes_swipe_reset();
+        if (fabs(dx) >= classes_swipe_threshold() && fabs(dx) >= fabs(dy) * 1.2) {
+            if (dx < 0) {
+                classes_page_next();
+            } else {
+                classes_page_prev();
+            }
+            return;
+        }
+        if (vi >= 0 && hit_class_card(x, y, vi) == 1) {
+            play_button_click();
+            pick_class(visible_class_at(vi));
+        }
+        return;
+    }
+    if (action != 0 || classes_swipe_id != -1) {
+        return;
+    }
+    if (back_hit(x, y) == 1) {
+        start_transition(ST_LOBBY);
+        return;
+    }
+    if (hit_levels_btn(x, y) == 1) {
+        start_transition(ST_LEVELS);
+        return;
+    }
+    if (hit_skins_btn(x, y) == 1) {
+        start_transition(ST_SKINS);
+        return;
+    }
+    if (hit_classes_prev(x, y) == 1) {
+        classes_page_prev();
+        return;
+    }
+    if (hit_classes_next(x, y) == 1) {
+        classes_page_next();
+        return;
+    }
+    if (classes_swipe_zone(x, y) == 1) {
+        classes_swipe_id = id;
+        classes_swipe_start_x = x;
+        classes_swipe_start_y = y;
+        double vi = classes_page_start();
+        double last = vi + classes_page_items();
+        while (vi < last) {
+            if (hit_class_card(x, y, vi) == 1) {
+                classes_swipe_card = vi;
+                break;
+            }
+            vi = vi + 1;
+        }
+        return;
+    }
+    double vi = classes_page_start();
+    double last = vi + classes_page_items();
+    while (vi < last) {
+        if (hit_class_card(x, y, vi) == 1) {
+            pick_class(visible_class_at(vi));
+            return;
+        }
+        vi = vi + 1;
+    }
+}
+
+
 static double menu_button_hit(double x, double y) {
     double i = 0;
     if (game_state == ST_LOBBY) {
@@ -22,8 +109,11 @@ static double menu_button_hit(double x, double y) {
         return 0;
     }
     if (game_state == ST_CLASSES) {
-        if (back_hit(x, y) == 1 || hit_levels_btn(x, y) == 1 || hit_skins_btn(x, y) == 1) return 1;
-        while (i < classes_visible_count()) {
+        if (back_hit(x, y) == 1 || hit_levels_btn(x, y) == 1 || hit_skins_btn(x, y) == 1 ||
+            hit_classes_prev(x, y) == 1 || hit_classes_next(x, y) == 1) return 1;
+        i = classes_page_start();
+        double last = i + classes_page_items();
+        while (i < last) {
             if (hit_class_card(x, y, i) == 1) return 1;
             i = i + 1;
         }
@@ -60,7 +150,11 @@ static double menu_button_hit(double x, double y) {
     return 0;
 }
 
-static void touch_menu(double x, double y, double action) {
+static void touch_menu(double x, double y, double action, double id) {
+    if (game_state == ST_CLASSES) {
+        touch_classes(x, y, action, id);
+        return;
+    }
     if (action != 0) {
         return;
     }
@@ -74,10 +168,6 @@ static void touch_menu(double x, double y, double action) {
     }
     if (game_state == ST_LOGIN) {
         touch_login(x, y, action);
-        return;
-    }
-    if (game_state == ST_CLASSES) {
-        touch_classes(x, y, action);
         return;
     }
     if (game_state == ST_LEVELS) {

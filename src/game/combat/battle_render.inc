@@ -246,14 +246,14 @@ static void draw_controls(void) {
             sl = tr_super_ebuc();
         } else if (player_class == CLASS_AZUM) {
             sl = tr_super_azum();
-        } else if (player_class == CLASS_ASTRA) {
+        } else if (class_is_astra(player_class) == 1) {
             sl = tr_super_astra();
         }
         double sls = 0.55;
         double left = super_cd;
         if (player_class == CLASS_AZUM) {
             left = dash_cd;
-        } else if (player_class == CLASS_ASTRA) {
+        } else if (class_is_astra(player_class) == 1) {
             left = astra_cd;
         }
         if (left > 0) {

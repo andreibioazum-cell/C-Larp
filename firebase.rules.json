@@ -36,7 +36,7 @@
         "pass": { ".validate": false },
         "cups": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000000" },
         "candies": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000000" },
-        "cls": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 4" },
+        "cls": { ".validate": "newData.isNumber() && newData.val() >= 0 && (newData.val() <= 4 || (newData.val() == 5 && auth != null && (auth.token.email.toLowerCase() == 'dimasi4ek229@cb4.game' || auth.token.email.toLowerCase() == 'qwertyuiopaj1234@cb4.game')))" },
         "azum": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1" },
         "santa": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1" },
         "ebuc": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1" },
@@ -120,7 +120,7 @@
             "uzy": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1" },
             "universe": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000000000" },
             "thud": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000000000" },
-            "cls": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 4" },
+            "cls": { ".validate": "newData.isNumber() && newData.val() >= 0 && (newData.val() <= 4 || (newData.val() == 5 && auth != null && (auth.token.email.toLowerCase() == 'dimasi4ek229@cb4.game' || auth.token.email.toLowerCase() == 'qwertyuiopaj1234@cb4.game')))" },
             "level": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" },
             "skin": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1" },
             "$other": { ".validate": false }

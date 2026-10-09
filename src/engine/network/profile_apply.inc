@@ -28,7 +28,7 @@ static void apply_user_json(const char *resp) {
         cups = 0;
     if (candies < 0)
         candies = 0;
-    if (cls != 1 && cls != 2 && cls != 3 && cls != 4)
+    if (cls != 1 && cls != 2 && cls != 3 && cls != 4 && cls != 5)
         cls = 0;
     azum = azum ? 1 : 0;
     santa = santa ? 1 : 0;
@@ -61,7 +61,7 @@ static void apply_user_json(const char *resp) {
         } else if (cls == 3 && ebuc) {
             ebuc_level = level;
             ebuc_levels_unlocked = levels_unlocked;
-        } else if (cls == 4 && astra) {
+        } else if ((cls == 4 || cls == 5) && (cls == 5 || astra)) {
             astra_level = level;
             astra_levels_unlocked = levels_unlocked;
         } else {
@@ -101,7 +101,7 @@ static void apply_user_json(const char *resp) {
     } else if (cls == 2) {
         level = santa_level;
         levels_unlocked = santa_levels_unlocked;
-    } else if (cls == 4) {
+    } else if (cls == 4 || cls == 5) {
         level = astra_level;
         levels_unlocked = astra_levels_unlocked;
     } else {
@@ -116,8 +116,8 @@ static void apply_user_json(const char *resp) {
         azum_skin = 0;
     if (azum_skin > SKIN_FLAGS_MAX)
         azum_skin = SKIN_FLAGS_MAX;
-    /* Astra (Rework) is a local developer switch and is deliberately absent
-     * from the synced profile: preserve the value already on this device. */
+    /* This obsolete field exists only to migrate old local saves; never accept
+     * it from a cloud profile. */
     astra_rw = (int)net_load_astra_rw();
     pg_lock();
     pg.cups = cups;
@@ -344,6 +344,9 @@ static int apply_user_json_keep_local(const char *resp) {
             pg.cls = local_cls;
             restored = 1;
         }
+    } else if (dirty && local_cls == 5 && pg.cls != 5) {
+        pg.cls = 5;
+        restored = 1;
     } else if (dirty && local_cls == 0 && pg.cls != 0) {
         pg.cls = 0;
         restored = 1;
@@ -358,7 +361,7 @@ static int apply_user_json_keep_local(const char *resp) {
     } else if (pg.cls == 2) {
         pg.level = pg.santa_level;
         pg.levels_unlocked = pg.santa_levels_unlocked;
-    } else if (pg.cls == 4) {
+    } else if (pg.cls == 4 || pg.cls == 5) {
         pg.level = pg.astra_level;
         pg.levels_unlocked = pg.astra_levels_unlocked;
     } else {

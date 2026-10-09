@@ -1,17 +1,37 @@
-static double class_level_of(double cls) { return arr_get(class_level_tbl, cls); }
+static double class_level_of(double cls) {
+    if (cls == CLASS_ASTRA_REWORK) {
+        cls = CLASS_ASTRA;
+    }
+    return arr_get(class_level_tbl, cls);
+}
 
-static double class_unlocked_of(double cls) { return arr_get(class_unlocked_tbl, cls); }
+static double class_unlocked_of(double cls) {
+    if (cls == CLASS_ASTRA_REWORK) {
+        cls = CLASS_ASTRA;
+    }
+    return arr_get(class_unlocked_tbl, cls);
+}
 
 static double class_owned_of(double cls) {
     if (cls == CLASS_ORDINARY) {
         return 1;
     }
+    if (cls == CLASS_ASTRA_REWORK) {
+        return astra_rw_allowed();
+    }
     return arr_get(class_owned_tbl, cls);
 }
 
-static void set_class_owned(double cls, double owned) { arr_set(class_owned_tbl, cls, owned); }
+static void set_class_owned(double cls, double owned) {
+    if (cls != CLASS_ASTRA_REWORK) {
+        arr_set(class_owned_tbl, cls, owned);
+    }
+}
 
 static void set_class_progress(double cls, double lv, double un) {
+    if (cls == CLASS_ASTRA_REWORK) {
+        cls = CLASS_ASTRA;
+    }
     arr_set(class_level_tbl, cls, lv);
     arr_set(class_unlocked_tbl, cls, un);
 }
@@ -53,6 +73,9 @@ static const char *class_name_of(double cls) {
     if (cls == CLASS_ASTRA) {
         return tr_class_astra();
     }
+    if (cls == CLASS_ASTRA_REWORK) {
+        return tr_class_astra_rework();
+    }
     if (cls == CLASS_SANTA) {
         return tr_class_santa();
     }
@@ -65,6 +88,9 @@ static const char *class_name_of(double cls) {
 static const char *class_desc_of(double cls) {
     if (cls == CLASS_AZUM) {
         return tr_class_azum_desc();
+    }
+    if (cls == CLASS_ASTRA_REWORK) {
+        return astra_rw_desc();
     }
     if (cls == CLASS_ASTRA) {
         return tr_class_astra_desc();
@@ -91,13 +117,13 @@ static GAME_MAYBE_UNUSED double class_power_of(double cls) {
 
 /* How imbalanced (overpowered) each class is judged to be, 0..5 - the five
  * stars under the class cards. Astra (Rework) is the deliberately broken
- * developer variant, so it tops the scale while the plain Astra is already a
+ * developer-only class, so it tops the scale while plain Astra is already a
  * strong class. Tune the numbers here and nothing else has to change. */
 static double class_imbalance_of(double cls) {
+    if (cls == CLASS_ASTRA_REWORK) {
+        return 5;
+    }
     if (cls == CLASS_ASTRA) {
-        if (astra_rw_of(cls, class_skin_of(cls)) == 1) {
-            return 5;
-        }
         return 4;
     }
     if (cls == CLASS_AZUM || cls == CLASS_EBUC) {
@@ -143,11 +169,6 @@ static double class_skin_of(double cls) {
     if (cls == CLASS_AZUM) {
         return azum_skin;
     }
-    if (cls == CLASS_ASTRA) {
-        /* Astra's skin slot carries the Rework variant (SKIN_SPECIAL) and is
-         * what gets published as the player's skin over the network. */
-        return astra_rw_on() == 1 ? SKIN_SPECIAL : SKIN_NORMAL;
-    }
     return SKIN_NORMAL;
 }
 
@@ -163,23 +184,17 @@ static double skin_unlocked_for(double cls, double skin) {
     if (cls == CLASS_AZUM && has_achievement(ACH_LEGENDS) == 1) {
         return 1;
     }
-    if (cls == CLASS_ASTRA && astra_rw_allowed() == 1) {
-        return 1;
-    }
     return 0;
 }
 
 static double skin_unlocked(double skin) { return skin_unlocked_for(player_class, skin); }
 
 static const char *skin_name_for(double cls, double skin) {
-    if (skin != SKIN_SPECIAL) {
+    if (skin != SKIN_SPECIAL || (cls != CLASS_EBUC && cls != CLASS_AZUM)) {
         return tr_skin_normal();
     }
     if (cls == CLASS_EBUC) {
         return tr_skin_elf();
-    }
-    if (cls == CLASS_ASTRA) {
-        return tr_skin_astra_rw();
     }
     return tr_skin_zombie();
 }
@@ -189,9 +204,6 @@ static const char *skin_name_of(double skin) { return skin_name_for(player_class
 static const char *skin_hint_for(double cls) {
     if (cls == CLASS_EBUC) {
         return tr_skin_elf_hint();
-    }
-    if (cls == CLASS_ASTRA) {
-        return astra_rw_desc();
     }
     return tr_skin_legends_hint();
 }
@@ -209,9 +221,6 @@ static void pick_skin(double skin) {
     }
     if (player_class == CLASS_EBUC) {
         ebuc_skin = skin;
-    } else if (player_class == CLASS_ASTRA) {
-        astra_rw_select(skin);
-        return;
     } else {
         azum_skin = skin;
     }
@@ -219,6 +228,9 @@ static void pick_skin(double skin) {
 }
 
 static double class_visible(double cls) {
+    if (cls == CLASS_ASTRA_REWORK) {
+        return astra_rw_allowed();
+    }
     if (cls == CLASS_SANTA && candy_enabled == 0 && class_owned_of(CLASS_SANTA) == 0) {
         return 0;
     }
@@ -235,6 +247,9 @@ static double class_at_order(double i) {
     if (i == 4) {
         return CLASS_ASTRA;
     }
+    if (i == 5) {
+        return CLASS_ASTRA_REWORK;
+    }
     return i;
 }
 
@@ -248,6 +263,48 @@ static double classes_visible_count(void) {
         i = i + 1;
     }
     return n;
+}
+
+static double classes_page_size(void) {
+    double available = screen_w - 2 * screen_margin;
+    return clamp(floor((available + class_gap) / (class_card_min_w + class_gap)), 1, class_count);
+}
+
+static double classes_page_count(void) {
+    return ceil(classes_visible_count() / classes_page_size());
+}
+
+static void classes_page_clamp(void) {
+    double last = classes_page_count() - 1;
+    if (classes_page < 0) {
+        classes_page = 0;
+    } else if (classes_page > last) {
+        classes_page = last;
+    }
+}
+
+static double classes_page_start(void) {
+    classes_page_clamp();
+    return floor(classes_page) * classes_page_size();
+}
+
+static double classes_page_items(void) {
+    return clamp(classes_visible_count() - classes_page_start(), 0, classes_page_size());
+}
+
+static void classes_page_prev(void) {
+    classes_page = classes_page - 1;
+    classes_page_clamp();
+}
+
+static void classes_page_next(void) {
+    classes_page = classes_page + 1;
+    classes_page_clamp();
+}
+
+static const char *classes_page_label(void) {
+    return ds_concat(ds_concat(ds_num_to_string(classes_page + 1), " / "),
+                     ds_num_to_string(classes_page_count()));
 }
 
 static double visible_class_at(double vi) {
@@ -354,13 +411,16 @@ static const char *level_msg_text(void) {
 }
 
 static void select_class(double cls) {
+    if (cls < 0 || cls >= class_count || class_visible(cls) == 0 || class_owned_of(cls) == 0) {
+        return;
+    }
     player_class = cls;
     sync_selected_class();
     save_progress();
 }
 
 static void pick_class(double cls) {
-    if (cls < 0 || cls >= class_count) {
+    if (cls < 0 || cls >= class_count || class_visible(cls) == 0) {
         return;
     }
     if (class_owned_of(cls) == 1) {

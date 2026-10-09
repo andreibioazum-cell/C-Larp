@@ -40,7 +40,7 @@ touch_pad_x = 12;
 touch_pad_y = 8;
 screen_margin = 40;
 class_action_gap = 40;
-class_count = 5;
+class_count = 6;
 class_gap = 14;
 /* 5% taller and 10% narrower than the original 272/150/260 so the shop
  * cards read a bit more portrait and leave more breathing room around the
@@ -113,6 +113,7 @@ CLASS_AZUM = 1;
 CLASS_SANTA = 2;
 CLASS_EBUC = 3;
 CLASS_ASTRA = 4;
+CLASS_ASTRA_REWORK = 5;
 player_class = 0;
 azum_revived = 0;
 revive_prot = 0;

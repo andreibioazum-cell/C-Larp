@@ -25,6 +25,8 @@ static int lobby_playing;
 static int winter_playing;
 static int winter_loop_calls;
 static int snowflake_draws;
+static uint8_t last_snow_alpha;
+static int star_line_count;
 
 struct DSArray {
     double *data;
@@ -185,9 +187,12 @@ void tex_tint(float x, float y, const char *name, float angle, float scale, uint
     (void)y;
     (void)angle;
     (void)scale;
-    (void)color;
     ground_tiles++;
     last_ground = name;
+    if (name && SNOWFLAKE_TEX && strcmp(name, SNOWFLAKE_TEX) == 0) {
+        snowflake_draws++;
+        last_snow_alpha = (uint8_t)(color >> 24);
+    }
 }
 void net_save_progress_all(double a, double b, double c, double d, double e, double f, double g, double h, double i,
                            double j, double k, double l, double m, double n, double o, double p, double q, double r) {
@@ -279,6 +284,16 @@ void rect(float x, float y, float width, float height, uint32_t color) {
     ground_fills++;
 }
 
+void line(float x1, float y1, float x2, float y2, float thickness, uint32_t color) {
+    (void)x1;
+    (void)y1;
+    (void)x2;
+    (void)y2;
+    (void)thickness;
+    (void)color;
+    star_line_count++;
+}
+
 void tex(float x, float y, const char *name, float angle, float scale) {
     (void)x;
     (void)y;
@@ -303,7 +318,18 @@ int main(void) {
     assert(strcmp(tr_play(), "Играть") == 0);
     language = 0;
 
-    assert(class_count == 5 && CLASS_ASTRA == 4);
+    assert(class_count == 6 && CLASS_ASTRA == 4 && CLASS_ASTRA_REWORK == 5);
+    star_line_count = 0;
+    draw_star(80, 80, 20, 0xFFFF00);
+    assert(star_line_count >= 10);
+    star_line_count = 0;
+    draw_imbalance_stars();
+    int steady_star_lines = star_line_count;
+    draw_imbalance_stars();
+    assert(steady_star_lines > 0 && star_line_count == 2 * steady_star_lines);
+    assert(strcmp(tr_class_level_effect(CLASS_ASTRA, 1), tr_class_level_effect(CLASS_ASTRA_REWORK, 1)) == 0);
+    assert(strcmp(tr_class_level_effect(CLASS_ASTRA, 2), tr_class_level_effect(CLASS_ASTRA_REWORK, 2)) == 0);
+    assert(strcmp(tr_class_level_effect(CLASS_ASTRA, 3), tr_class_level_effect(CLASS_ASTRA_REWORK, 3)) == 0);
     assert(punch_forward_offset == 19 && astra_grab_forward_offset == 19);
     assert(fabs(astra_hit_interval - 0.2) < 1e-9);
     assert(fabs(astra_final_delay - 0.85) < 1e-9);
@@ -321,6 +347,9 @@ int main(void) {
     assert(strcmp(WINTER_JINGLE, "winter_jingle.wav") == 0);
     assert(strcmp(fighter_sprite(CLASS_ORDINARY, 0, SKIN_NORMAL), ORDINARY_TEX) == 0);
     assert(strcmp(fighter_sprite(CLASS_ORDINARY, 1, SKIN_NORMAL), PUNCH_TEX) == 0);
+    assert(strcmp(fighter_sprite(CLASS_ASTRA_REWORK, 0, SKIN_NORMAL), ORDINARY_TEX) == 0);
+    assert(strcmp(class_card_tex(CLASS_ASTRA_REWORK, SKIN_NORMAL), ORDINARY_CARD_TEX) == 0);
+    assert(class_has_super(CLASS_ASTRA_REWORK) == 1 && player_max_hp_for(CLASS_ASTRA_REWORK) == astra_hp);
     azum_tex_ok = azum_punch_tex_ok = 1;
     azum_zombie_tex_ok = azum_zombie_punch_tex_ok = 1;
     assert(strcmp(fighter_sprite(CLASS_AZUM, 0, SKIN_NORMAL), AZUM_TEX) == 0);
@@ -409,14 +438,50 @@ int main(void) {
     studio_open = 0;
     newyear_jingle_ok = 1;
     assert(snow_active() == 0);
-    assert(newyear_menu_active() == 1);
+    assert(newyear_menu_active() == 0);
     assert(newyear_music_active() == 1);
     newyear_snow_t = 0;
     update_newyear_snow();
-    assert(newyear_snow_t > 0);
+    assert(newyear_snow_t == 0);
+    warn_open = 0;
     snowflake_draws = 0;
     draw_newyear_menu_fx();
+    assert(newyear_menu_flakes == 8 && snowflake_draws == (int)newyear_menu_flakes);
+    assert(newyear_snow_tint == 0x88FFFFFF && last_snow_alpha == 0x88);
+    assert(newyear_spin_min + newyear_spin_range <= 0.06);
+    game_state = ST_LOBBY;
+    t_fade = 0;
+    t_dir = 0;
+    snowflake_draws = 0;
+    assert(newyear_menu_fx_allowed() == 1);
+    draw_newyear_menu_if_allowed();
     assert(snowflake_draws == (int)newyear_menu_flakes);
+    t_fade = 0.5;
+    t_dir = 1;
+    snowflake_draws = 0;
+    assert(newyear_menu_fx_allowed() == 0);
+    draw_newyear_menu_if_allowed();
+    assert(snowflake_draws == 0);
+    t_fade = 1;
+    t_dir = 2;
+    assert(newyear_menu_fx_allowed() == 0);
+    draw_newyear_menu_if_allowed();
+    assert(snowflake_draws == 0);
+    t_fade = 0;
+    t_dir = 0;
+    warn_open = 1;
+    snowflake_draws = 0;
+    assert(newyear_menu_fx_allowed() == 0);
+    draw_newyear_menu_if_allowed();
+    assert(snowflake_draws == 0);
+    warn_open = 0;
+    studio_open = 1;
+    assert(newyear_menu_fx_allowed() == 0);
+    snowflake_draws = 0;
+    draw_newyear_menu_if_allowed();
+    assert(snowflake_draws == 0);
+    studio_open = 0;
+    warn_open = 1;
     /* The jingle must take over even while the startup notice is visible; do
      * not let the ordinary lobby loop block it. */
     music_ok = 1;
@@ -471,8 +536,10 @@ int main(void) {
     update_showdown_music();
     assert(showdown_play_calls == 1);
     showdown_music_reset();
-    /* Astra (Rework): developer-only Astra variant. It shares class 4 and only
-     * differs in numbers, gated on the developer account. */
+    /* Rework is its own developer-only class; accept the former pair only for
+     * compatibility with clients that still send Astra + special skin. */
+    assert(astra_rw_of(CLASS_ASTRA_REWORK, SKIN_NORMAL) == 1);
+    assert(astra_rw_of(CLASS_ASTRA_REWORK, SKIN_SPECIAL) == 1);
     assert(astra_rw_of(CLASS_ASTRA, SKIN_SPECIAL) == 1);
     assert(astra_rw_of(CLASS_ASTRA, SKIN_NORMAL) == 0);
     assert(astra_rw_of(CLASS_AZUM, SKIN_SPECIAL) == 0);
@@ -504,20 +571,66 @@ int main(void) {
     astra_rw_refresh();
     assert(astra_rw_allowed() == 1);
 
-    player_class = CLASS_ASTRA;
+    player_class = CLASS_ASTRA_REWORK;
     player_level = 0;
-    astra_skin = 1;
+    astra_skin = 0;
     assert(astra_rw_on() == 1 && astra_rw_local() == 1);
-    assert(class_skin_of(CLASS_ASTRA) == SKIN_SPECIAL);
-    assert(current_skin() == SKIN_SPECIAL);
+    assert(class_skin_of(CLASS_ASTRA_REWORK) == SKIN_NORMAL && current_skin() == SKIN_NORMAL);
+    assert(class_owned_of(CLASS_ASTRA_REWORK) == 1 && class_visible(CLASS_ASTRA_REWORK) == 1);
+    assert(strcmp(class_name_of(CLASS_ASTRA_REWORK), tr_class_astra_rework()) == 0);
+    assert(strcmp(class_desc_of(CLASS_ASTRA_REWORK), "devdevdev") == 0);
     assert(strcmp(astra_rw_desc(), "devdevdev") == 0);
-    assert(fabs(astra_rw_max_hp_for(CLASS_ASTRA, 1) - astra_hp * 0.95) < 1e-9);
-    assert(astra_rw_max_hp_for(CLASS_ASTRA, 1) < astra_hp);
+    assert(fabs(astra_rw_max_hp_for(CLASS_ASTRA_REWORK, 1) - astra_hp * 0.95) < 1e-9);
+    assert(astra_rw_max_hp_for(CLASS_ASTRA_REWORK, 1) < astra_hp);
     assert(astra_rw_max_hp_for(CLASS_AZUM, 1) == azum_hp);
-    assert(fabs(astra_rw_punch_damage_for(CLASS_ASTRA, 0, 1) - punch_damage * 0.93) < 1e-9);
-    assert(astra_rw_punch_damage_for(CLASS_ASTRA, 0, 1) < astra_rw_punch_damage_for(CLASS_ASTRA, 0, 0));
-    assert(fabs(astra_rw_punch_damage_net(CLASS_ASTRA, 0, SKIN_SPECIAL) -
-                astra_rw_punch_damage_for(CLASS_ASTRA, 0, 1)) < 1e-9);
+    assert(fabs(astra_rw_punch_damage_for(CLASS_ASTRA_REWORK, 0, 1) - punch_damage * 0.93) < 1e-9);
+    assert(astra_rw_punch_damage_for(CLASS_ASTRA_REWORK, 0, 1) <
+           astra_rw_punch_damage_for(CLASS_ASTRA_REWORK, 0, 0));
+    assert(fabs(astra_rw_punch_damage_net(CLASS_ASTRA_REWORK, 0, SKIN_NORMAL) -
+                astra_rw_punch_damage_for(CLASS_ASTRA_REWORK, 0, 1)) < 1e-9);
+    assert(fabs(class_hp_of(CLASS_ASTRA) - astra_hp) < 1e-9);
+    assert(fabs(class_hp_of(CLASS_ASTRA_REWORK) - astra_hp * 0.95) < 1e-9);
+    assert(fabs(class_power_of(CLASS_ASTRA_REWORK) - punch_damage * 0.93) < 1e-9);
+    classes_page = 0;
+    screen_w = 320;
+    assert(classes_page_size() == 1 && classes_page_count() == 6);
+    assert(classes_page_start() == 0 && visible_class_at(5) == CLASS_ASTRA_REWORK);
+    classes_page_next();
+    assert(classes_page_start() == 1);
+    classes_page_prev();
+    assert(classes_page_start() == 0);
+    screen_w = 600;
+    assert(classes_page_size() == 3 && classes_page_count() == 2);
+    classes_page_next();
+    assert(classes_page_start() == 3 && classes_page_items() == 3);
+    assert(visible_class_at(classes_page_start() + 2) == CLASS_ASTRA_REWORK);
+    classes_page = 0;
+    screen_w = 900;
+    assert(classes_page_size() == 5 && classes_page_count() == 2);
+    double swipe_y = classes_top() + class_card_h / 2;
+    double swipe_x = classes_card_x(0) + classes_card_w() / 2;
+    double selected_before_swipe = player_class;
+    assert(classes_swipe_zone(swipe_x, swipe_y) == 1);
+    touch_classes(swipe_x, swipe_y, 0, 7);
+    touch_classes(swipe_x - 100, swipe_y, 2, 7);
+    touch_classes(swipe_x - 100, swipe_y, 1, 7);
+    assert(classes_page == 1 && player_class == selected_before_swipe);
+    swipe_x = classes_card_x(classes_page_start()) + classes_card_w() / 2;
+    touch_classes(swipe_x, swipe_y, 0, 7);
+    touch_classes(swipe_x + 100, swipe_y, 2, 7);
+    touch_classes(swipe_x + 100, swipe_y, 1, 7);
+    assert(classes_page == 0 && player_class == selected_before_swipe);
+    double had_rework_access = astra_rw_ok;
+    astra_rw_ok = 0;
+    assert(classes_visible_count() == 5 && classes_page_count() == 1);
+    assert(classes_swipe_zone(swipe_x, swipe_y) == 0);
+    astra_rw_ok = had_rework_access;
+    classes_page = 0;
+    screen_w = 320;
+    player_class = CLASS_ASTRA;
+    astra_skin = 1;
+    progress_normalize();
+    assert(player_class == CLASS_ASTRA_REWORK && astra_skin == 0);
     assert(astra_rw_hit_interval_for(1) < astra_rw_hit_interval_for(0));
     /* the first three beats land sooner... */
     assert(astra_rw_beat_time_for(1, 1) < astra_rw_beat_time_for(1, 0));
@@ -529,7 +642,8 @@ int main(void) {
     assert(fabs(astra_rw_final_time_for(1) - astra_rw_beat_time_for(3, 1) - 0.4) < 1e-9);
     assert(astra_rw_final_time_for(1) < astra_rw_final_time_for(0));
     assert(astra_rw_grab_time_for(1) < astra_rw_grab_time_for(0));
-    assert(astra_rw_throw_dist_for(0, 1) > astra_rw_throw_dist_for(0, 0));
+    assert(fabs(astra_rw_throw_dist_for(0, 1) - astra_throw_dist_for(0) * 1.10) < 1e-9);
+    assert(astra_rw_throw_dist_for(0, 1) < astra_throw_dist_for(0) * 1.35);
     assert(astra_rw_throw_stun_for(0, 1) == astra_rw_throw_stun_for(0, 0));
     assert(astra_rw_tint() != 0 && astra_rw_tint_local() == astra_rw_tint());
     /* pressing the ultimate takes a small forward step: the grab origin is
@@ -588,25 +702,25 @@ int main(void) {
     assert(astra_hits_done == 1 && astra_punch_t > 0);
     astra_release(0);
     astra_cd = 0;
-    /* selecting the variant in the shop (Astra -> Skins) toggles the switch and
-     * the skin that goes out over the network with it */
-    assert(class_has_skins(CLASS_ASTRA) == 1);
-    assert(skins_btn_visible() == 1);
-    pick_skin(SKIN_NORMAL);
-    assert(astra_skin == 0 && astra_rw_local() == 0 && current_skin() == SKIN_NORMAL);
+    /* Rework is no longer an Astra skin: both class cards use a cube icon,
+     * while only the separate Rework card receives the developer tuning. */
+    player_class = CLASS_ASTRA_REWORK;
+    assert(class_has_skins(CLASS_ASTRA) == 0 && class_has_skins(CLASS_ASTRA_REWORK) == 0);
+    assert(skins_btn_visible() == 0 && current_skin() == SKIN_NORMAL);
     pick_skin(SKIN_SPECIAL);
-    assert(astra_skin == 1 && astra_rw_local() == 1 && current_skin() == SKIN_SPECIAL);
-    assert(strcmp(skin_name_of(SKIN_SPECIAL), "Astra (Rework)") == 0);
-    assert(strcmp(skin_hint_for(CLASS_ASTRA), "devdevdev") == 0);
-    assert(fabs(class_hp_of(CLASS_ASTRA) - astra_hp * 0.95) < 1e-9);
-    assert(class_hp_of(CLASS_ASTRA) < astra_hp);
-    /* the classes screen rates imbalance in stars: plain classes low, the
-     * developer variant on top of the 0..5 scale, never outside it */
+    assert(astra_skin == 0 && astra_rw_local() == 1 && current_skin() == SKIN_NORMAL);
+    assert(strcmp(class_card_tex(CLASS_ASTRA_REWORK, SKIN_NORMAL), ORDINARY_CARD_TEX) == 0);
+    assert(strcmp(class_card_tex(CLASS_ORDINARY, SKIN_NORMAL), ORDINARY_CARD_TEX) == 0);
+    assert(fabs(class_hp_of(CLASS_ASTRA) - astra_hp) < 1e-9);
+    assert(fabs(class_hp_of(CLASS_ASTRA_REWORK) - astra_hp * 0.95) < 1e-9);
+    /* The classes screen rates imbalance in stars, with Rework separate from
+     * regular Astra and never outside the 0..5 scale. */
     assert(class_imbalance_of(CLASS_ORDINARY) == 1);
     assert(class_imbalance_of(CLASS_SANTA) == 2);
     assert(class_imbalance_of(CLASS_AZUM) == 3);
     assert(class_imbalance_of(CLASS_EBUC) == 3);
-    assert(class_imbalance_of(CLASS_ASTRA) == 5);
+    assert(class_imbalance_of(CLASS_ASTRA) == 4);
+    assert(class_imbalance_of(CLASS_ASTRA_REWORK) == 5);
     double star_cls = 0;
     while (star_cls < class_count) {
         assert(class_imbalance_of(star_cls) >= 0 && class_imbalance_of(star_cls) <= 5);
@@ -617,10 +731,14 @@ int main(void) {
     stub_login_nick[1] = 0;
     astra_rw_refresh();
     assert(astra_rw_allowed() == 0 && astra_rw_local() == 0);
-    assert(class_skin_of(CLASS_ASTRA) == SKIN_NORMAL);
-    assert(current_skin() == SKIN_NORMAL);
+    assert(class_owned_of(CLASS_ASTRA_REWORK) == 0 && class_visible(CLASS_ASTRA_REWORK) == 0);
+    assert(class_visible_index(CLASS_ASTRA_REWORK) == -1 && classes_visible_count() == 5);
+    assert(classes_page_count() == 5);
+    assert(class_skin_of(CLASS_ASTRA_REWORK) == SKIN_NORMAL && current_skin() == SKIN_NORMAL);
     assert(astra_rw_tint_local() == 0);
     assert(class_imbalance_of(CLASS_ASTRA) == 4);
+    progress_normalize();
+    assert(player_class == CLASS_ORDINARY);
     player->angle = 0;
     player->x = 150;
     player->y = 90;
@@ -699,7 +817,7 @@ int main(void) {
     double plain_throw = pthrow_speed * astra_throw_time;
 
     /* The same grab from an Astra (Rework) attacker: the variant is read from
-     * the synced class/skin snapshot, the three hits land sooner, the throw
+     * the class-ID/legacy-pair snapshot, the three hits land sooner, the throw
      * waits only ~0.4 s after the last beat and goes farther; the total
      * damage of the grab is unchanged. */
     pgrab_active = 0;
@@ -727,7 +845,7 @@ int main(void) {
     assert(fabs(player->hp - 5.5) < 1e-6);
     assert(pthrow_t > 0);
     assert(pthrow_speed * astra_throw_time > plain_throw);
-    assert(fabs(pthrow_speed * astra_throw_time - plain_throw * 1.35) < 1e-6);
+    assert(fabs(pthrow_speed * astra_throw_time - plain_throw * 1.10) < 1e-6);
     pgrab_active = 0;
     pgrab_slot = -1;
     pthrow_t = 0;

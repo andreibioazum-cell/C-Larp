@@ -79,6 +79,9 @@ static const char *tr_level_unlock_cost(double cost) {
 }
 
 static const char *tr_class_level_effect(double cls, double n) {
+    if (cls == CLASS_ASTRA_REWORK) {
+        cls = CLASS_ASTRA;
+    }
     if (cls == 1 && n == 1) {
         if (language == 1) {
             return "Вторая жизнь: урон -10%";

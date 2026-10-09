@@ -4,6 +4,7 @@ static const char *look_punch_tex(double look);
 static const char *look_tex(double look, double punching);
 static double look_ready(double look);
 static double look_swing_ready(double look);
+static double class_is_astra(double cls);
 static double class_look(double cls, double skin);
 static double drawable_look(double cls, double skin);
 static double card_look(double cls, double skin);

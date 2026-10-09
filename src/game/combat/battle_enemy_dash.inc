@@ -195,7 +195,7 @@ static double enemy_tick_class_abilities(void) {
             enemy_start_dash();
             return 1;
         }
-    } else if (enemy_class == CLASS_ASTRA) {
+    } else if (class_is_astra(enemy_class) == 1) {
         if (enemy_wants_grab() == 1) {
             enemy_super_kind = 3;
             enemy_super_windup = enemy_super_windup_time;

@@ -101,7 +101,7 @@ static void fire_super(void) {
         queued_super = 0;
         return;
     }
-    if (player_class == CLASS_ASTRA) {
+    if (class_is_astra(player_class) == 1) {
         if (astra_cd > 0 || astra_state != 0) {
             queued_super = 0;
             return;

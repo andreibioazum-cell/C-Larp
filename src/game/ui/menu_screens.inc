@@ -143,29 +143,22 @@ static void draw_class_card(double vi) {
     button_scaled(class_pick_label(cls), x + class_pick_inset(), class_pick_y(), class_pick_w(), class_pick_h, 0.55);
 }
 
-/* The bottom stat block: one row of five stars instead of the raw HP / power
- * numbers. A filled star is yellow and burns - it carries a soft pulsing halo
- * - and the free slots stay black (with a light rim so they still read on
- * the dark background). The filled count is the class's imbalance rating; the
- * rating itself lives in class_imbalance_of(), the only place to tune it. */
+/* Five steady, filled five-point stars replace the raw HP / power numbers.
+ * Unfilled slots keep a subtle rim against the dark background; the count
+ * comes from class_imbalance_of(). */
 static void draw_imbalance_stars(void) {
-    stat_glow_t = stat_glow_t + dt;
-    if (stat_glow_t > 1000) {
-        stat_glow_t = 0;
-    }
     double rating = class_imbalance_of(player_class);
     double r = stat_star_r();
     double w = stat_bar_w();
     double gap = r * 0.9;
     double sx = center_x(w) + (w - (5 * r * 2 + 4 * gap)) / 2 + r;
     double cy = stat_stars_y() + r;
-    double pulse = 0.5 + 0.5 * sin(stat_glow_t * 5);
     double i = 0;
     while (i < 5) {
         double cx = sx + i * (r * 2 + gap);
         if (i < rating) {
-            draw_star(cx, cy, r * (1.35 + 0.12 * pulse), (80 + 60 * pulse) * 0x1000000 + stat_star_on_color);
-            draw_star(cx, cy, r * (1 + 0.05 * pulse), stat_star_on_color);
+            draw_star(cx, cy, r * 1.1, stat_star_rim_color);
+            draw_star(cx, cy, r, stat_star_on_color);
         } else {
             draw_star(cx, cy, r, stat_star_rim_color);
             draw_star(cx, cy, r * 0.78, stat_star_off_color);
@@ -182,10 +175,21 @@ static void draw_class_stats(void) {
 
 static void draw_classes(void) {
     screen_fill();
-    double vi = 0;
-    while (vi < classes_visible_count()) {
+    classes_page_clamp();
+    double vi = classes_page_start();
+    double last = vi + classes_page_items();
+    while (vi < last) {
         draw_class_card(vi);
         vi = vi + 1;
+    }
+    if (classes_page_count() > 1) {
+        if (classes_page > 0) {
+            button_scaled("<", classes_prev_x(), classes_nav_y(), classes_nav_w(), classes_nav_h(), 0.75);
+        }
+        if (classes_page < classes_page_count() - 1) {
+            button_scaled(">", classes_next_x(), classes_nav_y(), classes_nav_w(), classes_nav_h(), 0.75);
+        }
+        ctext_scaled(classes_page_label(), classes_top() - 16, text_color, 0.42);
     }
     button_scaled(tr_levels(), levels_btn_x(), class_actions_y(), class_action_w(), btn_h, 0.9);
     if (skins_btn_visible() == 1) {
@@ -235,11 +239,6 @@ static void draw_skin_card(double skin) {
     double sprite = 50 * skin_preview_scale();
     double sx = x + (w - sprite) / 2;
     draw_class_render(player_class, skin, sx, skin_preview_y(), sprite);
-    if (astra_rw_of(player_class, skin) == 1) {
-        /* Asterisk the developer-only variant so the two Astra renders are not
-         * mistaken for each other on the skins screen. */
-        ring(sx + sprite / 2, skin_preview_y() + sprite / 2, sprite / 2 + 3, 3, astra_rw_tint());
-    }
     uint32_t c = panel_text(locked);
     const char *status = skin_hint_for(player_class);
     if (locked == 0) {
@@ -250,11 +249,6 @@ static void draw_skin_card(double skin) {
     }
     centered_text(skin_name_of(skin), x, w, skin_name_y(), c, 0.8);
     centered_text(status, x, w, skin_status_y(), c, 0.45);
-    if (astra_rw_of(player_class, skin) == 1) {
-        /* The variant keeps its own motto visible, the same slot a class card
-         * uses for its description. */
-        centered_text(astra_rw_desc(), x, w, skin_status_y() + 20, c, 0.45);
-    }
 }
 
 static void draw_skins(void) {

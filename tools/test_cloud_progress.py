@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import json
 import os
 import shlex
 import subprocess
@@ -33,6 +34,11 @@ static const char *CLOUD_FRESH =
 static const char *CLOUD_NO_ASTRA =
     "{\"nick\":\"tester\",\"cups\":100,\"candies\":20,\"cls\":0,\"azum\":0,\"santa\":0,"
     "\"ebuc\":0,\"level\":0,\"levels\":0}";
+
+static const char *CLOUD_REWORK =
+    "{\"nick\":\"tester\",\"cups\":100,\"candies\":20,\"cls\":5,\"azum\":0,\"santa\":0,"
+    "\"ebuc\":0,\"astra\":0,\"azum_skin\":1,\"level\":2,\"levels\":3,\"astra_level\":2,"
+    "\"astra_levels\":3}";
 
 static int run_first_save(const char *dir) {
     net_set_data_path(dir);
@@ -110,6 +116,25 @@ static int run_astra_rework(const char *dir) {
     return 0;
 }
 
+static int run_rework_profile(const char *dir) {
+    net_set_data_path(dir);
+    assert(apply_user_json_keep_local(CLOUD_REWORK) == 0);
+    assert(net_load_class() == 5);
+    assert(pending_skin == 0);
+    assert(net_load_astra() == 0);
+    assert(net_load_astra_level() == 2);
+    assert(net_load_astra_levels_unlocked() == 3);
+    assert(net_load_level() == 2 && net_load_levels_unlocked() == 3);
+
+    net_save_progress_all(80, 10, 5, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    net_save_astra(0, 1, 1);
+    cloud_dirty_set(1);
+    assert(apply_user_json_keep_local(CLOUD_NO_ASTRA) == 1);
+    assert(net_load_class() == 5 && net_load_astra() == 0);
+    puts("astra rework class: class ID 5 loads without Astra ownership and survives a dirty local merge");
+    return 0;
+}
+
 static int run_admin_ban_guard(const char *dir) {
     net_set_data_path(dir);
     net_ban_set("Dimasi4ek229", 1);
@@ -136,13 +161,29 @@ int main(int argc, char **argv) {
     if (strcmp(argv[1], "clean") == 0) return run_clean(argv[2]);
     if (strcmp(argv[1], "astra") == 0) return run_astra(argv[2]);
     if (strcmp(argv[1], "astra-rework") == 0) return run_astra_rework(argv[2]);
+    if (strcmp(argv[1], "rework-profile") == 0) return run_rework_profile(argv[2]);
     if (strcmp(argv[1], "admin-ban-guard") == 0) return run_admin_ban_guard(argv[2]);
     fprintf(stderr, "unknown mode '%s'\n", argv[1]);
     return 2;
 }
 '''
 
+def check_rework_firebase_rules():
+    rules = json.loads((ROOT / "firebase.rules.json").read_text(encoding="utf-8"))["rules"]
+    validators = [
+        rules["users"]["$nick"]["cls"][".validate"],
+        rules["rooms"]["$room"]["players"]["$slot"]["cls"][".validate"],
+    ]
+    for rule in validators:
+        assert "newData.val() <= 4" in rule and "newData.val() == 5" in rule
+        assert rule.count("(") == rule.count(")")
+        assert "auth != null" in rule
+        assert "dimasi4ek229@cb4.game" in rule
+        assert "qwertyuiopaj1234@cb4.game" in rule
+
+
 def main():
+    check_rework_firebase_rules()
     with tempfile.TemporaryDirectory(prefix="cubic-cloud-") as directory:
         temp = Path(directory)
         android = temp / "android"
@@ -192,6 +233,12 @@ def main():
         subprocess.run([*run, "astra-rework", str(rework)], check=True)
         saved = (rework / "progress.dat").read_text(encoding="utf-8").split()
         assert len(saved) == 22 and saved[18:] == ["1", "3", "3", "0"], saved
+
+        rework_class = temp / "rework-class"
+        rework_class.mkdir()
+        subprocess.run([*run, "rework-profile", str(rework_class)], check=True)
+        saved = (rework_class / "progress.dat").read_text(encoding="utf-8").split()
+        assert saved[1] == "5", saved
 
         bans = temp / "bans"
         bans.mkdir()

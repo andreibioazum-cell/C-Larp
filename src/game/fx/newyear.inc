@@ -1,12 +1,20 @@
+static const uint32_t newyear_snow_tint = 0x88FFFFFF;
+static const double newyear_spin_min = 0.02;
+static const double newyear_spin_range = 0.04;
+
 static double newyear_active(void) {
     return winter_theme_on() == 1;
 }
 
 static double newyear_menu_active(void) {
-    if (newyear_active() == 0) {
+    if (newyear_active() == 0 ||
+        (game_state != ST_LOBBY && game_state != ST_MODES && game_state != ST_SETTINGS)) {
         return 0;
     }
-    return game_state == ST_LOBBY || game_state == ST_MODES || game_state == ST_SETTINGS;
+    if (warn_open == 1 || studio_open == 1 || t_dir != 0 || t_fade > 0) {
+        return 0;
+    }
+    return 1;
 }
 
 static void update_newyear_snow(void) {
@@ -98,7 +106,7 @@ static void draw_newyear_snow(void) {
             arr_set(newyear_flake_cache, b + 1, h1);
             arr_set(newyear_flake_cache, b + 2, h2);
         }
-        double fall_time = 3.2 + 3.6 * h1;
+        double fall_time = 6.0 + 4.0 * h1;
         double cyc = floor(newyear_snow_t / fall_time + h2);
         if (arr_get(newyear_flake_cache, b) != cyc) {
             newyear_flake_refresh(b, i, cyc);
@@ -109,7 +117,7 @@ static void draw_newyear_snow(void) {
         double hr = arr_get(newyear_flake_cache, b + 6);
         double x = newyear_snow_x_of(hx) + 14 * sin(newyear_snow_t * 0.6 + i * 2.1);
         double y = -40 + ph * (screen_h + 80);
-        double s = 0.35 + 0.5 * hs;
+        double s = 0.30 + 0.25 * hs;
         double hw = 26 * s;
         double hw_safe = hw * 1.5;
         double lo1 = newyear_snow_band1_lo();
@@ -142,9 +150,9 @@ static void draw_newyear_snow(void) {
         if (ds_mod(i, 2) == 0) {
             spin_dir = -1;
         }
-        double spin = spin_dir * (0.9 + 1.4 * hr);
+        double spin = spin_dir * (newyear_spin_min + newyear_spin_range * hr);
         double ang = (hr + newyear_snow_t * spin) * 2 * pi;
-        tex(x - hw, y - hw, SNOWFLAKE_TEX, ang, s);
+        tex_tint(x - hw, y - hw, SNOWFLAKE_TEX, ang, s, newyear_snow_tint);
         i = i + 1;
     }
 }

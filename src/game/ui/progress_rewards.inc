@@ -32,8 +32,8 @@ static void save_progress(void) {
                           class_level_of(CLASS_SANTA), class_unlocked_of(CLASS_SANTA), class_level_of(CLASS_EBUC),
                           class_unlocked_of(CLASS_EBUC), bp_lv, skin_flags());
     net_save_astra(class_owned_of(CLASS_ASTRA), class_level_of(CLASS_ASTRA), class_unlocked_of(CLASS_ASTRA));
-    /* Astra (Rework) stays in progress.dat: it is a developer switch, so it is
-     * never uploaded with the rest of the profile. */
+    /* The old skin marker is kept only so an existing save can be migrated;
+     * new saves clear it. The selected class ID is stored with the profile. */
     net_save_astra_rw(astra_skin);
     progress_push_to_net();
 }
@@ -56,10 +56,12 @@ static void progress_push_to_net(void) {
 }
 
 static void progress_normalize(void) {
-    astra_skin = astra_skin == 1 ? 1 : 0;
-    /* Re-check the developer account as soon as the profile is (re)loaded, so
-     * logging in or out immediately refreshes Astra (Rework) availability. */
+    double legacy_rework = astra_skin == 1;
+    astra_skin = 0;
     astra_rw_refresh();
+    if (legacy_rework == 1 && astra_rw_allowed() == 1 && player_class == CLASS_ASTRA) {
+        player_class = CLASS_ASTRA_REWORK;
+    }
     if (azum_skin < SKIN_NORMAL || azum_skin >= SKIN_COUNT) {
         azum_skin = SKIN_NORMAL;
     }

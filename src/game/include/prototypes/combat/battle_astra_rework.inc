@@ -5,7 +5,6 @@ static void astra_rw_refresh(void);
 static double astra_rw_allowed(void);
 static double astra_rw_on(void);
 static double astra_rw_local(void);
-static void astra_rw_select(double on);
 static const char *astra_rw_desc(void);
 static double astra_rw_hit_interval_for(double rw);
 static double astra_rw_lunge_time_for(double rw);
