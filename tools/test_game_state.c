@@ -316,6 +316,27 @@ void line(float x1, float y1, float x2, float y2, float thickness, uint32_t colo
     star_line_count++;
 }
 
+static int candy_draws;
+static double candy_alpha_drawn;
+static double candy_scale_drawn;
+static uint32_t candy_circle_color;
+void circle(float x, float y, float r, uint32_t color) {
+    (void)x;
+    (void)y;
+    (void)r;
+    candy_circle_color = color;
+}
+void tex_alpha(float x, float y, const char *name, float angle, float scale, double alpha) {
+    (void)x;
+    (void)y;
+    (void)angle;
+    if (name && CANDY_TEX && strcmp(name, CANDY_TEX) == 0) {
+        candy_draws++;
+        candy_scale_drawn = scale;
+        candy_alpha_drawn = alpha;
+    }
+}
+
 void tex(float x, float y, const char *name, float angle, float scale) {
     (void)x;
     (void)y;
@@ -639,6 +660,84 @@ int main(void) {
     assert(winter_playing == 0);
     winter_theme = 1;
     warn_open = 0;
+
+    /* Candies appear by fading in at full size, not by growing out of nothing. */
+    {
+        candy_enabled = 1;
+        candy_tex_ok = 1;
+        arr_set(candy_pick, 0, 0);
+        arr_set(candy_t, 0, 0);
+        candy_draws = 0;
+        draw_candies();
+        assert(candy_draws == 0);
+
+        arr_set(candy_t, 0, candy_pop_time * 0.05);
+        candy_alpha_drawn = -1;
+        candy_scale_drawn = -1;
+        draw_candies();
+        assert(candy_draws == 1);
+        /* scale приходит как float, сравниваем с допуском */
+        assert(candy_scale_drawn > candy_scale - 1e-5 && candy_scale_drawn < candy_scale + 1e-5);
+        assert(candy_alpha_drawn > 0 && candy_alpha_drawn < 0.2);
+
+        arr_set(candy_t, 0, candy_pop_time * 0.5);
+        candy_scale_drawn = -1;
+        draw_candies();
+        /* scale приходит как float, сравниваем с допуском */
+        assert(candy_scale_drawn > candy_scale - 1e-5 && candy_scale_drawn < candy_scale + 1e-5);
+        assert(candy_alpha_drawn > 0.4 && candy_alpha_drawn < 1);
+
+        arr_set(candy_t, 0, candy_pop_time);
+        candy_scale_drawn = -1;
+        draw_candies();
+        /* scale приходит как float, сравниваем с допуском */
+        assert(candy_scale_drawn > candy_scale - 1e-5 && candy_scale_drawn < candy_scale + 1e-5);
+        assert(candy_alpha_drawn > 0.99);
+
+        /* Без текстуры - тот же альфа-канал в цвете круга. */
+        candy_tex_ok = 0;
+        arr_set(candy_t, 0, candy_pop_time * 0.05);
+        candy_circle_color = 0;
+        draw_candies();
+        assert(((candy_circle_color >> 24) & 0xff) > 0 && ((candy_circle_color >> 24) & 0xff) < 60);
+        assert((candy_circle_color & 0x00FFFFFF) == 0x00FF4081);
+        arr_set(candy_t, 0, candy_pop_time);
+        candy_circle_color = 0;
+        draw_candies();
+        assert(((candy_circle_color >> 24) & 0xff) > 250);
+        candy_tex_ok = 0;
+    }
+
+    /* Punch boxes stay close to the body: 86 px long and 86 px wide. */
+    assert(punch_reach == 86 && punch_width == 86);
+    assert(enemy_punch_reach == 86 && enemy_punch_width == 86);
+
+    /* The rarest achievement: a win on the last single HP, and only that. */
+    {
+        game_state = ST_SOLO;
+        finished = 0;
+        cups_awarded = 0;
+        achievement_mask = 0;
+        player->hp = 4;
+        enemy->hp = 0;
+        finish_game(1);
+        assert(has_achievement(ACH_FIRST_WIN) == 1);
+        assert(has_achievement(ACH_LAST_HP) == 0);
+        finished = 0;
+        cups_awarded = 0;
+        achievement_mask = 0;
+        player->hp = 1;
+        finish_game(1);
+        assert(has_achievement(ACH_FIRST_WIN) == 1);
+        assert(has_achievement(ACH_LAST_HP) == 1);
+        assert(achievement_count() == 4);
+        assert(achievement_bit(3) == ACH_LAST_HP);
+        finished = 0;
+        cups_awarded = 0;
+        achievement_mask = 0;
+        player->hp = 10;
+        enemy->hp = 10;
+    }
 
     /* Leaving the game (game_bye, called when the activity pauses or stops):
      * half of the exits stay silent, the rest say one of the three farewells,

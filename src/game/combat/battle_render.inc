@@ -1,3 +1,5 @@
+/* Конфета появляется прозрачностью: размер сразу полный, меняется только
+ * альфа, а не масштаб. Полёт к месту (candy_fly_dist) остаётся. */
 static void draw_candies(void) {
     if (candy_enabled == 0) {
         return;
@@ -6,7 +8,6 @@ static void draw_candies(void) {
     double cp = 0;
     double p = 0;
     double pop = 0;
-    double sc = 0;
     double hw = 0;
     while (i < candy_count) {
         cp = arr_get(candy_pick, i);
@@ -14,17 +15,16 @@ static void draw_candies(void) {
         } else {
             p = clamp(arr_get(candy_t, i) / candy_pop_time, 0, 1);
             pop = 1 - (1 - p) * (1 - p);
-            sc = candy_scale * pop;
-            if (sc > 0.02) {
+            if (pop > 0.02) {
                 double ang = arr_get(candy_ang, i);
                 double travel = (1 - pop) * candy_fly_dist;
                 double cx = arr_get(candy_x, i) - cos(ang) * travel;
                 double cy = arr_get(candy_y, i) - sin(ang) * travel;
-                hw = 25 * sc;
+                hw = 25 * candy_scale;
                 if (candy_tex_ok == 1) {
-                    tex(cx - hw, cy - hw, CANDY_TEX, ang, sc);
+                    tex_alpha(cx - hw, cy - hw, CANDY_TEX, ang, candy_scale, pop);
                 } else {
-                    circle(cx, cy, hw, 0xFFFF4081);
+                    circle(cx, cy, hw, (((unsigned)(int)floor(pop * 254) + 1u) << 24) | 0x00FF4081);
                 }
             }
         }
@@ -126,6 +126,10 @@ static void finish_game(double result) {
         }
         save_progress();
         grant_achievement(ACH_FIRST_WIN);
+        /* Самое редкое достижение: победа на последней единице здоровья. */
+        if (player->hp > 0 && player->hp <= 1) {
+            grant_achievement(ACH_LAST_HP);
+        }
         ds_log("win +%g cups +%g candies", cup_win, candy_win);
     }
     if (result == 2 && cups_awarded == 0) {

@@ -74,6 +74,7 @@ double ACH_FIRST_WIN;
 double ACH_FIRST_BUY;
 double ACH_ALL_CHARACTERS;
 double ACH_LEGENDS;
+double ACH_LAST_HP;
 double ACH_LEGENDS_NEED;
 double azum_revive_count;
 double ach_toast_bit;

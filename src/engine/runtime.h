@@ -101,6 +101,7 @@ int png_load(const char *name);
 int tex_ready(const char *name);
 void tex(float x, float y, const char *name, float angle, float scale);
 void tex_tint(float x, float y, const char *name, float angle, float scale, uint32_t color);
+void tex_alpha(float x, float y, const char *name, float angle, float scale, double alpha);
 void tex_round(float x, float y, const char *name, float scale, float radius);
 
 int snd_load(const char *name);

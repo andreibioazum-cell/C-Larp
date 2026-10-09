@@ -220,6 +220,9 @@ static const char *achievement_toast_text(void) {
     if (ach_toast_bit == ACH_ALL_CHARACTERS) {
         return tr_achievement_grass();
     }
+    if (ach_toast_bit == ACH_LAST_HP) {
+        return tr_achievement_last_hp();
+    }
     return tr_achievement_legends();
 }
 
@@ -336,12 +339,10 @@ static void logic_draw(void) {
     draw_achievement_toast();
 }
 
-/* Saying goodbye when the game is left: half of the exits stay silent, the
- * other half post one of the three lines into the Android notification tray.
- * Called from game_bye() once the activity pauses or stops - that covers the
- * back button, the swipe-up gesture and the app being swiped out of recents.
- * The nick line needs a logged-in account, otherwise the two fixed lines are
- * used, so the text never reads "Пока, , удачи!". */
+/* Saying goodbye when the game is left: half of the exits stay silent, the rest
+ * post one of the three lines into the notification tray. Called from game_bye()
+ * when the activity stops: back button, swipe-up, swipe out of recents. The
+ * nick line needs an account, otherwise the two fixed lines are used. */
 static void bye_notice_roll(void) {
     const char *nick;
     double pick;
