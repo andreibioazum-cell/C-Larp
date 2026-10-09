@@ -140,7 +140,10 @@ static int ds_vk_init_backend(ANativeWindow *window) {
         return 0;
     }
     VkFenceCreateInfo ufi = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-    ufi.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    /* Created unsignaled: every upload submit signals this fence and waits on
+     * it before its staging buffer is freed. A signaled fence let the very
+     * first upload skip the wait (and violates the submit rules). */
+    ufi.flags = 0;
     if (!ds_vk_check_result(vkCreateFence(vk_device, &ufi, NULL, &vk_upload_fence), "vkCreateFence(upload)")) {
         ds_vk_shutdown_backend();
         return 0;

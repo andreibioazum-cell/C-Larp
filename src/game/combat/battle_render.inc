@@ -42,7 +42,12 @@ static void draw_status_aura(double x, double y, double size, double rgb, double
     }
     double half = size + 14;
     circle(x, y, half, (((unsigned)(int)fill) << 24) | ((unsigned)(int)rgb));
-    ring(x, y, half, 2, (((unsigned)(int)floor(a * 255 * 0.7)) << 24) | ((unsigned)(int)rim));
+    /* pack_c() maps alpha 0 to opaque, so a ring whose alpha has faded to
+     * zero must be skipped instead of flashing opaque for a frame. */
+    double ring_a = floor(a * 255 * 0.7);
+    if (ring_a >= 1) {
+        ring(x, y, half, 2, (((unsigned)(int)ring_a) << 24) | ((unsigned)(int)rim));
+    }
 }
 
 static void draw_remote_snow(void) {
