@@ -343,7 +343,6 @@ double candy_scale;
 double candy_give;
 double candy_pop_time;
 double candy_pick_time;
-double candy_fly_dist;
 double dust_max;
 double dust_fields;
 double dust_life_max;

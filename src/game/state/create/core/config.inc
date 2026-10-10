@@ -344,7 +344,6 @@ candy_scale = 0.8;
 candy_give = 1;
 candy_pop_time = 0.4;
 candy_pick_time = 0.3;
-candy_fly_dist = 90;
 dust_max = 28;
 dust_fields = 5;
 dust_life_max = 0.6;

@@ -319,21 +319,24 @@ void line(float x1, float y1, float x2, float y2, float thickness, uint32_t colo
 static int candy_draws;
 static double candy_alpha_drawn;
 static double candy_scale_drawn;
+static double candy_x_drawn;
+static double candy_y_drawn;
 static uint32_t candy_circle_color;
 void circle(float x, float y, float r, uint32_t color) {
-    (void)x;
-    (void)y;
     (void)r;
     candy_circle_color = color;
+    candy_x_drawn = x;
+    candy_y_drawn = y;
 }
 void tex_alpha(float x, float y, const char *name, float angle, float scale, double alpha) {
-    (void)x;
-    (void)y;
     (void)angle;
     if (name && CANDY_TEX && strcmp(name, CANDY_TEX) == 0) {
         candy_draws++;
         candy_scale_drawn = scale;
         candy_alpha_drawn = alpha;
+        /* tex_alpha() получает левый верхний угол, центр на 25*scale правее и ниже. */
+        candy_x_drawn = x + 25.0 * scale;
+        candy_y_drawn = y + 25.0 * scale;
     }
 }
 
@@ -661,11 +664,17 @@ int main(void) {
     winter_theme = 1;
     warn_open = 0;
 
-    /* Candies appear by fading in at full size, not by growing out of nothing. */
+    /* Candies appear by fading in only: same place, same size, alpha 0 -> 1. */
     {
+        double cx = 0;
+        double cy = 0;
+        double x0 = 0;
+        double y0 = 0;
         candy_enabled = 1;
-        candy_tex_ok = 1;
         arr_set(candy_pick, 0, 0);
+        cx = arr_get(candy_x, 0);
+        cy = arr_get(candy_y, 0);
+        candy_tex_ok = 1;
         arr_set(candy_t, 0, 0);
         candy_draws = 0;
         draw_candies();
@@ -679,20 +688,24 @@ int main(void) {
         /* scale приходит как float, сравниваем с допуском */
         assert(candy_scale_drawn > candy_scale - 1e-5 && candy_scale_drawn < candy_scale + 1e-5);
         assert(candy_alpha_drawn > 0 && candy_alpha_drawn < 0.2);
+        x0 = candy_x_drawn;
+        y0 = candy_y_drawn;
+        assert(fabs(x0 - cx) < 1e-3 && fabs(y0 - cy) < 1e-3);
 
         arr_set(candy_t, 0, candy_pop_time * 0.5);
         candy_scale_drawn = -1;
         draw_candies();
-        /* scale приходит как float, сравниваем с допуском */
         assert(candy_scale_drawn > candy_scale - 1e-5 && candy_scale_drawn < candy_scale + 1e-5);
         assert(candy_alpha_drawn > 0.4 && candy_alpha_drawn < 1);
+        /* Ни роста, ни подлёта: место то же самое, что в начале появления. */
+        assert(fabs(candy_x_drawn - x0) < 1e-3 && fabs(candy_y_drawn - y0) < 1e-3);
 
         arr_set(candy_t, 0, candy_pop_time);
         candy_scale_drawn = -1;
         draw_candies();
-        /* scale приходит как float, сравниваем с допуском */
         assert(candy_scale_drawn > candy_scale - 1e-5 && candy_scale_drawn < candy_scale + 1e-5);
         assert(candy_alpha_drawn > 0.99);
+        assert(fabs(candy_x_drawn - x0) < 1e-3 && fabs(candy_y_drawn - y0) < 1e-3);
 
         /* Без текстуры - тот же альфа-канал в цвете круга. */
         candy_tex_ok = 0;
@@ -701,6 +714,7 @@ int main(void) {
         draw_candies();
         assert(((candy_circle_color >> 24) & 0xff) > 0 && ((candy_circle_color >> 24) & 0xff) < 60);
         assert((candy_circle_color & 0x00FFFFFF) == 0x00FF4081);
+        assert(fabs(candy_x_drawn - cx) < 1e-3 && fabs(candy_y_drawn - cy) < 1e-3);
         arr_set(candy_t, 0, candy_pop_time);
         candy_circle_color = 0;
         draw_candies();
