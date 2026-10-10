@@ -1,5 +1,6 @@
 /* Сетевая подсистема и локальные сохранения. */
 #include "engine/network/state_storage.inc"
+#include "engine/network/write_secret.inc"
 #include "engine/network/cloud_patch.inc"
 #include "engine/network/progress_file.inc"
 #include "engine/network/auth_json.inc"

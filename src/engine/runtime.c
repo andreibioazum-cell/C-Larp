@@ -3,3 +3,4 @@
 #include "engine/runtime/values.inc"
 #include "platform/android/keyboard.inc"
 #include "platform/android/alpha_notice.inc"
+#include "platform/android/bye_notice.inc"

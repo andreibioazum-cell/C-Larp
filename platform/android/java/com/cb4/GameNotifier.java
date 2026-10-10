@@ -22,6 +22,9 @@ final class GameNotifier {
     private static final String KEY_LAST_CALL = "last_call_ms";
     private static final String POST_PERMISSION = "android.permission.POST_NOTIFICATIONS";
 
+    private static final String BYE_CHANNEL_ID = "farewell";
+    private static final int BYE_NOTIFICATION_ID = 4202;
+
     private static final String TITLE = "Cubic Battle 4";
     private static final String TEXT =
             "\u041c\u043d\u0435 \u043e\u0434\u043d\u043e\u043c\u0443 \u0441 \u043d\u0438\u043c\u0438 "
@@ -32,6 +35,11 @@ final class GameNotifier {
     private static final String CHANNEL_DESC =
             "\u041a\u043e\u0433\u0434\u0430 \u0432 \u043e\u043d\u043b\u0430\u0439\u043d\u0435 \u0435\u0441\u0442\u044c "
             + "\u0434\u0440\u0443\u0433\u0438\u0435 \u0438\u0433\u0440\u043e\u043a\u0438";
+
+    private static final String BYE_CHANNEL_NAME = "\u041f\u0440\u043e\u0449\u0430\u043d\u0438\u0435";
+    private static final String BYE_CHANNEL_DESC =
+            "\u041f\u0440\u043e\u0449\u0430\u043d\u0438\u0435 \u043f\u0440\u0438 \u0432\u044b\u0445\u043e\u0434\u0435 "
+            + "\u0438\u0437 \u0438\u0433\u0440\u044b";
 
     private GameNotifier() { }
 
@@ -76,6 +84,37 @@ final class GameNotifier {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putLong(KEY_LAST_CALL, System.currentTimeMillis())
                 .apply();
+    }
+
+    /**
+     * The farewell the game says when the player leaves it. The line itself is
+     * chosen in C; here it only becomes a notification. Stays silent when the
+     * system toggle is off or the permission was never granted - a goodbye is
+     * not worth a permission prompt.
+     */
+    static void postBye(Context context, String text) {
+        if (text == null || text.length() == 0) return;
+        if (Build.VERSION.SDK_INT >= 33
+                && context.checkSelfPermission(POST_PERMISSION) != PackageManager.PERMISSION_GRANTED) return;
+        NotificationManager manager = manager(context);
+        if (manager == null || !manager.areNotificationsEnabled()) return;
+        if (Build.VERSION.SDK_INT >= 26) {
+            NotificationChannel channel =
+                    new NotificationChannel(BYE_CHANNEL_ID, BYE_CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT);
+            channel.setDescription(BYE_CHANNEL_DESC);
+            manager.createNotificationChannel(channel);
+        }
+        Notification.Builder builder = new Notification.Builder(context, BYE_CHANNEL_ID)
+                .setSmallIcon(smallIcon(context))
+                .setContentTitle(TITLE)
+                .setContentText(text)
+                .setStyle(new Notification.BigTextStyle().bigText(text))
+                .setAutoCancel(true);
+        PendingIntent open = openGame(context);
+        if (open != null) {
+            builder.setContentIntent(open);
+        }
+        manager.notify(BYE_NOTIFICATION_ID, builder.build());
     }
 
     private static NotificationManager manager(Context context) {

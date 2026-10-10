@@ -24,6 +24,8 @@ static const char *tr_achievement_legends(void);
 static const char *tr_achievement_legends_desc(void);
 static const char *tr_achievement_grass(void);
 static const char *tr_achievement_grass_desc(void);
+static const char *tr_achievement_last_hp(void);
+static const char *tr_achievement_last_hp_desc(void);
 static const char *tr_achievement_open(void);
 static const char *tr_achievement_locked(void);
 static const char *tr_achievement_toast_title(void);

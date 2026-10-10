@@ -142,10 +142,10 @@ static void draw_newyear_snow(double notice) {
                 x = hi2 + hw_safe + 2;
             }
         }
-        /* The menu column only exists in the lobby. Over an open notice each flake
-         * moves towards its full-width place, in step with the notice's opacity, so
-         * flakes glide across the screen instead of jumping. notice = 0 leaves the
-         * lobby layout untouched. */
+        /* The menu column only exists in the lobby. Over the studio splash each
+         * flake moves towards its full-width place, in step with the splash's
+         * opacity, so flakes glide across the screen instead of jumping.
+         * notice = 0 leaves the lobby layout untouched. */
         x = x + (hx * screen_w + sway - x) * notice;
         double spin_dir = 1;
         if (ds_mod(i, 2) == 0) {
@@ -207,32 +207,41 @@ static void update_newyear(void) {
     update_newyear_jingle();
 }
 
-/* Snowflakes are drawn in two passes around the lobby notices. Both notices
- * (startup warning and studio splash) are opaque panels, so flakes must be
- * lifted above them to be seen from the first frame. The black transition
- * curtain must never be painted over flakes, so:
- *   - the under-pass runs before the curtain, and is skipped while a notice is
- *     open (the notice already covers the lobby beneath it);
- *   - the over-pass runs after the notices, and is skipped while the curtain is
- *     up (t_fade > 0), so black is never drawn on top of snow.
+/* Snowflakes are drawn in two passes around the lobby notices. The black
+ * transition curtain must never be painted over flakes, and the epilepsy
+ * warning must never be painted under them either - it is a solid black panel
+ * with the legal text on it, and flakes floating across it would sit on top of
+ * that text. So:
+ *   - the under-pass runs before the curtain, and covers the epilepsy warning
+ *     too: while the panel is fully opaque nothing shows through it anyway, and
+ *     as it fades the lobby - with its snow - is revealed underneath;
+ *   - the over-pass only lifts flakes above the studio splash, which has no
+ *     text to protect, and is skipped while the curtain is up (t_fade > 0), so
+ *     black is never drawn on top of snow.
  * Neither pass pauses the animation clock.
  * The lobby keeps flakes off its menu column so they never sit on a button. An
- * open notice has no menu, so the over-pass lets flakes cross the full width and
- * blends them back into the lobby layout as the notice fades (draw_newyear_snow). */
+ * open studio splash has no menu, so the over-pass lets flakes cross the full
+ * width and blends them back into the lobby layout as it fades
+ * (draw_newyear_snow). */
 static double newyear_snow_under_notice_active(void) {
-    return newyear_menu_active() == 1 && warn_open == 0 && studio_open == 0;
+    if (newyear_menu_active() == 0 || studio_open == 1) {
+        return 0;
+    }
+    /* Under a fully opaque warning panel the flakes would be invisible: the
+     * pass waits for the panel to start fading before drawing them. */
+    if (warn_open == 1 && warn_a >= 1) {
+        return 0;
+    }
+    return 1;
 }
 
 static double newyear_snow_over_notice_active(void) {
-    return newyear_menu_active() == 1 && (warn_open == 1 || studio_open == 1) && t_fade <= 0;
+    return newyear_menu_active() == 1 && studio_open == 1 && t_fade <= 0;
 }
 
-/* How far flakes are lifted to the full width: 1 while the notice is fully
- * opaque, following its fade, and 0 in the lobby layout. */
+/* How far flakes are lifted to the full width: 1 while the studio splash is
+ * fully opaque, following its fade, and 0 in the lobby layout. */
 static double newyear_notice_mix(void) {
-    if (warn_open == 1) {
-        return clamp(warn_a, 0, 1);
-    }
     if (studio_open == 1) {
         return clamp(studio_a, 0, 1);
     }

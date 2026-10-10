@@ -27,11 +27,7 @@ static void room_slot_delete_async(int slot) {
         free(url);
         return;
     }
-    {
-        char plain[URL];
-        snprintf(plain, sizeof(plain), "%s/rooms/%s/players/%d.json", net.base, net.room, slot);
-        fb_url(url, FB_URL_MAX, plain);
-    }
+    snprintf(url, FB_URL_MAX, "%s/rooms/%s/players/%d.json", net.base, net.room, slot);
     t = ds_thread_start(http_delete_job, url);
     if (t) {
         ds_thread_detach(t);

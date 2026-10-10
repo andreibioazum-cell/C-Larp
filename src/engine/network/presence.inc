@@ -7,7 +7,7 @@ static int presence_sign_in(const char *nick, const char *pass) {
     char idt[FB_ID_MAX], rt[FB_REFRESH_MAX];
     int code;
     fb_email_of(nick, email, sizeof(email));
-    snprintf(epass, sizeof(epass), "%s%s", pass, FB_PASS_SUFFIX);
+    snprintf(epass, sizeof(epass), "%s%s", pass, net_pass_suffix());
     fb_auth_endpoint(url, sizeof(url), "/v1/accounts:signInWithPassword");
     snprintf(body, sizeof(body), "{\"email\":\"%s\",\"password\":\"%s\",\"returnSecureToken\":true}", email, epass);
     code = http("POST", url, body, resp, sizeof(resp));

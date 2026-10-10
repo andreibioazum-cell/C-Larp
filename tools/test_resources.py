@@ -11,6 +11,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def header_secret(prefix: str) -> str:
+    """Собирает секрет из зашитых в engine/network.h кусков (каждый байт xor)."""
+    text = (ROOT / "src" / "engine" / "network.h").read_text(encoding="utf-8")
+    mask = int(re.search(r"#define\s+NET_SECRET_XOR\s+0x([0-9a-fA-F]+)", text).group(1), 16)
+    parts = []
+    index = 0
+    while True:
+        chunk = re.search(r'#define\s+%s_%d\s+"((?:\\[0-7]{3})*)"' % (prefix, index), text)
+        if not chunk:
+            break
+        parts.append("".join(chr(int(octet, 8) ^ mask) for octet in re.findall(r"\\([0-7]{3})", chunk.group(1))))
+        index += 1
+    assert index >= 2, f"В network.h нет кусков секрета {prefix}"
+    return "".join(parts)
+
+
 def body_keys(name: str) -> set[str]:
     text = (ROOT / "src" / "engine" / "network" / name).read_text(encoding="utf-8")
     return set(re.findall(r'\\"([a-z0-9_]+)\\":', text))
@@ -53,6 +69,44 @@ def check_firebase_rules() -> None:
     assert "newData.exists()" in ban_write
     assert "$nick.toLowerCase() != 'dimasi4ek229'" in ban_write
     assert "$nick.toLowerCase() != 'qwertyuiopaj1234'" in ban_write
+
+
+def check_write_secret() -> None:
+    """Запись в базу закрыта секретом: клиент его шлёт, правила его требуют."""
+    write_secret = header_secret("NET_WRITE_SECRET")
+    pass_secret = header_secret("NET_PASS_SECRET")
+    for name, secret in (("записи", write_secret), ("пароля", pass_secret)):
+        assert len(secret) == 32, f"Секрет {name} слишком короткий: {len(secret)} символов"
+        assert secret.isascii() and secret.isalnum(), f"Секрет {name} должен быть из букв и цифр"
+    assert write_secret != pass_secret, "Секрет записи и хвост пароля не должны совпадать"
+
+    rules_text = (ROOT / "firebase.rules.json").read_text(encoding="utf-8")
+    assert pass_secret not in rules_text, "Хвост пароля попадает в правила базы"
+    assert "|cb4v1" not in rules_text, "Старый угадываемый хвост пароля попал в правила базы"
+    rules = json.loads(rules_text)["rules"]
+    nick = rules["users"]["$nick"]
+    slot = rules["rooms"]["$room"]["players"]["$slot"]
+    message = rules["rooms"]["$room"]["chat"]["$msg"]
+    wants = "newData.child('w').val() == '%s'" % write_secret
+    for node, rule in ((nick, nick[".write"]), (nick, nick[".validate"]),
+                       (slot, slot[".write"]), (slot, slot[".validate"]),
+                       (message, message[".write"]), (message, message[".validate"])):
+        assert wants in rule, f"Правило без проверки секрета записи: {rule[:60]}..."
+        assert "w" in node, "В правилах нет поля w"
+    for node in (nick, slot, message):
+        assert "newData.val() == '%s'" % write_secret in node["w"][".validate"]
+
+    net = ROOT / "src" / "engine" / "network"
+    assert "write_secret.inc" in (ROOT / "src" / "engine" / "network.c").read_text(encoding="utf-8")
+    for name, expected in (("cloud_patch.inc", 1), ("room_sync.inc", 2),
+                           ("auth_session.inc", 1), ("leaderboard.inc", 1)):
+        text = (net / name).read_text(encoding="utf-8")
+        assert text.count("net_seal_body(") == expected, f"{name}: тело записи не подписано секретом"
+    assert "#define FB_PASS_SUFFIX" not in (net / "http_json.inc").read_text(encoding="utf-8"), \
+        "Старый угадываемый хвост пароля вернулся"
+    for name in ("auth_session.inc", "presence.inc"):
+        assert "net_pass_suffix()" in (net / name).read_text(encoding="utf-8"), \
+            f"{name}: пароль собирается без секретного хвоста"
 
 
 def check_assets() -> None:
@@ -120,6 +174,7 @@ def main() -> int:
     check_port_layout()
     check_assets()
     check_firebase_rules()
+    check_write_secret()
     print("Ресурсы и схема сети: норма")
     return 0
 

@@ -133,6 +133,9 @@ double net_leaderboard_cups(double idx) {
 static void *http_post_job(void *arg) {
     HttpJob *j = (HttpJob *)arg;
     if (j) {
+        /* Чат в комнате: база принимает запись только с полем "w". */
+        if (fb_enabled())
+            net_seal_body(j->body, sizeof(j->body));
         http("POST", j->url, j->body, NULL, 0);
         free(j);
     }
@@ -155,7 +158,8 @@ static void http_post_async(const char *url, const char *body) {
 static void *http_delete_job(void *arg) {
     char *url = (char *)arg;
     if (url) {
-        http("DELETE", url, NULL, NULL, 0);
+        /* fb_http сам допишет свежий токен и повторит запрос при 401. */
+        fb_http("DELETE", url, NULL, NULL, 0);
         free(url);
     }
     return NULL;
@@ -173,7 +177,7 @@ static void chat_delete_key_async(const char *key) {
     {
         char plain[URL];
         snprintf(plain, sizeof(plain), "%s/rooms/%s/chat/%s.json", net.base, net.room, key);
-        fb_url(url, FB_URL_MAX, plain);
+        snprintf(url, FB_URL_MAX, "%s", plain);
     }
     t = ds_thread_start(http_delete_job, url);
     if (t) {

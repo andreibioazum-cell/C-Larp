@@ -102,7 +102,21 @@ double ds_mod(double value, double divisor) {
 int str_eq(const char *a, const char *b) {
     return a && b && strcmp(a, b) == 0 ? 1 : 0;
 }
+double str_len(const char *s) {
+    return s ? (double)strlen(s) : 0;
+}
+/* Склейка строк, как в рантайме: два чередующихся буфера, чтобы вызов
+ * ds_concat(ds_concat(a, b), c) не затирал сам себя. */
+char *ds_concat(const char *left, const char *right) {
+    static char buffers[4][512];
+    static int turn = 0;
+    turn = (turn + 1) & 3;
+    snprintf(buffers[turn], sizeof(buffers[turn]), "%s%s", left ? left : "", right ? right : "");
+    return buffers[turn];
+}
 void keyboard_hide(void) {}
+void keyboard_clear(void) {}
+void keyboard_show(void) {}
 static double stub_net_slot = -1;
 static double stub_online[4];
 static double stub_level[4];
@@ -176,6 +190,12 @@ const char *net_login_nick(void) {
 }
 const char *net_login_pass(void) {
     return stub_login_pass;
+}
+static char last_bye[256];
+static int bye_calls;
+void bye_notice_show(const char *text) {
+    bye_calls++;
+    snprintf(last_bye, sizeof(last_bye), "%s", text ? text : "");
 }
 void ring(float x, float y, float r, float t, uint32_t color) {
     (void)x;
@@ -294,6 +314,30 @@ void line(float x1, float y1, float x2, float y2, float thickness, uint32_t colo
     (void)thickness;
     (void)color;
     star_line_count++;
+}
+
+static int candy_draws;
+static double candy_alpha_drawn;
+static double candy_scale_drawn;
+static double candy_x_drawn;
+static double candy_y_drawn;
+static uint32_t candy_circle_color;
+void circle(float x, float y, float r, uint32_t color) {
+    (void)r;
+    candy_circle_color = color;
+    candy_x_drawn = x;
+    candy_y_drawn = y;
+}
+void tex_alpha(float x, float y, const char *name, float angle, float scale, double alpha) {
+    (void)angle;
+    if (name && CANDY_TEX && strcmp(name, CANDY_TEX) == 0) {
+        candy_draws++;
+        candy_scale_drawn = scale;
+        candy_alpha_drawn = alpha;
+        /* tex_alpha() получает левый верхний угол, центр на 25*scale правее и ниже. */
+        candy_x_drawn = x + 25.0 * scale;
+        candy_y_drawn = y + 25.0 * scale;
+    }
 }
 
 void tex(float x, float y, const char *name, float angle, float scale) {
@@ -459,19 +503,34 @@ int main(void) {
     assert(newyear_snow_t >= 2 * dt);
     assert(newyear_menu_flakes == 22);
 
-    /* Startup notice open: nothing beneath the panel, every flake above it, plain tex. */
+    /* Startup notice open and fully opaque: the epilepsy warning keeps every
+     * flake under its panel, and nothing is ever drawn above its text. */
     snowflake_draws = 0;
     snowflake_tinted = 0;
-    assert(newyear_snow_under_notice_active() == 0 && newyear_snow_over_notice_active() == 1);
+    warn_open = 1;
+    warn_a = 1;
+    assert(newyear_snow_under_notice_active() == 0 && newyear_snow_over_notice_active() == 0);
     draw_newyear_under_notices();
     assert(snowflake_draws == 0);
     draw_newyear_over_notices();
-    assert(snowflake_draws == (int)newyear_menu_flakes && snowflake_tinted == 0);
+    assert(snowflake_draws == 0);
 
-    /* Over the startup notice the snow spans the full width, including the centre
-     * column where the notice text sits. Beneath the lobby the menu column stays
-     * clear. Closing the notice must not move any flake: the over-pass at zero
-     * opacity has to match the lobby layout exactly. */
+    /* The panel is fading: the lobby - and its snow - shows through beneath it,
+     * still never on top of the legal text, and still in the lobby layout. */
+    warn_a = 0.4;
+    assert(newyear_snow_under_notice_active() == 1 && newyear_snow_over_notice_active() == 0);
+    snowflake_draws = 0;
+    snowflake_tinted = 0;
+    draw_newyear_under_notices();
+    assert(snowflake_draws == (int)newyear_menu_flakes && snowflake_tinted == 0);
+    draw_newyear_over_notices();
+    assert(snowflake_draws == (int)newyear_menu_flakes);
+    warn_a = 1;
+
+    /* Over the studio splash the snow spans the full width, including the centre
+     * column. Beneath the lobby the menu column stays clear. Closing the splash
+     * must not move any flake: the over-pass at zero opacity has to match the
+     * lobby layout exactly. */
     {
         int saved_w = screen_w;
         int saved_h = screen_h;
@@ -493,6 +552,8 @@ int main(void) {
             int j = 0;
             newyear_snow_t = 1.0 + k * 0.173;
 
+            studio_open = 0;
+            studio_a = 0;
             warn_open = 0;
             warn_a = 0;
             snowflake_centre_n = 0;
@@ -505,8 +566,8 @@ int main(void) {
                 }
             }
 
-            warn_open = 1;
-            warn_a = 0;
+            studio_open = 1;
+            studio_a = 0;
             snowflake_centre_n = 0;
             draw_newyear_over_notices();
             assert(snowflake_centre_n == (int)newyear_menu_flakes);
@@ -517,7 +578,7 @@ int main(void) {
                 }
             }
 
-            warn_a = 1;
+            studio_a = 1;
             snowflake_centre_n = 0;
             draw_newyear_over_notices();
             assert(snowflake_centre_n == (int)newyear_menu_flakes);
@@ -535,16 +596,29 @@ int main(void) {
         screen_w = saved_w;
         screen_h = saved_h;
         newyear_snow_t = saved_t;
+        studio_open = 0;
+        studio_a = 0;
         warn_open = 1;
         warn_a = 1;
     }
 
-    /* A transition curtain over the notice: no flakes are drawn above black. */
+    /* A transition curtain over the studio splash: no flakes are drawn above
+     * black, and the epilepsy warning is never snowed over either. */
+    studio_open = 1;
+    studio_a = 1;
     t_fade = 0.5;
     t_dir = 1;
     snowflake_draws = 0;
     assert(newyear_snow_over_notice_active() == 0);
+    assert(newyear_snow_under_notice_active() == 0);
     draw_newyear_over_notices();
+    assert(snowflake_draws == 0);
+    studio_open = 0;
+    studio_a = 0;
+    warn_open = 1;
+    warn_a = 1;
+    snowflake_draws = 0;
+    draw_newyear_under_notices();
     assert(snowflake_draws == 0);
     t_fade = 0;
     t_dir = 0;
@@ -589,6 +663,187 @@ int main(void) {
     assert(winter_playing == 0);
     winter_theme = 1;
     warn_open = 0;
+
+    /* Candies appear by fading in only: same place, same size, alpha 0 -> 1. */
+    {
+        double cx = 0;
+        double cy = 0;
+        double x0 = 0;
+        double y0 = 0;
+        candy_enabled = 1;
+        arr_set(candy_pick, 0, 0);
+        cx = arr_get(candy_x, 0);
+        cy = arr_get(candy_y, 0);
+        candy_tex_ok = 1;
+        arr_set(candy_t, 0, 0);
+        candy_draws = 0;
+        draw_candies();
+        assert(candy_draws == 0);
+
+        arr_set(candy_t, 0, candy_pop_time * 0.05);
+        candy_alpha_drawn = -1;
+        candy_scale_drawn = -1;
+        draw_candies();
+        assert(candy_draws == 1);
+        /* scale приходит как float, сравниваем с допуском */
+        assert(candy_scale_drawn > candy_scale - 1e-5 && candy_scale_drawn < candy_scale + 1e-5);
+        assert(candy_alpha_drawn > 0 && candy_alpha_drawn < 0.2);
+        x0 = candy_x_drawn;
+        y0 = candy_y_drawn;
+        assert(fabs(x0 - cx) < 1e-3 && fabs(y0 - cy) < 1e-3);
+
+        arr_set(candy_t, 0, candy_pop_time * 0.5);
+        candy_scale_drawn = -1;
+        draw_candies();
+        assert(candy_scale_drawn > candy_scale - 1e-5 && candy_scale_drawn < candy_scale + 1e-5);
+        assert(candy_alpha_drawn > 0.4 && candy_alpha_drawn < 1);
+        /* Ни роста, ни подлёта: место то же самое, что в начале появления. */
+        assert(fabs(candy_x_drawn - x0) < 1e-3 && fabs(candy_y_drawn - y0) < 1e-3);
+
+        arr_set(candy_t, 0, candy_pop_time);
+        candy_scale_drawn = -1;
+        draw_candies();
+        assert(candy_scale_drawn > candy_scale - 1e-5 && candy_scale_drawn < candy_scale + 1e-5);
+        assert(candy_alpha_drawn > 0.99);
+        assert(fabs(candy_x_drawn - x0) < 1e-3 && fabs(candy_y_drawn - y0) < 1e-3);
+
+        /* Без текстуры - тот же альфа-канал в цвете круга. */
+        candy_tex_ok = 0;
+        arr_set(candy_t, 0, candy_pop_time * 0.05);
+        candy_circle_color = 0;
+        draw_candies();
+        assert(((candy_circle_color >> 24) & 0xff) > 0 && ((candy_circle_color >> 24) & 0xff) < 60);
+        assert((candy_circle_color & 0x00FFFFFF) == 0x00FF4081);
+        assert(fabs(candy_x_drawn - cx) < 1e-3 && fabs(candy_y_drawn - cy) < 1e-3);
+        arr_set(candy_t, 0, candy_pop_time);
+        candy_circle_color = 0;
+        draw_candies();
+        assert(((candy_circle_color >> 24) & 0xff) > 250);
+        candy_tex_ok = 0;
+    }
+
+    /* Punch boxes stay close to the body: 86 px long and 86 px wide. */
+    assert(punch_reach == 86 && punch_width == 86);
+    assert(enemy_punch_reach == 86 && enemy_punch_width == 86);
+
+    /* The rarest achievement: a win on the last single HP, and only that. */
+    {
+        game_state = ST_SOLO;
+        finished = 0;
+        cups_awarded = 0;
+        achievement_mask = 0;
+        player->hp = 4;
+        enemy->hp = 0;
+        finish_game(1);
+        assert(has_achievement(ACH_FIRST_WIN) == 1);
+        assert(has_achievement(ACH_LAST_HP) == 0);
+        finished = 0;
+        cups_awarded = 0;
+        achievement_mask = 0;
+        player->hp = 1;
+        finish_game(1);
+        assert(has_achievement(ACH_FIRST_WIN) == 1);
+        assert(has_achievement(ACH_LAST_HP) == 1);
+        assert(achievement_count() == 4);
+        assert(achievement_bit(3) == ACH_LAST_HP);
+        finished = 0;
+        cups_awarded = 0;
+        achievement_mask = 0;
+        player->hp = 10;
+        enemy->hp = 10;
+    }
+
+    /* Leaving the game (game_bye, called when the activity pauses or stops):
+     * half of the exits stay silent, the rest say one of the three farewells,
+     * and the nick line needs a logged-in account. */
+    {
+        int i = 0;
+        int silent = 0;
+        int sorry = 0;
+        int cubes = 0;
+        int nick_line = 0;
+        int empty_nick = 0;
+        int other = 0;
+        game_state = ST_LOBBY;
+        warn_open = 0;
+        studio_open = 0;
+        t_dir = 0;
+        t_fade = 0;
+        language = 1;
+        stub_login_status = 2;
+        snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", "Дима");
+        for (i = 0; i < 4000; i++) {
+            bye_calls = 0;
+            last_bye[0] = 0;
+            game_bye();
+            if (bye_calls == 0) {
+                silent++;
+                continue;
+            }
+            assert(bye_calls == 1);
+            if (strcmp(last_bye, "Нам жаль что вы вышли, удачи!") == 0) {
+                sorry++;
+            } else if (strcmp(last_bye, "Пока, кубы будут вас ждать!") == 0) {
+                cubes++;
+            } else if (strcmp(last_bye, "Пока, Дима, удачи!") == 0) {
+                nick_line++;
+            } else {
+                other++;
+            }
+        }
+        assert(other == 0);
+        /* A 50/50 roll over 4000 exits, with a wide band for the random draw. */
+        assert(silent > 1700 && silent < 2300);
+        assert(sorry > 400 && cubes > 400 && nick_line > 400);
+
+        /* Without an account the nick line is never picked: no "Пока, , удачи!". */
+        stub_login_nick[0] = 0;
+        empty_nick = 0;
+        for (i = 0; i < 4000; i++) {
+            bye_calls = 0;
+            last_bye[0] = 0;
+            game_bye();
+            if (bye_calls == 1 && strstr(last_bye, ", , ") != NULL) {
+                empty_nick++;
+            }
+        }
+        assert(empty_nick == 0);
+
+        /* The English wording follows the language setting. */
+        language = 0;
+        snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", "Dima");
+        other = 0;
+        for (i = 0; i < 4000; i++) {
+            bye_calls = 0;
+            last_bye[0] = 0;
+            game_bye();
+            if (bye_calls == 0) {
+                continue;
+            }
+            if (strcmp(last_bye, "Sorry that you left, good luck!") != 0 &&
+                strcmp(last_bye, "Bye, the cubes will be waiting for you!") != 0 &&
+                strcmp(last_bye, "Bye, Dima, good luck!") != 0) {
+                other++;
+            }
+        }
+        assert(other == 0);
+
+        /* Back in the lobby closes the game, but the farewell itself is said by
+         * the lifecycle hook (game_bye): one goodbye per exit, whichever way the
+         * player leaves - back button, swipe-up gesture, swipe out of recents.
+         * An ordinary back from a sub-screen only returns to the lobby. */
+        language = 1;
+        game_state = ST_LOBBY;
+        bye_calls = 0;
+        assert(logic_back() == 0);
+        assert(bye_calls == 0);
+        game_state = ST_SETTINGS;
+        assert(logic_back() == 1);
+        assert(bye_calls == 0);
+        t_dir = 0;
+        t_target = ST_LOBBY;
+        game_state = ST_LOBBY;
+    }
 
     assert(strcmp(SHOWDOWN_MUSIC, "astra_azum_showdown.wav") == 0);
     finished = 0;

@@ -9,7 +9,7 @@ static void *ban_write_job(void *arg) {
     if (!j)
         return NULL;
     if (j->banned) {
-        code = http("PUT", j->url, "true", NULL, 0);
+        code = fb_http("PUT", j->url, "true", NULL, 0);
         if (code == 200) {
             LOG("ban %s: saved to cloud", j->nick);
             ban_sync();
@@ -17,7 +17,7 @@ static void *ban_write_job(void *arg) {
             LOGERR("ban %s: cloud write FAILED (HTTP %d), ban is local only", j->nick, code);
         }
     } else {
-        code = http("DELETE", j->url, NULL, NULL, 0);
+        code = fb_http("DELETE", j->url, NULL, NULL, 0);
         if (code == 200) {
             LOG("unban %s: removed from cloud", j->nick);
             ban_sync();
@@ -33,7 +33,8 @@ static void ban_write_async(const char *url, const char *nick, int banned) {
     DSThread t;
     if (!j)
         return;
-    fb_url(j->url, sizeof(j->url), url);
+    /* Кладём чистый URL: токен допишет fb_http в потоке и обновит при 401. */
+    snprintf(j->url, sizeof(j->url), "%s", url);
     snprintf(j->nick, sizeof(j->nick), "%s", nick);
     j->banned = banned;
     t = ds_thread_start(ban_write_job, j);
@@ -83,7 +84,7 @@ static void *event_write_job(void *arg) {
     int code;
     if (!j)
         return NULL;
-    code = http("PUT", j->url, j->body, NULL, 0);
+    code = fb_http("PUT", j->url, j->body, NULL, 0);
     if (code == 200)
         LOG("event saved to cloud (%s)", j->body);
     else
@@ -96,7 +97,7 @@ static void event_write_async(const char *url, const char *body) {
     DSThread t;
     if (!j)
         return;
-    fb_url(j->url, sizeof(j->url), url);
+    snprintf(j->url, sizeof(j->url), "%s", url);
     snprintf(j->body, sizeof(j->body), "%s", body);
     t = ds_thread_start(event_write_job, j);
     if (t) {

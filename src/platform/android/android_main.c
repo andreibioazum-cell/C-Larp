@@ -66,6 +66,21 @@ static int back_consumed = 0;
 typedef struct {
     int handled;
 } BackCall;
+static void protected_game_bye(void *userdata) {
+    (void)userdata;
+    game_bye();
+}
+/* Прощание при выходе. Вешаемся только на остановку активности: за один уход в
+ * фон Android присылает ровно одну остановку (перед ней - паузу, после неё -
+ * уничтожение), поэтому ни одного защитного флага не нужно и прощание не может
+ * «залипнуть» и перестать приходить. Свайп снизу вверх, кнопка «назад» и
+ * выгрузка из недавних идут через эту же остановку. */
+static void say_goodbye(void) {
+    if (!game_active) {
+        return;
+    }
+    (void)ds_call_protected(protected_game_bye, NULL, "goodbye");
+}
 static void protected_game_back(void *userdata) {
     BackCall *call = (BackCall *)userdata;
     call->handled = game_back();
@@ -221,6 +236,9 @@ static void handle_cmd(struct android_app *app, int32_t command) {
         break;
     case APP_CMD_LOST_FOCUS:
         ds_sound_pause();
+        break;
+    case APP_CMD_STOP:
+        say_goodbye();
         break;
     default:
         break;

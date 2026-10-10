@@ -64,7 +64,8 @@ typedef enum {
     DS_CMD_TEXT,
     DS_CMD_TEX_TINT,
     DS_CMD_RECT_ROT,
-    DS_CMD_TEX_ROUND
+    DS_CMD_TEX_ROUND,
+    DS_CMD_TEX_FADE
 } DSCommand;
 typedef struct {
     DSCommand t;

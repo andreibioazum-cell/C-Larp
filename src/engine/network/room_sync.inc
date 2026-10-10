@@ -39,6 +39,7 @@ static int push_state(void) {
              clamp01(a.grab_x), clamp01(a.grab_y), clamp11(a.grab_dx), clamp11(a.grab_dy), safe(a.grab),
              clamp01(a.universe_x), clamp01(a.universe_y), safe(a.universe), safe(a.thud), safe(a.cls), safe(a.level),
              safe(a.skin));
+    net_seal_body(body, sizeof(body));
     int c = fb_http("PUT", url, body, NULL, 0);
     if (c != 200 && net_log_ok())
         LOGERR("push state: HTTP %d", c);
@@ -146,6 +147,7 @@ static int claim_slot(unsigned gen) {
                 "\"grab\":0,\"uzx\":0,\"uzy\":0,\"universe\":0,\"thud\":0,\"cls\":%.0f,\"level\":%.0f,\"skin\":%.0f}",
                 net.uid, enick, safe(net.me.cls), safe(net.me.level), safe(net.me.skin));
         }
+        net_seal_body(body, sizeof(body));
         code = fb_http_ex("PUT", url, body, NULL, 0, etag[0] ? "if-match" : NULL, etag[0] ? etag : NULL, NULL, 0);
         if (code == 200) {
             claim_seen_uid[slot][0] = 0;

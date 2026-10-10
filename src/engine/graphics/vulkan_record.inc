@@ -74,6 +74,15 @@ static int ds_vk_build_geometry(void) {
             }
             break;
         }
+        case DS_CMD_TEX_FADE: {
+            Texture *t = c->v.tx2.tx;
+            if (t && t->gpu.uploaded && t->gpu.desc) {
+                pipeline = 1;
+                desc = (const void *)(uintptr_t)t->gpu.desc;
+                geo_tex(c->v.tx2.x, c->v.tx2.y, c->v.tx2.a, c->v.tx2.sc, (float)t->w, (float)t->h, c->v.tx2.c);
+            }
+            break;
+        }
         case DS_CMD_TEX_ROUND: {
             Texture *t = c->v.txr.tx;
             if (t && t->gpu.uploaded && t->gpu.desc) {

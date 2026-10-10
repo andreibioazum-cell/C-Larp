@@ -93,15 +93,44 @@ static int fb_err_is(const char *resp, const char *code_name) {
     return resp && strstr(resp, code_name) != NULL;
 }
 
-static int fb_sign_in(const char *nick, const char *pass, int *registered) {
-    char url[FB_URL_MAX], body[512], resp[2048];
-    char email[96], epass[192], idt[FB_ID_MAX], rt[FB_REFRESH_MAX];
+/* Сменить пароль аккаунта на новый хвост. Вызывается сразу после входа по
+ * старому хвосту: аккаунт переезжает на NET_PASS_SECRET, и старый хвост для
+ * него перестаёт работать. Ошибку не считаем фатальной — игрок уже вошёл,
+ * переедет при следующем входе. */
+static void fb_update_password(const char *pass) {
+    char url[FB_URL_MAX], body[512], resp[2048], epass[192], idt[FB_ID_MAX], rt[FB_REFRESH_MAX];
     int code;
-    if (registered)
-        *registered = 0;
-    fb_email_of(nick, email, sizeof(email));
-    snprintf(epass, sizeof(epass), "%s%s", pass, FB_PASS_SUFFIX);
+    if (!pass || !*pass || !fb_enabled())
+        return;
+    fb_id_token(idt, sizeof(idt));
+    if (!idt[0])
+        return;
+    snprintf(epass, sizeof(epass), "%s%s", pass, net_pass_suffix());
+    fb_auth_endpoint(url, sizeof(url), "/v1/accounts:update");
+    snprintf(body, sizeof(body), "{\"idToken\":\"%s\",\"password\":\"%s\",\"returnSecureToken\":true}", idt, epass);
+    code = http("POST", url, body, resp, sizeof(resp));
+    if (code != 200) {
+        if (net_log_ok())
+            LOGERR("firebase auth: password update HTTP %d %.160s", code, resp);
+        return;
+    }
+    rt[0] = 0;
+    strv(resp, "idToken", idt, sizeof(idt));
+    strv(resp, "refreshToken", rt, sizeof(rt));
+    if (idt[0])
+        fb_store_tokens(idt, rt, num(resp, "expiresIn", 3600));
+    if (net_log_ok())
+        LOG("firebase auth: account moved to the new password suffix");
+}
 
+/* Одна попытка входа. 0 — вошли (токены сохранены), 1 — аккаунта нет или
+ * пароль не подошёл, 2 — ошибка сети или сервера. В *no_such_account пишет 1,
+ * если аккаунта нет вообще. */
+static int fb_try_sign_in(const char *email, const char *epass, int *no_such_account) {
+    char url[FB_URL_MAX], body[512], resp[2048], idt[FB_ID_MAX], rt[FB_REFRESH_MAX];
+    int code;
+    if (no_such_account)
+        *no_such_account = 0;
     fb_auth_endpoint(url, sizeof(url), "/v1/accounts:signInWithPassword");
     snprintf(body, sizeof(body), "{\"email\":\"%s\",\"password\":\"%s\",\"returnSecureToken\":true}", email, epass);
     code = http("POST", url, body, resp, sizeof(resp));
@@ -119,15 +148,47 @@ static int fb_sign_in(const char *nick, const char *pass, int *registered) {
             LOGERR("firebase auth: network error");
         return 2;
     }
-
     if (!fb_err_is(resp, "EMAIL_NOT_FOUND") && !fb_err_is(resp, "INVALID_PASSWORD") &&
         !fb_err_is(resp, "INVALID_LOGIN_CREDENTIALS")) {
         if (net_log_ok())
             LOGERR("firebase signIn: HTTP %d %.160s", code, resp);
         return 2;
     }
+    if (no_such_account)
+        *no_such_account = fb_err_is(resp, "EMAIL_NOT_FOUND") ? 1 : 0;
+    return 1;
+}
+
+static int fb_sign_in(const char *nick, const char *pass, int *registered) {
+    char url[FB_URL_MAX], body[512], resp[2048];
+    char email[96], epass[192], idt[FB_ID_MAX], rt[FB_REFRESH_MAX];
+    int code, state, legacy = 0, no_such_account = 0;
+    if (registered)
+        *registered = 0;
+    fb_email_of(nick, email, sizeof(email));
+    snprintf(epass, sizeof(epass), "%s%s", pass, net_pass_suffix());
+    /* Сначала новый хвост пароля: по нему входят все аккаунты, созданные после
+     * перехода на NET_PASS_SECRET. */
+    state = fb_try_sign_in(email, epass, &no_such_account);
+    if (state == 2)
+        return 2;
+    if (state == 1 && !no_such_account) {
+        /* Аккаунт мог остаться со старым хвостом: пускаем по нему в последний
+         * раз и тут же переводим на новый. */
+        snprintf(epass, sizeof(epass), "%s%s", pass, FB_LEGACY_PASS_SUFFIX);
+        state = fb_try_sign_in(email, epass, NULL);
+        if (state == 2)
+            return 2;
+        legacy = state == 0;
+    }
+    if (state == 0) {
+        if (legacy)
+            fb_update_password(pass);
+        return 0;
+    }
 
     fb_auth_endpoint(url, sizeof(url), "/v1/accounts:signUp");
+    snprintf(epass, sizeof(epass), "%s%s", pass, net_pass_suffix());
     snprintf(body, sizeof(body), "{\"email\":\"%s\",\"password\":\"%s\",\"returnSecureToken\":true}", email, epass);
     code = http("POST", url, body, resp, sizeof(resp));
     idt[0] = 0;
@@ -164,6 +225,7 @@ static int put_default_user(const char *req_url, const char *nick, const char *p
              "\"bp\":0,\"azum_skin\":0,"
              "\"ach_flags\":0,\"ach_revives\":0%s%s}",
              enick, fb_enabled() ? "" : ",\"pass\":\"", fb_enabled() ? "" : epass);
+    net_seal_body(body, sizeof(body));
     return fb_http("PUT", req_url, body, NULL, 0);
 }
 

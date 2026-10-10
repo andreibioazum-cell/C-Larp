@@ -369,13 +369,14 @@ static void draw_event_candies(void) {
             } else if (v > 0.02) {
                 p = clamp(t / plates_candy_pop_time, 0, 1);
                 pop = 1 - (1 - p) * (1 - p);
-                sc = candy_scale * pop * v;
-                if (sc > 0.02) {
+                /* Появление - прозрачностью, исчезновение по-прежнему сжатием. */
+                sc = candy_scale * v;
+                if (sc > 0.02 && pop > 0.02) {
                     hw = 25 * sc;
                     if (candy_tex_ok == 1) {
-                        tex(xx - hw, yy - hw, CANDY_TEX, 0, sc);
+                        tex_alpha(xx - hw, yy - hw, CANDY_TEX, 0, sc, pop);
                     } else {
-                        circle(xx, yy, hw, 0xFFFF4081);
+                        circle(xx, yy, hw, (((unsigned)(int)floor(pop * 254) + 1u) << 24) | 0x00FF4081);
                     }
                 }
             }

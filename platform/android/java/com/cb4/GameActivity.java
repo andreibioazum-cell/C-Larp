@@ -236,6 +236,20 @@ public final class GameActivity extends NativeActivity {
         });
     }
 
+    /**
+     * The farewell on the way out: C has already decided what to say, or to stay
+     * silent. Posted straight away instead of through runOnUiThread - the game
+     * may be killed from recents a moment later, and a queued runnable would
+     * then never run. NotificationManager is safe to call from any thread.
+     */
+    public void showByeNotice(final String text) {
+        try {
+            GameNotifier.postBye(getApplicationContext(), text);
+        } catch (RuntimeException ignored) {
+            // The goodbye is optional; the game must never be blocked on exit.
+        }
+    }
+
     private void claimEditorFocus() {
         if (chatEditor == null || !wantKeyboard) return;
         if (chatEditor.getVisibility() != View.VISIBLE) chatEditor.setVisibility(View.VISIBLE);

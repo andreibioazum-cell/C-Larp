@@ -220,6 +220,9 @@ static const char *achievement_toast_text(void) {
     if (ach_toast_bit == ACH_ALL_CHARACTERS) {
         return tr_achievement_grass();
     }
+    if (ach_toast_bit == ACH_LAST_HP) {
+        return tr_achievement_last_hp();
+    }
     return tr_achievement_legends();
 }
 
@@ -330,9 +333,36 @@ static void logic_draw(void) {
     if (studio_open == 1) {
         draw_studio();
     }
-    /* Snow above the opaque startup notices, but never above the curtain. */
+    /* Snow above the studio splash, but never above the curtain or the
+     * epilepsy warning. */
     draw_newyear_over_notices();
     draw_achievement_toast();
+}
+
+/* Saying goodbye when the game is left: half of the exits stay silent, the rest
+ * post one of the three lines into the notification tray. Called from game_bye()
+ * when the activity stops: back button, swipe-up, swipe out of recents. The
+ * nick line needs an account, otherwise the two fixed lines are used. */
+static void bye_notice_roll(void) {
+    const char *nick;
+    double pick;
+    if (rand() % 100 >= 50) {
+        return;
+    }
+    nick = net_login_nick();
+    pick = rand() % 3;
+    if (pick >= 2 && str_len(nick) == 0) {
+        pick = rand() % 2;
+    }
+    if (pick >= 2) {
+        bye_notice_show(ds_concat(ds_concat(tr_bye_nick_pre(), nick), tr_bye_nick_post()));
+        return;
+    }
+    if (pick == 1) {
+        bye_notice_show(tr_bye_cubes());
+        return;
+    }
+    bye_notice_show(tr_bye_sorry());
 }
 
 static double logic_back(void) {
@@ -382,6 +412,8 @@ static double logic_back(void) {
         start_transition(ST_LOBBY);
         return 1;
     }
+    /* Back in the lobby closes the game; the farewell is said when the
+     * activity actually stops, so every way of leaving is covered. */
     return 0;
 }
 
