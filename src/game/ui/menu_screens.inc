@@ -144,8 +144,8 @@ static void draw_class_card(double vi) {
 }
 
 /* Five steady, filled five-point stars replace the raw HP / power numbers.
- * Unfilled slots keep a subtle rim against the dark background; the count
- * comes from class_imbalance_of(). */
+ * Unfilled slots are just a flat dark star - no rim; the count comes from
+ * class_imbalance_of(). */
 static void draw_imbalance_stars(void) {
     double rating = class_imbalance_of(player_class);
     double r = stat_star_r();
@@ -160,8 +160,7 @@ static void draw_imbalance_stars(void) {
             draw_star(cx, cy, r * 1.1, stat_star_rim_color);
             draw_star(cx, cy, r, stat_star_on_color);
         } else {
-            draw_star(cx, cy, r, stat_star_rim_color);
-            draw_star(cx, cy, r * 0.78, stat_star_off_color);
+            draw_star(cx, cy, r, stat_star_off_color);
         }
         i = i + 1;
     }
