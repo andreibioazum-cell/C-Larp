@@ -165,7 +165,9 @@ static void json_escape(const char *src, char *dst, size_t cap) {
 
 #define FB_EMAIL_DOMAIN "@cb4.game"
 
-#define FB_PASS_SUFFIX "|cb4v1"
+/* Хвост пароля аккаунта больше не константа: он собирается в рантайме
+ * функцией net_pass_suffix() из engine/network.h (NET_PASS_SECRET_*).
+ * Раньше здесь была строка "|cb4v1" — её угадывали, и базу ломали. */
 typedef struct {
     DSMutex lock;
     char key[128];
@@ -177,6 +179,7 @@ static FirebaseAuth fb = {.lock = DS_MUTEX_INIT};
 
 void net_set_firebase_key(const char *key) {
     size_t n;
+    net_secret_prepare();
     if (!key)
         key = "";
     while (*key == ' ' || *key == '\t') key++;
@@ -191,6 +194,15 @@ void net_set_firebase_key(const char *key) {
 }
 static int fb_enabled(void) {
     return fb.key[0] != 0;
+}
+
+static void fb_id_token(char *dst, size_t cap) {
+    if (!dst || !cap)
+        return;
+    dst[0] = 0;
+    ds_mutex_lock(fb.lock);
+    snprintf(dst, cap, "%s", fb.id_token);
+    ds_mutex_unlock(fb.lock);
 }
 
 static void fb_store_tokens(const char *id_token, const char *refresh_token, double expires_in_sec) {

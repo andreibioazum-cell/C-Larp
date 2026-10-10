@@ -3,6 +3,8 @@ static int http_patch_once(HttpJob *j) {
     if (fb_enabled()) {
         fb_ensure_token();
         fb_url(j->url, sizeof(j->url), j->plain);
+        /* База принимает запись только с полем "w" (см. firebase.rules.json). */
+        net_seal_body(j->body, sizeof(j->body));
         code = http("PATCH", j->url, j->body, NULL, 0);
         if (code == 401 && fb_refresh_token_now()) {
             fb_url(j->url, sizeof(j->url), j->plain);
