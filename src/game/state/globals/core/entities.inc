@@ -62,6 +62,7 @@ double poison_a;
 double player_stun;
 double pstun_a;
 double player_hurt_a;
+double player_was_hit;
 double enemy_hurt_a;
 double dash_active;
 double dash_t;

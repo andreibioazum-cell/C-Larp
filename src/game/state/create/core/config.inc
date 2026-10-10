@@ -77,6 +77,7 @@ ACH_FIRST_WIN = 2;
 ACH_FIRST_BUY = 4;
 ACH_ALL_CHARACTERS = 8;
 ACH_LEGENDS = 16;
+/* Keep the saved achievement bit; it now means a flawless full-HP win. */
 ACH_LAST_HP = 32;
 ACH_LEGENDS_NEED = 7;
 azum_revive_count = 0;

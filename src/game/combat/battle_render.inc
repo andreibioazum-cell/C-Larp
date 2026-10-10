@@ -125,8 +125,9 @@ static void finish_game(double result) {
         }
         save_progress();
         grant_achievement(ACH_FIRST_WIN);
-        /* Самое редкое достижение: победа на последней единице здоровья. */
-        if (player->hp > 0 && player->hp <= 1) {
+        /* Flawless win: keep full health and take no hits during the battle.
+         * player_was_hit includes damage intercepted by Ebuc's turrets. */
+        if (player->hp >= player->max_hp && player_was_hit == 0) {
             grant_achievement(ACH_LAST_HP);
         }
         ds_log("win +%g cups +%g candies", cup_win, candy_win);
