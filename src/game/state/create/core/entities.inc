@@ -62,6 +62,7 @@ poison_a = 0;
 player_stun = 0;
 pstun_a = 0;
 player_hurt_a = 0;
+player_was_hit = 0;
 enemy_hurt_a = 0;
 dash_active = 0;
 dash_t = 0;

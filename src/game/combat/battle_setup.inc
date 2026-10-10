@@ -74,6 +74,7 @@ static void reset_battle(void) {
     player_stun = 0;
     pstun_a = 0;
     player_hurt_a = 0;
+    player_was_hit = 0;
     enemy_hurt_a = 0;
     player_poison = 0;
     player_poison_tick = 0;

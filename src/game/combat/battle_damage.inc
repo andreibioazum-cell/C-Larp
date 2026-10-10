@@ -1,4 +1,9 @@
 static double take_damage(double dmg) {
+    /* Track the hit before Ebuc's turrets absorb it: shielded damage still
+     * disqualifies the no-damage victory achievement. */
+    if (dmg > 0) {
+        player_was_hit = 1;
+    }
     double real = dmg;
     if (player_class == CLASS_EBUC) {
         real = player_shield_absorb(real);

@@ -726,31 +726,84 @@ int main(void) {
     assert(punch_reach == 86 && punch_width == 86);
     assert(enemy_punch_reach == 86 && enemy_punch_width == 86);
 
-    /* The rarest achievement: a win on the last single HP, and only that. */
+    /* Flawless victory requires full health and no incoming hit. */
     {
         game_state = ST_SOLO;
         finished = 0;
         cups_awarded = 0;
         achievement_mask = 0;
-        player->hp = 4;
+        player_class = CLASS_ORDINARY;
+        player->max_hp = 10;
+        player->hp = 10;
+        player_was_hit = 0;
         enemy->hp = 0;
         finish_game(1);
         assert(has_achievement(ACH_FIRST_WIN) == 1);
-        assert(has_achievement(ACH_LAST_HP) == 0);
+        assert(has_achievement(ACH_LAST_HP) == 1);
+
+        /* The former one-HP condition no longer qualifies. */
         finished = 0;
         cups_awarded = 0;
         achievement_mask = 0;
         player->hp = 1;
+        player_was_hit = 0;
         finish_game(1);
-        assert(has_achievement(ACH_FIRST_WIN) == 1);
-        assert(has_achievement(ACH_LAST_HP) == 1);
+        assert(has_achievement(ACH_LAST_HP) == 0);
+
+        /* Being healed back to full does not erase damage taken earlier. */
+        finished = 0;
+        cups_awarded = 0;
+        achievement_mask = 0;
+        player->hp = 10;
+        player_was_hit = 0;
+        assert(take_damage(1) == 0);
+        assert(player_was_hit == 1 && player->hp < player->max_hp);
+        player->hp = player->max_hp;
+        finish_game(1);
+        assert(player->hp == player->max_hp);
+        assert(has_achievement(ACH_LAST_HP) == 0);
+
+        /* Ebuc's turret shield leaves player HP untouched, but the blocked
+         * hit still disqualifies the achievement. */
+        finished = 0;
+        cups_awarded = 0;
+        achievement_mask = 0;
+        player_class = CLASS_EBUC;
+        player->max_hp = ebuc_hp;
+        player->hp = player->max_hp;
+        player_was_hit = 0;
+        arr_clear(turret_x);
+        arr_clear(turret_y);
+        arr_clear(turret_hp);
+        arr_clear(turret_maxhp);
+        arr_clear(turret_spawn_t);
+        arr_push(turret_x, player->x);
+        arr_push(turret_y, player->y);
+        arr_push(turret_hp, 5);
+        arr_push(turret_maxhp, 5);
+        arr_push(turret_spawn_t, 0);
+        assert(take_damage(1) == 0);
+        assert(player->hp == player->max_hp);
+        assert(arr_get(turret_hp, 0) == 4);
+        assert(player_was_hit == 1);
+        finish_game(1);
+        assert(has_achievement(ACH_LAST_HP) == 0);
+
         assert(achievement_count() == 4);
         assert(achievement_bit(3) == ACH_LAST_HP);
         finished = 0;
         cups_awarded = 0;
         achievement_mask = 0;
+        player_class = CLASS_ORDINARY;
+        player->max_hp = 10;
         player->hp = 10;
+        player_was_hit = 0;
         enemy->hp = 10;
+        arr_clear(turret_x);
+        arr_clear(turret_y);
+        arr_clear(turret_hp);
+        arr_clear(turret_maxhp);
+        arr_clear(turret_spawn_t);
     }
 
     /* Leaving the game (game_bye, called when the activity pauses or stops):

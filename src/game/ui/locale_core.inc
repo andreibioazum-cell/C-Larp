@@ -177,16 +177,16 @@ static const char *tr_achievement_grass_desc(void) {
 
 static const char *tr_achievement_last_hp(void) {
     if (language == 1) {
-        return "На волоске";
+        return "Без единого удара";
     }
-    return "By a thread";
+    return "Untouched";
 }
 
 static const char *tr_achievement_last_hp_desc(void) {
     if (language == 1) {
-        return "Выиграть бой, оставшись ровно на 1 HP";
+        return "Выиграть бой с полным HP, не получив урона";
     }
-    return "Win a battle with exactly 1 HP left";
+    return "Win a battle at full HP without taking any damage";
 }
 
 static const char *tr_achievement_open(void) {
