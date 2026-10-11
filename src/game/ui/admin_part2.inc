@@ -117,7 +117,9 @@ static void admin_draw_ball(void) {
     double iw = text_ink_width(lab);
     double ih = text_ink_height(lab);
     double sc = 0.5;
-    circle(cx, cy, r + 3, admin_a(0x000000, 0.30));
+    /* Flat black halo instead of a soft shadow: the orb is a button too, and
+     * every button in this panel is fully opaque. */
+    circle(cx, cy, r + 3, admin_off());
     circle(cx, cy, r, admin_body());
     ring(cx, cy, r, clamp(r * 0.11, 2, 3), admin_frame());
     if (iw > 0 && ih > 0) {

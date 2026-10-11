@@ -679,6 +679,26 @@ int main(void) {
     assert(snow_active() == 1);
     assert(newyear_active() == 1);
     assert(newyear_menu_active() == 0);
+
+    /* The lobby gradient is one smooth wash in every theme: hundreds of ~2 px
+     * bands instead of the old thirty 14 px strips. */
+    double saved_w = screen_w;
+    double saved_h = screen_h;
+    double saved_winter = winter_theme;
+    screen_w = 1080;
+    screen_h = 2400;
+    winter_theme = 0;
+    ground_tiles = ground_fills = 0;
+    screen_fill();
+    assert(ground_fills >= 1 + bg_gradient_h / 2);
+    winter_theme = 1;
+    ground_tiles = ground_fills = 0;
+    screen_fill();
+    assert(ground_fills >= 1 + bg_gradient_h / 2);
+    winter_theme = saved_winter;
+    screen_w = saved_w;
+    screen_h = saved_h;
+
     game_state = ST_LOBBY;
     warn_open = 1;
     studio_open = 0;
