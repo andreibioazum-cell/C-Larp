@@ -394,3 +394,31 @@ static double touch_chat(double x, double y, double action) {
     keyboard_hide();
     return 1;
 }
+
+/* Mirror of touch_chat() used for the button click sound: only the actual
+ * controls count, the text field and the message log stay silent. */
+static double chat_button_hit(double x, double y) {
+    double lx = 16;
+    double lw = screen_w - 32;
+    double iy = chat_input_y();
+    double ih = 52;
+    if (chat_open == 0) {
+        return hit_rect(x, y, chat_btn_x(), chat_btn_y(), chat_btn_w(), chat_btn_h());
+    }
+    if (hit_rect(x, y, chat_close_x(), chat_top_y(), btn_w, btn_h) == 1 ||
+        hit_rect(x, y, sticker_btn_x(), iy, STICKER_BTN, ih) == 1 ||
+        hit_rect(x, y, lx + lw - 112, iy, 112, ih) == 1) {
+        return 1;
+    }
+    if (sticker_menu_open == 1) {
+        double st_i = 0;
+        while (st_i < 3) {
+            if (hit_rect(x, y, sticker_tile_x(st_i), sticker_tile_y(), STICKER_TILE, STICKER_TILE) == 1) {
+                return 1;
+            }
+            st_i = st_i + 1;
+        }
+        return hit_rect(x, y, sticker_menu_x(), sticker_menu_y(), sticker_menu_w(), sticker_menu_h());
+    }
+    return 0;
+}

@@ -246,6 +246,7 @@ double santa_poison_tick_interval;
 double santa_poison_dps;
 double santa_poison_damage_bonus;
 double santa_freeze_time_bonus;
+double santa_stun_scale;
 double santa_follow_delay;
 double santa_super_damage;
 double super_freeze;

@@ -194,5 +194,5 @@ static double santa_freeze_time_for(double lv) {
     if (lv >= 3) {
         t = t + santa_freeze_time_bonus;
     }
-    return t;
+    return t * santa_stun_scale;
 }

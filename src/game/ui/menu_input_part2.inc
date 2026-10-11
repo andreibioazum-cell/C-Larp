@@ -87,6 +87,21 @@ static void touch_classes(double x, double y, double action, double id) {
 
 static double menu_button_hit(double x, double y) {
     double i = 0;
+    if (game_state == ST_SOLO || game_state == ST_ONLINE) {
+        /* Battles: only real buttons click - the intro card dismiss, the
+         * joysticks and the attack pads stay silent, while the back button,
+         * the chat controls and the results tap give feedback. */
+        if (card_open != 0) {
+            return 0;
+        }
+        if (finished != 0) {
+            return finish_t >= alert_hold;
+        }
+        if (game_state == ST_ONLINE && chat_open == 1) {
+            return chat_button_hit(x, y);
+        }
+        return back_hit(x, y);
+    }
     if (game_state == ST_LOBBY) {
         while (i <= 4) {
             if (hit_menu_row(x, y, i) == 1) return 1;

@@ -250,6 +250,8 @@ santa_poison_tick_interval = 0.6;
 santa_poison_dps = 1.0;
 santa_poison_damage_bonus = 0.15;
 santa_freeze_time_bonus = 0.50;
+/* Santa's stun (freeze) is ~8% shorter than it used to be. */
+santa_stun_scale = 0.92;
 santa_follow_delay = 0.4;
 santa_super_damage = 2.0;
 super_freeze = 3.0;

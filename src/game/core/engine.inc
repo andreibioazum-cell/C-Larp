@@ -273,6 +273,7 @@ static void logic_update(void) {
     reload_textures();
     tick_achievement_toast();
     tick_fps_meter();
+    admin_tick();
     if (game_state == ST_SOLO) {
         update_game();
     } else if (game_state == ST_ONLINE) {
@@ -337,6 +338,7 @@ static void logic_draw(void) {
      * epilepsy warning. */
     draw_newyear_over_notices();
     draw_achievement_toast();
+    admin_draw();
 }
 
 /* Saying goodbye when the game is left: half of the exits stay silent, the rest
@@ -373,6 +375,10 @@ static double logic_back(void) {
         return 1;
     }
     if (t_dir != 0) {
+        return 1;
+    }
+    if (admin_panel_open == 1) {
+        admin_panel_open = 0;
         return 1;
     }
     if (game_state == ST_ONLINE && chat_open == 1) {
@@ -432,12 +438,18 @@ static void logic_touch(double x, double y, double action, double id) {
     if (studio_open == 1) {
         return;
     }
+    /* The admin orb and its panel sit above every screen and consume their
+     * own touches first. */
+    if (admin_touch(x, y, action, id) == 1) {
+        return;
+    }
     /* Lobby has its own input handler, while the other screens use
      * touch_menu(). Detect controls on touch-down; class-card taps wait for
-     * release so a horizontal drag can page without selecting a character. */
+     * release so a horizontal drag can page without selecting a character.
+     * The click sound covers every screen, battles included, so even the
+     * in-game back button gives feedback. */
     double class_swipe = game_state == ST_CLASSES && classes_swipe_zone(x, y);
-    if (action == 0 && game_state != ST_SOLO && game_state != ST_ONLINE && class_swipe == 0 &&
-        menu_button_hit(x, y) == 1) {
+    if (action == 0 && class_swipe == 0 && menu_button_hit(x, y) == 1) {
         play_button_click();
     }
     if (game_state == ST_LOBBY) {

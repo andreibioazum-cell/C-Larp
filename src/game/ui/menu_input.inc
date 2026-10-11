@@ -165,6 +165,7 @@ static void touch_warn(double x, double y, double action) {
         return;
     }
     if (hit_warn_btn(x, y) == 1) {
+        play_button_click();
         legal_accept();
     }
 }

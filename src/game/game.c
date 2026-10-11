@@ -29,6 +29,7 @@
 #include "ui/menu_screens.inc"
 #include "ui/menu_input.inc"
 #include "ui/menu_input_part2.inc"
+#include "ui/admin.inc"
 #include "combat/battle_rules.inc"
 #include "combat/hit_geometry.inc"
 #include "combat/battle_turrets.inc"

@@ -81,6 +81,8 @@ static double enemy_apply_damage(double dmg) {
     if (finished != 0) {
         return 1;
     }
+    /* Damage x5 from the admin panel multiplies everything the enemy takes. */
+    dmg = dmg * admin_cheat_damage_mult();
     if (enemy_revive_prot > 0) {
         return 0;
     }

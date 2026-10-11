@@ -50,6 +50,7 @@ static void move_player(void) {
     } else if (player_class == CLASS_ORDINARY && player_level >= 2) {
         spd = spd * (1 + ordinary_speed_bonus);
     }
+    spd = spd * admin_cheat_speed_mult();
     if (player_freeze > 0) {
         spd = spd * player_freeze_slow;
     }
@@ -86,6 +87,9 @@ static void update_aim(void) {
     }
     if (punch_cd > 0) {
         punch_cd = tick_down(punch_cd);
+        if (admin_cheat_nocd() == 1) {
+            punch_cd = 0;
+        }
     }
 }
 
