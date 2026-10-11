@@ -21,6 +21,10 @@ static void roundrect_outline(double x, double y, double w, double h, double rad
 static void outline_arc(double cx, double cy, double rr, double t, uint32_t c, double mx, double my);
 static void draw_back(void);
 static double back_hit(double x, double y);
+static double battle_back_x(void);
+static double battle_back_y(void);
+static void draw_battle_back(void);
+static double battle_back_hit(double x, double y);
 static void screen_fill(void);
 static void draw_bottom_gradient(double top, double bottom);
 static void card_state(double x, double y, double w, double h, double selected, double locked);

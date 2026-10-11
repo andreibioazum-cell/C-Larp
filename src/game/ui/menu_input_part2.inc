@@ -100,7 +100,7 @@ static double menu_button_hit(double x, double y) {
         if (game_state == ST_ONLINE && chat_open == 1) {
             return chat_button_hit(x, y);
         }
-        return back_hit(x, y);
+        return battle_back_hit(x, y);
     }
     if (game_state == ST_LOBBY) {
         while (i <= 4) {

@@ -160,6 +160,7 @@ double snow_t;
 double candy_tex_ok;
 double winter_theme;
 double show_hitboxes;
+double classic_theme;
 double hitbox_rgb;
 double hitbox_zone_alpha;
 double hitbox_fade_in;

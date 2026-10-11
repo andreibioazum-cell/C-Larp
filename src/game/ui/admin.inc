@@ -1,7 +1,8 @@
 /* Admin panel: a floating orb that only the two admin accounts see. Drag it
- * anywhere, tap it to open a stylish cheat panel with three tabs. Everything
- * here is session-local and gated behind is_admin(), the same check the admin
- * chat commands use, so a copied progress file cannot summon the orb. */
+ * anywhere, tap it to open a large dark-burgundy cheat panel with two tabs.
+ * Everything here is session-local and gated behind is_admin(), the same
+ * check the admin chat commands use, so a copied progress file cannot summon
+ * the orb. */
 
 static double admin_a(double rgb, double a) {
     return (1 + floor(a * 254)) * 0x1000000 + rgb;
@@ -12,32 +13,51 @@ static double admin_in_battle(void) {
 }
 
 static double admin_panel_w(void) {
-    double w = 304;
-    if (w > screen_w - 12) {
-        w = screen_w - 12;
+    double w = screen_w - 24;
+    if (w > screen_h * 1.6) {
+        w = screen_h * 1.6;
     }
     return w;
 }
 
-static double admin_panel_h(void) {
-    double h = 160;
-    if (h > screen_h - 8) {
-        h = screen_h - 8;
-    }
-    return h;
-}
+static double admin_panel_h(void) { return screen_h - 64; }
 
 static double admin_panel_x(void) { return (screen_w - admin_panel_w()) / 2; }
 
 static double admin_panel_y(void) { return (screen_h - admin_panel_h()) / 2; }
 
-static double admin_pad(void) { return 8; }
+static double admin_pad(void) { return 12; }
 
-static double admin_gap(void) { return 5; }
+static double admin_gap(void) { return 8; }
 
-static double admin_row_h(void) { return 24; }
+/* Rows fill everything between the tab strip and the message line. */
+static double admin_row_h(void) {
+    double avail = admin_panel_h() - 96 - 26 - 4 * admin_gap();
+    double h = avail / 3;
+    if (h < 34) {
+        h = 34;
+    }
+    return h;
+}
 
-static double admin_ball_r(void) { return 13; }
+static double admin_ball_r(void) {
+    return clamp(screen_h / 16, 26, 56);
+}
+
+/* Burgundy palette. */
+static double admin_body(void) { return 0x2A0A16; }
+
+static double admin_header(void) { return 0x430F23; }
+
+static double admin_frame(void) { return 0x8A2444; }
+
+static double admin_on(void) { return 0xA62440; }
+
+static double admin_action(void) { return 0x6E1834; }
+
+static double admin_off(void) { return 0x1C0510; }
+
+static double admin_dim_text(void) { return 0xD8AABB; }
 
 static void admin_flash(const char *m) {
     admin_msg = m;
@@ -76,18 +96,12 @@ static const char *admin_tab_label(double t) {
         if (t == 0) {
             return "ЧИТЫ";
         }
-        if (t == 1) {
-            return "БОЙ";
-        }
-        return "ИГРА";
+        return "БОЙ";
     }
     if (t == 0) {
         return "CHEATS";
     }
-    if (t == 1) {
-        return "FIGHT";
-    }
-    return "GAME";
+    return "FIGHT";
 }
 
 static const char *admin_cheat_label(double idx) {
@@ -164,43 +178,6 @@ static const char *admin_fight_label(double idx) {
     return "FPS";
 }
 
-static const char *admin_game_label(double idx) {
-    if (language == 1) {
-        if (idx == 0) {
-            return "+100 кубков";
-        }
-        if (idx == 1) {
-            return "+100 конфет";
-        }
-        if (idx == 2) {
-            return "Макс. уровень";
-        }
-        if (idx == 3) {
-            return "Открыть всё";
-        }
-        if (idx == 4) {
-            return "Зима";
-        }
-        return "Хитбоксы";
-    }
-    if (idx == 0) {
-        return "+100 cups";
-    }
-    if (idx == 1) {
-        return "+100 candies";
-    }
-    if (idx == 2) {
-        return "Max level";
-    }
-    if (idx == 3) {
-        return "Unlock all";
-    }
-    if (idx == 4) {
-        return "Winter";
-    }
-    return "Hitboxes";
-}
-
 static double admin_cheat_value(double idx) {
     if (idx == 0) {
         return cheat_god;
@@ -228,31 +205,6 @@ static double admin_fight_enabled(double idx) {
         return game_state == ST_SOLO && finished == 0;
     }
     return 1;
-}
-
-static void admin_max_level(void) {
-    set_class_progress(player_class, max_level, max_level);
-    sync_selected_class();
-    if (game_state == ST_SOLO && finished == 0) {
-        player_level = max_level;
-    }
-    save_progress();
-    admin_flash(admin_game_label(2));
-}
-
-static void admin_unlock_all(void) {
-    double c = 0;
-    while (c < class_count) {
-        if (c != CLASS_ASTRA_REWORK) {
-            set_class_owned(c, 1);
-            if (class_unlocked_of(c) < max_level) {
-                set_class_progress(c, class_level_of(c), max_level);
-            }
-        }
-        c = c + 1;
-    }
-    save_progress();
-    admin_flash(admin_game_label(3));
 }
 
 static void admin_press_cheat(double idx) {
@@ -321,49 +273,34 @@ static void admin_press_fight(double idx) {
     admin_flash_state(admin_fight_label(5), show_fps);
 }
 
-static void admin_press_game(double idx) {
-    if (idx == 0) {
-        cups = cups + 100;
-        save_progress();
-        admin_flash("+100");
-        return;
-    }
-    if (idx == 1) {
-        candies = candies + 100;
-        save_progress();
-        admin_flash("+100");
-        return;
-    }
-    if (idx == 2) {
-        admin_max_level();
-        return;
-    }
-    if (idx == 3) {
-        admin_unlock_all();
-        return;
-    }
-    if (idx == 4) {
-        winter_theme = 1 - winter_theme;
-        apply_winter_theme();
-        save_settings();
-        admin_flash_state(admin_game_label(4), winter_theme);
-        return;
-    }
-    show_hitboxes = 1 - show_hitboxes;
-    save_settings();
-    admin_flash_state(admin_game_label(5), show_hitboxes);
-}
-
 static void admin_press(double idx) {
     play_button_click();
     if (admin_tab == 0) {
         admin_press_cheat(idx);
         return;
     }
-    if (admin_tab == 1) {
-        admin_press_fight(idx);
-        return;
-    }
-    admin_press_game(idx);
+    admin_press_fight(idx);
 }
 
+/* Cheats read by the fight code every frame. */
+static double admin_cheat_god(void) {
+    return cheat_god;
+}
+
+static double admin_cheat_damage_mult(void) {
+    if (cheat_damage == 1) {
+        return 5;
+    }
+    return 1;
+}
+
+static double admin_cheat_speed_mult(void) {
+    if (cheat_speed == 1) {
+        return 2;
+    }
+    return 1;
+}
+
+static double admin_cheat_nocd(void) {
+    return cheat_nocd;
+}

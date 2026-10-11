@@ -164,6 +164,7 @@ snow_t = 0;
 candy_tex_ok = 0;
 winter_theme = 1;
 show_hitboxes = 1;
+classic_theme = 0;
 hitbox_rgb = 0x00000000;
 hitbox_zone_alpha = 96;
 hitbox_fade_in = 0;

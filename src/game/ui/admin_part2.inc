@@ -1,16 +1,18 @@
 /* Admin panel screen half: hit-testing, the touch handler, all drawing and
- * the continuous cheat tick. Split out of admin.inc to keep sources under
- * the 450-line project limit; helpers and labels live in admin.inc above. */
+ * the continuous cheat tick. Helpers and labels live in admin.inc above. */
 
 static void admin_panel_press(double x, double y) {
     double px = admin_panel_x();
     double py = admin_panel_y();
     double pw = admin_panel_w();
     double ph = admin_panel_h();
-    double cxx = px + pw - 14;
+    double hh = clamp(ph * 0.11, 44, 120);
+    double tabs_y = py + hh + 8;
+    double tabs_h = clamp(hh * 0.62, 30, 74);
+    double cxx = px + pw - hh * 0.42;
     double dx = x - cxx;
-    double dy = y - (py + 15);
-    if (sqrt(dx * dx + dy * dy) <= 13) {
+    double dy = y - (py + hh / 2);
+    if (sqrt(dx * dx + dy * dy) <= hh * 0.34 + 6) {
         admin_panel_open = 0;
         play_button_click();
         return;
@@ -19,10 +21,10 @@ static void admin_panel_press(double x, double y) {
         admin_panel_open = 0;
         return;
     }
-    double tw = (pw - 2 * admin_pad() - 2 * admin_gap()) / 3;
+    double tw = (pw - 2 * admin_pad() - admin_gap()) / 2;
     double t = 0;
-    while (t < 3) {
-        if (hit_rect(x, y, px + admin_pad() + t * (tw + admin_gap()), py + 36, tw, 20) == 1) {
+    while (t < 2) {
+        if (hit_rect(x, y, px + admin_pad() + t * (tw + admin_gap()), tabs_y, tw, tabs_h) == 1) {
             if (admin_tab != t) {
                 admin_tab = t;
                 play_button_click();
@@ -32,7 +34,7 @@ static void admin_panel_press(double x, double y) {
         t = t + 1;
     }
     double bw = (pw - 2 * admin_pad() - admin_gap()) / 2;
-    double row = floor((y - (py + 62)) / (admin_row_h() + admin_gap()));
+    double row = floor((y - (tabs_y + tabs_h + 10)) / (admin_row_h() + admin_gap()));
     if (row < 0 || row > 2 || x < px + admin_pad() || x > px + pw - admin_pad()) {
         return;
     }
@@ -46,7 +48,7 @@ static void admin_panel_press(double x, double y) {
 static double admin_ball_hit(double x, double y) {
     double dx = x - admin_ball_x;
     double dy = y - admin_ball_y;
-    return sqrt(dx * dx + dy * dy) <= admin_ball_r() + 9;
+    return sqrt(dx * dx + dy * dy) <= admin_ball_r() + 14;
 }
 
 static double admin_touch(double x, double y, double action, double id) {
@@ -63,14 +65,15 @@ static double admin_touch(double x, double y, double action, double id) {
     }
     if (admin_ball_grab == 1) {
         if (action == 2 || action == 1) {
-            admin_ball_x = clamp(x - admin_ball_grab_dx, 16, screen_w - 16);
-            admin_ball_y = clamp(y - admin_ball_grab_dy, 18, screen_h - 18);
+            double br = admin_ball_r();
+            admin_ball_x = clamp(x - admin_ball_grab_dx, br + 4, screen_w - br - 4);
+            admin_ball_y = clamp(y - admin_ball_grab_dy, br + 6, screen_h - br - 6);
         }
         if (action == 1 || action == 3) {
             admin_ball_grab = 0;
             double dx = x - admin_ball_px;
             double dy = y - admin_ball_py;
-            if (action == 1 && sqrt(dx * dx + dy * dy) <= 11) {
+            if (action == 1 && sqrt(dx * dx + dy * dy) <= 13) {
                 admin_panel_open = 1;
                 play_button_click();
             }
@@ -89,42 +92,45 @@ static double admin_touch(double x, double y, double action, double id) {
 }
 
 static void admin_draw_toggle(double x, double y, double w, double h, const char *label, double on) {
+    double sc = fit_text_scale(label, w - 20, h / 79.0);
     if (on == 1) {
-        roundrect(x, y, w, h, 9, admin_a(0x00E5FF, 0.88));
-        text_in_box(label, x, y, w, h, 0x0D0D22, fit_text_scale(label, w - 12, 0.42));
+        roundrect(x, y, w, h, 12, admin_a(admin_on(), 0.95));
+        roundrect_outline(x, y, w, h, 12, 3, admin_a(0xE86E90, 0.9));
+        text_in_box(label, x, y, w, h, 0xFFFFFF, sc);
         return;
     }
-    roundrect(x, y, w, h, 9, admin_a(0x1D1D3C, 0.92));
-    roundrect_outline(x, y, w, h, 9, 1, admin_a(0x4A4A7A, 0.9));
-    text_in_box(label, x, y, w, h, 0x9AA3CC, fit_text_scale(label, w - 12, 0.42));
+    roundrect(x, y, w, h, 12, admin_a(admin_off(), 0.94));
+    roundrect_outline(x, y, w, h, 12, 3, admin_a(admin_frame(), 0.75));
+    text_in_box(label, x, y, w, h, admin_a(admin_dim_text(), 0.95), sc);
 }
 
 static void admin_draw_action(double x, double y, double w, double h, const char *label, double enabled) {
+    double sc = fit_text_scale(label, w - 20, h / 79.0);
     if (enabled == 1) {
-        roundrect(x, y, w, h, 9, admin_a(0x7C4DFF, 0.92));
-        text_in_box(label, x, y, w, h, 0xFFFFFF, fit_text_scale(label, w - 12, 0.42));
+        roundrect(x, y, w, h, 12, admin_a(admin_action(), 0.96));
+        roundrect_outline(x, y, w, h, 12, 3, admin_a(admin_frame(), 0.9));
+        text_in_box(label, x, y, w, h, 0xFFFFFF, sc);
         return;
     }
-    roundrect(x, y, w, h, 9, locked_bg());
-    text_in_box(label, x, y, w, h, locked_text(), fit_text_scale(label, w - 12, 0.42));
+    roundrect(x, y, w, h, 12, admin_a(admin_off(), 0.94));
+    text_in_box(label, x, y, w, h, 0x6E4A58, sc);
 }
 
 static void admin_draw_ball(void) {
-    double r = admin_ball_r() + sin(admin_ball_t * 2.6) * 1.3;
+    double r = admin_ball_r() + sin(admin_ball_t * 2.2) * (admin_ball_r() * 0.06);
     double cx = admin_ball_x;
     double cy = admin_ball_y;
-    circle(cx, cy, r + 8, admin_a(0x00E5FF, 0.10));
-    circle(cx, cy, r + 4, admin_a(0x7C4DFF, 0.16));
-    circle(cx, cy, r, admin_a(0x141432, 0.92));
-    circle(cx - r * 0.22, cy - r * 0.26, r * 0.62, admin_a(0x7C4DFF, 0.60));
-    circle(cx + r * 0.30, cy + r * 0.34, r * 0.48, admin_a(0x00E5FF, 0.30));
-    ring(cx, cy, r + 1, 1.6, admin_a(0x00E5FF, 0.85));
-    circle(cx - r * 0.40, cy - r * 0.44, r * 0.20, admin_a(0xFFFFFF, 0.85));
-    double sc = 0.5;
+    circle(cx, cy, r + r * 0.4, admin_a(0x5A1028, 0.16));
+    circle(cx, cy, r, admin_a(0x34091A, 0.95));
+    circle(cx - r * 0.24, cy - r * 0.26, r * 0.60, admin_a(0x7E1E3E, 0.85));
+    circle(cx + r * 0.30, cy + r * 0.32, r * 0.42, admin_a(0x43101F, 0.9));
+    ring(cx, cy, r + 1.5, r * 0.1, admin_a(0xC04A6A, 0.95));
+    circle(cx - r * 0.38, cy - r * 0.42, r * 0.16, admin_a(0xFFE1EA, 0.9));
+    double sc = r * 0.03;
     double tw = text_ink_width("A") * sc;
     double th = text_ink_height("A") * sc;
     double tt = text_ink_top("A") * sc;
-    text_scaled("A", cx - tw / 2, cy - th / 2 - tt, 0xFFD54F, sc);
+    text_scaled("A", cx - tw / 2, cy - th / 2 - tt, 0xFFFFFF, sc);
 }
 
 static void admin_draw_panel(void) {
@@ -132,32 +138,42 @@ static void admin_draw_panel(void) {
     double py = admin_panel_y();
     double pw = admin_panel_w();
     double ph = admin_panel_h();
-    rect(0, 0, screen_w, screen_h, admin_a(0x000000, 0.55));
-    roundrect(px - 3, py - 3, pw + 6, ph + 6, 17, admin_a(0x7C4DFF, 0.20));
-    roundrect(px, py, pw, ph, 14, admin_a(0x0B0B1E, 0.97));
-    roundrect_outline(px, py, pw, ph, 14, 1.5, admin_a(0x00E5FF, 0.55));
-    /* Header: violet band, golden title, the admin's own nick, red close orb. */
-    roundrect(px, py, pw, 30, 14, admin_a(0x241A4D, 0.98));
-    rect(px, py + 15, pw, 15, admin_a(0x241A4D, 0.98));
-    line(px + 10, py + 29, px + pw - 10, py + 29, 1.2, admin_a(0xFFD54F, 0.45));
-    text_in_box("ADMIN", px + 8, py, 70, 30, 0xFFD54F, 0.52);
+    double hh = clamp(ph * 0.11, 44, 120);
+    double tabs_y = py + hh + 8;
+    double tabs_h = clamp(hh * 0.62, 30, 74);
+    double grid_top = tabs_y + tabs_h + 10;
+    double msg_h = clamp(ph * 0.06, 20, 44);
+    double row_h = admin_row_h();
+    rect(0, 0, screen_w, screen_h, admin_a(0x000000, 0.6));
+    roundrect(px - 4, py - 4, pw + 8, ph + 8, 20, admin_a(admin_frame(), 0.35));
+    roundrect(px, py, pw, ph, 16, admin_a(admin_body(), 0.98));
+    roundrect_outline(px, py, pw, ph, 16, 3, admin_a(admin_frame(), 0.95));
+    /* Header: deep burgundy band, white title, the admin's nick, close orb. */
+    roundrect(px, py, pw, hh, 16, admin_a(admin_header(), 0.98));
+    rect(px, py + hh / 2, pw, hh / 2, admin_a(admin_header(), 0.98));
+    line(px + 12, py + hh - 1, px + pw - 12, py + hh - 1, 2, admin_a(0xC04A6A, 0.5));
+    text_in_box("ADMIN", px + 16, py, pw * 0.3, hh, 0xFFFFFF, hh / 61.0);
     const char *nick = net_login_nick();
-    text_in_box(nick, px + 80, py, pw - 110, 30, admin_color_of(nick, text_color), 0.3);
-    double cxx = px + pw - 14;
-    circle(cxx, py + 15, 10, admin_a(0xE94560, 0.95));
-    text_in_box("X", cxx - 10, py + 5, 20, 20, 0xFFFFFF, 0.36);
+    text_in_box(nick, px + pw * 0.34, py, pw * 0.44, hh, admin_color_of(nick, 0xD8AABB), hh / 105.0);
+    double cxx = px + pw - hh * 0.42;
+    double cr = hh * 0.34;
+    circle(cxx, py + hh / 2, cr, admin_a(0x8E1E36, 0.98));
+    ring(cxx, py + hh / 2, cr + 1.5, 2.5, admin_a(0xE07090, 0.9));
+    text_in_box("X", cxx - cr, py + hh / 2 - cr, cr * 2, cr * 2, 0xFFFFFF, cr / 33.0);
     /* Tabs. */
-    double tw = (pw - 2 * admin_pad() - 2 * admin_gap()) / 3;
+    double tw = (pw - 2 * admin_pad() - admin_gap()) / 2;
     double t = 0;
-    while (t < 3) {
+    while (t < 2) {
         double tx = px + admin_pad() + t * (tw + admin_gap());
         const char *tl = admin_tab_label(t);
+        double sc = fit_text_scale(tl, tw - 20, tabs_h / 57.0);
         if (admin_tab == t) {
-            roundrect(tx, py + 36, tw, 20, 8, admin_a(0x00E5FF, 0.9));
-            text_in_box(tl, tx, py + 36, tw, 20, 0x0D0D22, fit_text_scale(tl, tw - 10, 0.4));
+            roundrect(tx, tabs_y, tw, tabs_h, 10, admin_a(admin_on(), 0.96));
+            text_in_box(tl, tx, tabs_y, tw, tabs_h, 0xFFFFFF, sc);
         } else {
-            roundrect(tx, py + 36, tw, 20, 8, admin_a(0x1D1D3C, 0.92));
-            text_in_box(tl, tx, py + 36, tw, 20, 0x9AA3CC, fit_text_scale(tl, tw - 10, 0.4));
+            roundrect(tx, tabs_y, tw, tabs_h, 10, admin_a(admin_off(), 0.94));
+            roundrect_outline(tx, tabs_y, tw, tabs_h, 10, 3, admin_a(admin_frame(), 0.75));
+            text_in_box(tl, tx, tabs_y, tw, tabs_h, admin_a(admin_dim_text(), 0.95), sc);
         }
         t = t + 1;
     }
@@ -168,13 +184,11 @@ static void admin_draw_panel(void) {
         double row = floor(idx / 2);
         double col = idx - row * 2;
         double bx = px + admin_pad() + col * (bw + admin_gap());
-        double by = py + 62 + row * (admin_row_h() + admin_gap());
+        double by = grid_top + row * (row_h + admin_gap());
         if (admin_tab == 0) {
-            admin_draw_toggle(bx, by, bw, admin_row_h(), admin_cheat_label(idx), admin_cheat_value(idx));
-        } else if (admin_tab == 1) {
-            admin_draw_action(bx, by, bw, admin_row_h(), admin_fight_label(idx), admin_fight_enabled(idx));
+            admin_draw_toggle(bx, by, bw, row_h, admin_cheat_label(idx), admin_cheat_value(idx));
         } else {
-            admin_draw_action(bx, by, bw, admin_row_h(), admin_game_label(idx), 1);
+            admin_draw_action(bx, by, bw, row_h, admin_fight_label(idx), admin_fight_enabled(idx));
         }
         idx = idx + 1;
     }
@@ -183,7 +197,7 @@ static void admin_draw_panel(void) {
         if (admin_msg_state >= 0) {
             m = ds_concat(ds_concat(admin_msg, ": "), admin_on_off(admin_msg_state));
         }
-        ctext_scaled(m, py + ph - 13, 0xFFD54F, 0.34);
+        ctext_scaled(m, py + ph - msg_h, 0xFF9EB4, msg_h / 38.0);
     }
 }
 
@@ -192,8 +206,8 @@ static void admin_draw(void) {
         return;
     }
     if (admin_ball_x == 0 && admin_ball_y == 0) {
-        admin_ball_x = screen_w - 30;
-        admin_ball_y = screen_h * 0.42;
+        admin_ball_x = screen_w - (admin_ball_r() + 14);
+        admin_ball_y = screen_h * 0.40;
     }
     if (admin_panel_open == 1) {
         admin_draw_panel();
@@ -201,15 +215,22 @@ static void admin_draw(void) {
     admin_draw_ball();
 }
 
-/* Continuous cheats: ticked from logic_update so anti-stun and the frozen
- * enemy survive every re-application the fight throws at the player. */
+/* Continuous cheats: ticked from logic_update so anti-stun, the frozen enemy
+ * and the zeroed cooldowns survive every re-application the fight makes. */
 static void admin_tick(void) {
     admin_ball_t = admin_ball_t + dt;
     if (admin_msg_t > 0) {
         admin_msg_t = tick_down(admin_msg_t);
     }
-    if ((cheat_cc != 1 && cheat_estun != 1) || is_admin() == 0 || admin_in_battle() == 0 || finished != 0) {
+    if (is_admin() == 0 || admin_in_battle() == 0 || finished != 0) {
         return;
+    }
+    if (cheat_nocd == 1) {
+        /* Everything ability-related refills instantly, solo and online. */
+        punch_cd = 0;
+        super_cd = 0;
+        dash_cd = 0;
+        astra_cd = 0;
     }
     if (cheat_cc == 1) {
         player_stun = 0;
@@ -221,26 +242,4 @@ static void admin_tick(void) {
             enemy->stun = 0.25;
         }
     }
-}
-
-static double admin_cheat_god(void) {
-    return cheat_god;
-}
-
-static double admin_cheat_damage_mult(void) {
-    if (cheat_damage == 1) {
-        return 5;
-    }
-    return 1;
-}
-
-static double admin_cheat_speed_mult(void) {
-    if (cheat_speed == 1) {
-        return 2;
-    }
-    return 1;
-}
-
-static double admin_cheat_nocd(void) {
-    return cheat_nocd;
 }

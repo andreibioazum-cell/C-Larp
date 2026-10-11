@@ -291,6 +291,11 @@ static void touch_settings(double x, double y) {
         return;
     }
     if (hit_settings_row(x, y, 6) == 1) {
+        classic_theme = 1 - classic_theme;
+        save_settings();
+        return;
+    }
+    if (hit_settings_row(x, y, 7) == 1) {
         start_transition(ST_PRIVACY);
         return;
     }
