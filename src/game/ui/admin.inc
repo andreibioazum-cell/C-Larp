@@ -126,33 +126,29 @@ static double admin_players_per_page(void) {
 
 static double admin_ball_r(void) { return clamp(screen_h / 34.0, 15, 26); }
 
-/* Monochrome palette: black surfaces, white outlines, grey secondary text. */
+/* Monochrome palette: black surfaces, white outlines, grey for "on". */
 static double admin_body(void) { return 0x000000; }
 
 static double admin_header(void) { return 0x0D0D0D; }
 
 static double admin_frame(void) { return 0xFFFFFF; }
 
-static double admin_on(void) { return 0xFFFFFF; }
+/* Switched on / selected: the fill only turns grey. Nothing turns white, so
+ * flipping a switch is barely noticeable at a glance. */
+static double admin_on(void) { return 0x333333; }
 
 static double admin_off(void) { return 0x000000; }
 
 static double admin_dim_text(void) { return 0xB4B4B4; }
 
 /* One flat style for every button of the panel: same radius, same 2 px white
- * outline and fully opaque fills. Off is black with white text, on is white
- * with black text - a toggle simply flips between the two, with no fade,
- * glow or other effect to look at. */
+ * outline, fully opaque fills and white text in both states. Off and on differ
+ * in nothing but the fill colour - black against grey - so a toggle or a tab
+ * has no flash, fade or highlight to look at. */
 static double admin_btn_r(void) { return 9; }
 
 static void admin_btn(const char *label, double x, double y, double w, double h, double on, double scale) {
-    if (on == 1) {
-        roundrect(x, y, w, h, admin_btn_r(), admin_on());
-        roundrect_outline(x, y, w, h, admin_btn_r(), 2, admin_frame());
-        text_in_box(label, x, y, w, h, admin_off(), scale);
-        return;
-    }
-    roundrect(x, y, w, h, admin_btn_r(), admin_off());
+    roundrect(x, y, w, h, admin_btn_r(), on == 1 ? admin_on() : admin_off());
     roundrect_outline(x, y, w, h, admin_btn_r(), 2, admin_frame());
     text_in_box(label, x, y, w, h, admin_frame(), scale);
 }

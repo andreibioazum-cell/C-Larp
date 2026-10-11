@@ -61,6 +61,21 @@ static int adm_all_flat(void) {
     }
     return 1;
 }
+/* Enabled / selected buttons may only turn grey: nothing in the panel may be
+ * painted with a white fill, and the fill count says how many buttons are on. */
+static int adm_no_white_fill(void) {
+    for (int i = 0; i < adm_rr_color_n; i++)
+        if ((adm_rr_colors[i] & 0xFFFFFF) == 0xFFFFFF)
+            return 0;
+    return 1;
+}
+static int adm_fill_count(uint32_t c) {
+    int n = 0;
+    for (int i = 0; i < adm_rr_color_n; i++)
+        if ((adm_rr_colors[i] & 0xFFFFFF) == c)
+            n++;
+    return n;
+}
 static int adm_all_greyscale(void) {
     for (int i = 0; i < adm_color_n; i++) {
         uint32_t c = adm_colors[i];
@@ -90,6 +105,7 @@ static int winter_playing;
 static int winter_loop_calls;
 static int snowflake_draws;
 static int snowflake_tinted;
+static uint32_t snowflake_tint_color;
 static double snowflake_centres[64];
 static int snowflake_centre_n;
 static int star_line_count;
@@ -348,15 +364,18 @@ void ring(float x, float y, float r, float t, uint32_t color) {
     adm_record_color(color);
 }
 void tex_tint(float x, float y, const char *name, float angle, float scale, uint32_t color) {
-    (void)x;
     (void)y;
     (void)angle;
     (void)scale;
-    (void)color;
     ground_tiles++;
     last_ground = name;
     if (name && SNOWFLAKE_TEX && strcmp(name, SNOWFLAKE_TEX) == 0) {
         snowflake_tinted++;
+        snowflake_tint_color = color;
+        snowflake_draws++;
+        if (snowflake_centre_n < 64) {
+            snowflake_centres[snowflake_centre_n++] = x + 26.0 * scale;
+        }
     }
 }
 void net_save_progress_all(double a, double b, double c, double d, double e, double f, double g, double h, double i,
@@ -737,7 +756,12 @@ int main(void) {
     snowflake_draws = 0;
     snowflake_tinted = 0;
     draw_newyear_under_notices();
-    assert(snowflake_draws == (int)newyear_menu_flakes && snowflake_tinted == 0);
+    /* The bundled flake texture is blue; the lobby snow has to be tinted white
+     * so the winter menu shows white flakes instead of blue blobs. */
+    assert(snowflake_draws == (int)newyear_menu_flakes && snowflake_tinted == (int)newyear_menu_flakes);
+    assert(snowflake_tint_color == 0xFFFFFFFF);
+    /* The over-pass is inactive while the warning still shows, so the count
+     * does not change. */
     draw_newyear_over_notices();
     assert(snowflake_draws == (int)newyear_menu_flakes);
     warn_a = 1;
@@ -1664,8 +1688,19 @@ int main(void) {
     assert(cheat_god == 0 && cheat_stain == 0);
     admin_press(0); /* god mode on */
     assert(cheat_god == 1 && cheat_stain == 1);
+    /* The enabled switch - like the selected tab - only turns grey: the panel
+     * never paints a white button, and the fill count says what is on. */
+    adm_reset_log();
+    admin_draw();
+    assert(adm_no_white_fill() == 1);
+    assert(adm_fill_count(0x333333) == 2); /* selected tab + the enabled cheat */
     admin_press(0); /* ...and straight back off */
     assert(cheat_god == 0 && cheat_stain == 1);
+    adm_reset_log();
+    admin_draw();
+    assert(adm_no_white_fill() == 1);
+    assert(adm_fill_count(0x333333) == 1); /* just the selected tab */
+    assert(adm_has_text(admin_cheat_label(0)) == 1);
     assert(admin_cups_allowed() == 0);
     cups = 0;
     cup_win = 50;

@@ -176,7 +176,8 @@ static void admin_draw_panel(void) {
     roundrect(px, py, pw, hh, 14, admin_header());
     rect(px, py + hh / 2, pw, hh / 2, admin_header());
     line(px + 12, py + hh - 1, px + pw - 12, py + hh - 1, 2, admin_frame());
-    text_in_box(title, px + 16, py, title_w, hh, admin_frame(), fit_text_scale(title, title_w, hh / 58.0));
+    /* Left-aligned in the header, as asked, instead of centred in the band. */
+    text_in_field(title, px + 16, py, hh, admin_frame(), fit_text_scale(title, title_w, hh / 58.0));
     double cxx = px + pw - hh * 0.55;
     double cr = hh * 0.3;
     circle(cxx, py + hh / 2, cr, admin_off());
