@@ -117,8 +117,21 @@ static void finish_game(double result) {
         arr_set(rpunch_a, i, 0);
         i = i + 1;
     }
-    if (result == 1 && cups_awarded == 0) {
+    if ((result == 1 || result == 2) && cups_awarded == 0) {
         cups_awarded = 1;
+        award_battle_result(result);
+    }
+}
+
+/* End-of-battle pay-out. A win played with any cheat switched on pays no Cups
+ * and hands out no win achievements, even if the cheat was switched back off
+ * right away; the loss penalty stays what it always was. */
+static void award_battle_result(double result) {
+    if (result == 1) {
+        if (admin_cups_allowed() == 0) {
+            ds_log("win: no cups, a cheat was used in this battle");
+            return;
+        }
         cups = cups + cup_win;
         if (candy_enabled == 1) {
             candies = candies + candy_win;
@@ -131,16 +144,14 @@ static void finish_game(double result) {
             grant_achievement(ACH_LAST_HP);
         }
         ds_log("win +%g cups +%g candies", cup_win, candy_win);
+        return;
     }
-    if (result == 2 && cups_awarded == 0) {
-        cups_awarded = 1;
-        cups = cups - cup_lose;
-        if (cups < 0) {
-            cups = 0;
-        }
-        save_progress();
-        ds_log("lose -%g cups", cup_lose);
+    cups = cups - cup_lose;
+    if (cups < 0) {
+        cups = 0;
     }
+    save_progress();
+    ds_log("lose -%g cups", cup_lose);
 }
 
 static void draw_punch_box(double x, double y, double dx, double dy, double reach, double width, double alpha) {
@@ -290,28 +301,12 @@ static void draw_result(const char *title) {
     ctext_scaled(title, y + 36, 0xFFFFFF, 1.12);
     if (finished == 2) {
         ctext_scaled(tr_cups_lose(reward), y + 126, 0xFFFFFF, 0.9);
+    } else if (admin_cups_allowed() == 0) {
+        ctext_scaled(tr_cups_cheated(), y + 126, 0xFFFFFF, 0.9);
     } else {
         ctext_scaled(tr_cups_reward(reward), y + 126, 0xFFFFFF, 0.9);
     }
     ctext_scaled(tr_tap_to_return(), y + 188, 0xFFFFFF, 0.62);
-}
-
-static void draw_fps_meter(void) {
-    if (show_fps == 0) {
-        return;
-    }
-    const char *label = ds_concat("FPS ", ds_num_to_string((double)(floor(fps_value + 0.5))));
-    double sc = fps_text_scale;
-    double tw = text_ink_width(label) * sc;
-    double th = text_ink_height(label) * sc;
-    double tt = text_ink_top(label) * sc;
-    double w = tw + 28;
-    double h = 36;
-    double x = (screen_w - w) / 2;
-    double y = screen_h - h - 16;
-    roundrect(x - 2, y - 2, w + 4, h + 4, h / 2 + 2, fps_frame_rgb);
-    roundrect(x, y, w, h, h / 2, fps_plate_rgb);
-    text_scaled(label, x + (w - tw) / 2, y + (h - th) / 2 - tt + 1.5, fps_text_rgb, sc);
 }
 
 static void draw_game(void) {
@@ -347,7 +342,6 @@ static void draw_game(void) {
     hud_bar(20, 20, w, 28, player->hp, player->max_hp, 0x7ED321, 0);
     hud_bar(screen_w - w - 20, 20, w, 28, enemy->hp, enemy->max_hp, 0xE94560, 1);
     draw_controls();
-    draw_fps_meter();
     if (finished == 1) {
         draw_result(tr_victory());
     } else if (finished == 2) {

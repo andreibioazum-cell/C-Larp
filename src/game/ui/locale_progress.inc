@@ -297,6 +297,15 @@ static const char *tr_cups_reward(double amount) {
     return out;
 }
 
+/* Shown instead of the reward line when the battle was played with any cheat
+ * switched on, even if it was switched straight back off. */
+static const char *tr_cups_cheated(void) {
+    if (language == 1) {
+        return "Читы: кубки не начисляются";
+    }
+    return "Cheats used: no Cups";
+}
+
 static const char *tr_cups_lose(double amount) {
     const char *out = "";
     if (language == 1) {

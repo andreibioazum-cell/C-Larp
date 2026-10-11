@@ -6,21 +6,9 @@ static double title_y(void) { return back_y + btn_h + title_gap; }
 
 static double content_top(void) { return title_y() + list_top_gap; }
 
-/* Classic theme: lobby buttons sit flush left and stretch nearly full width
- * instead of the centered 280px standard look. */
-static double menu_btn_w(void) {
-    if (classic_theme == 1) {
-        return screen_w - 32;
-    }
-    return btn_w;
-}
+static double menu_btn_w(void) { return btn_w; }
 
-static double menu_x(void) {
-    if (classic_theme == 1) {
-        return 16;
-    }
-    return center_x(btn_w);
-}
+static double menu_x(void) { return center_x(btn_w); }
 
 static double menu_stride(void) { return btn_h + btn_gap; }
 

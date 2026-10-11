@@ -1,24 +1,32 @@
-/* Admin panel screen half: hit-testing, the touch handler, all drawing and
- * the continuous cheat tick. Helpers and labels live in admin.inc above. */
+/* Admin panel input and chrome: hit-testing, the touch handler, the "CCP" orb,
+ * the panel frame, the two tabs and the cheats grid. Every button here (tabs,
+ * cheat switches, list chips, footer) is drawn by admin_btn() from admin.inc,
+ * so they all share one flat black-and-white look. The continuous cheat tick
+ * lives at the bottom of this file, the Players tab in admin_part3.inc. */
+
+/* Closing the panel always drops the nick field and the engine keyboard. */
+static void admin_panel_close(void) {
+    admin_input_blur();
+    admin_panel_open = 0;
+}
 
 static void admin_panel_press(double x, double y) {
     double px = admin_panel_x();
     double py = admin_panel_y();
     double pw = admin_panel_w();
-    double ph = admin_panel_h();
-    double hh = clamp(ph * 0.11, 44, 120);
-    double tabs_y = py + hh + 8;
-    double tabs_h = clamp(hh * 0.62, 30, 74);
-    double cxx = px + pw - hh * 0.42;
+    double hh = admin_header_h();
+    double tabs_y = admin_tabs_y();
+    double tabs_h = admin_tabs_h();
+    double cxx = px + pw - hh * 0.55;
     double dx = x - cxx;
     double dy = y - (py + hh / 2);
-    if (sqrt(dx * dx + dy * dy) <= hh * 0.34 + 6) {
-        admin_panel_open = 0;
+    if (sqrt(dx * dx + dy * dy) <= hh * 0.38 + 8) {
+        admin_panel_close();
         play_button_click();
         return;
     }
-    if (hit_rect(x, y, px, py, pw, ph) == 0) {
-        admin_panel_open = 0;
+    if (hit_rect(x, y, px, py, pw, admin_panel_h()) == 0) {
+        admin_panel_close();
         return;
     }
     double tw = (pw - 2 * admin_pad() - admin_gap()) / 2;
@@ -26,15 +34,22 @@ static void admin_panel_press(double x, double y) {
     while (t < 2) {
         if (hit_rect(x, y, px + admin_pad() + t * (tw + admin_gap()), tabs_y, tw, tabs_h) == 1) {
             if (admin_tab != t) {
+                admin_input_blur();
                 admin_tab = t;
+                admin_page = 0;
                 play_button_click();
             }
             return;
         }
         t = t + 1;
     }
+    if (admin_tab == 1) {
+        admin_players_press(x, y);
+        return;
+    }
     double bw = (pw - 2 * admin_pad() - admin_gap()) / 2;
-    double row = floor((y - (tabs_y + tabs_h + 10)) / (admin_row_h() + admin_gap()));
+    double rh = admin_cheat_row_h();
+    double row = floor((y - admin_grid_top()) / (rh + admin_gap()));
     if (row < 0 || row > 2 || x < px + admin_pad() || x > px + pw - admin_pad()) {
         return;
     }
@@ -53,10 +68,11 @@ static double admin_ball_hit(double x, double y) {
 
 static double admin_touch(double x, double y, double action, double id) {
     (void)id;
-    if (is_admin() == 0 || warn_open == 1 || studio_open == 1) {
+    if (is_admin() == 0) {
         return 0;
     }
-    /* The panel is modal: every touch while it is open goes to it. */
+    /* The panel is modal: every touch while it is open goes to it, on top of
+     * every screen, the transition curtain and the epilepsy warning. */
     if (admin_panel_open == 1) {
         if (action == 0) {
             admin_panel_press(x, y);
@@ -75,6 +91,7 @@ static double admin_touch(double x, double y, double action, double id) {
             double dy = y - admin_ball_py;
             if (action == 1 && sqrt(dx * dx + dy * dy) <= 13) {
                 admin_panel_open = 1;
+                admin_page = 0;
                 play_button_click();
             }
         }
@@ -91,46 +108,53 @@ static double admin_touch(double x, double y, double action, double id) {
     return 0;
 }
 
-static void admin_draw_toggle(double x, double y, double w, double h, const char *label, double on) {
-    double sc = fit_text_scale(label, w - 20, h / 79.0);
-    if (on == 1) {
-        roundrect(x, y, w, h, 12, admin_a(admin_on(), 0.95));
-        roundrect_outline(x, y, w, h, 12, 3, admin_a(0xE86E90, 0.9));
-        text_in_box(label, x, y, w, h, 0xFFFFFF, sc);
-        return;
-    }
-    roundrect(x, y, w, h, 12, admin_a(admin_off(), 0.94));
-    roundrect_outline(x, y, w, h, 12, 3, admin_a(admin_frame(), 0.75));
-    text_in_box(label, x, y, w, h, admin_a(admin_dim_text(), 0.95), sc);
-}
-
-static void admin_draw_action(double x, double y, double w, double h, const char *label, double enabled) {
-    double sc = fit_text_scale(label, w - 20, h / 79.0);
-    if (enabled == 1) {
-        roundrect(x, y, w, h, 12, admin_a(admin_action(), 0.96));
-        roundrect_outline(x, y, w, h, 12, 3, admin_a(admin_frame(), 0.9));
-        text_in_box(label, x, y, w, h, 0xFFFFFF, sc);
-        return;
-    }
-    roundrect(x, y, w, h, 12, admin_a(admin_off(), 0.94));
-    text_in_box(label, x, y, w, h, 0x6E4A58, sc);
-}
-
+/* Black disc with a white rim and the short panel name - flat, no gradients. */
 static void admin_draw_ball(void) {
-    double r = admin_ball_r() + sin(admin_ball_t * 2.2) * (admin_ball_r() * 0.06);
+    const char *lab = admin_orb_label();
+    double r = admin_ball_r();
     double cx = admin_ball_x;
     double cy = admin_ball_y;
-    circle(cx, cy, r + r * 0.4, admin_a(0x5A1028, 0.16));
-    circle(cx, cy, r, admin_a(0x34091A, 0.95));
-    circle(cx - r * 0.24, cy - r * 0.26, r * 0.60, admin_a(0x7E1E3E, 0.85));
-    circle(cx + r * 0.30, cy + r * 0.32, r * 0.42, admin_a(0x43101F, 0.9));
-    ring(cx, cy, r + 1.5, r * 0.1, admin_a(0xC04A6A, 0.95));
-    circle(cx - r * 0.38, cy - r * 0.42, r * 0.16, admin_a(0xFFE1EA, 0.9));
-    double sc = r * 0.03;
-    double tw = text_ink_width("A") * sc;
-    double th = text_ink_height("A") * sc;
-    double tt = text_ink_top("A") * sc;
-    text_scaled("A", cx - tw / 2, cy - th / 2 - tt, 0xFFFFFF, sc);
+    double iw = text_ink_width(lab);
+    double ih = text_ink_height(lab);
+    double sc = 0.5;
+    /* Flat black halo instead of a soft shadow: the orb is a button too, and
+     * every button in this panel is fully opaque. */
+    circle(cx, cy, r + 3, admin_off());
+    circle(cx, cy, r, admin_body());
+    ring(cx, cy, r, clamp(r * 0.11, 2, 3), admin_frame());
+    if (iw > 0 && ih > 0) {
+        double sw = (r * 1.5) / iw;
+        double sh = (r * 0.95) / ih;
+        sc = sw < sh ? sw : sh;
+    }
+    double tw = text_ink_width(lab) * sc;
+    double th = text_ink_height(lab) * sc;
+    double tt = text_ink_top(lab) * sc;
+    text_scaled(lab, cx - tw / 2, cy - th / 2 - tt, admin_frame(), sc);
+}
+
+static void admin_draw_cheats(void) {
+    double px = admin_panel_x() + admin_pad();
+    double pw = admin_panel_w() - 2 * admin_pad();
+    double bw = (pw - admin_gap()) / 2;
+    double rh = admin_cheat_row_h();
+    double idx = 0;
+    while (idx < 6) {
+        double row = floor(idx / 2);
+        double col = idx - row * 2;
+        double bx = px + col * (bw + admin_gap());
+        double by = admin_grid_top() + row * (rh + admin_gap());
+        const char *label = admin_cheat_label(idx);
+        admin_btn(label, bx, by, bw, rh, admin_cheat_value(idx), fit_text_scale(label, bw - 12, rh / 58.0));
+        idx = idx + 1;
+    }
+}
+
+/* Footer helpers of the Players tab: the same flat button as everything else,
+ * an inactive page still looks identical and simply does nothing. */
+static void admin_draw_small_btn(const char *label, double x, double y, double w, double h, double enabled) {
+    (void)enabled;
+    admin_btn(label, x, y, w, h, 0, fit_text_scale(label, w - 14, h / 62.0));
 }
 
 static void admin_draw_panel(void) {
@@ -138,71 +162,45 @@ static void admin_draw_panel(void) {
     double py = admin_panel_y();
     double pw = admin_panel_w();
     double ph = admin_panel_h();
-    double hh = clamp(ph * 0.11, 44, 120);
-    double tabs_y = py + hh + 8;
-    double tabs_h = clamp(hh * 0.62, 30, 74);
-    double grid_top = tabs_y + tabs_h + 10;
-    double msg_h = clamp(ph * 0.06, 20, 44);
-    double row_h = admin_row_h();
-    rect(0, 0, screen_w, screen_h, admin_a(0x000000, 0.6));
-    roundrect(px - 4, py - 4, pw + 8, ph + 8, 20, admin_a(admin_frame(), 0.35));
-    roundrect(px, py, pw, ph, 16, admin_a(admin_body(), 0.98));
-    roundrect_outline(px, py, pw, ph, 16, 3, admin_a(admin_frame(), 0.95));
-    /* Header: deep burgundy band, white title, the admin's nick, close orb. */
-    roundrect(px, py, pw, hh, 16, admin_a(admin_header(), 0.98));
-    rect(px, py + hh / 2, pw, hh / 2, admin_a(admin_header(), 0.98));
-    line(px + 12, py + hh - 1, px + pw - 12, py + hh - 1, 2, admin_a(0xC04A6A, 0.5));
-    text_in_box("ADMIN", px + 16, py, pw * 0.3, hh, 0xFFFFFF, hh / 61.0);
-    const char *nick = net_login_nick();
-    text_in_box(nick, px + pw * 0.34, py, pw * 0.44, hh, admin_color_of(nick, 0xD8AABB), hh / 105.0);
-    double cxx = px + pw - hh * 0.42;
-    double cr = hh * 0.34;
-    circle(cxx, py + hh / 2, cr, admin_a(0x8E1E36, 0.98));
-    ring(cxx, py + hh / 2, cr + 1.5, 2.5, admin_a(0xE07090, 0.9));
-    text_in_box("X", cxx - cr, py + hh / 2 - cr, cr * 2, cr * 2, 0xFFFFFF, cr / 33.0);
+    double hh = admin_header_h();
+    double tabs_y = admin_tabs_y();
+    double tabs_h = admin_tabs_h();
+    const char *title = tr_admin_title();
+    double title_w = pw - hh * 1.9 - 16;
+    /* The full-screen scrim is the only translucent thing in the panel; every
+     * shape of the panel itself is flat and fully opaque. */
+    rect(0, 0, screen_w, screen_h, admin_a(0x000000, 0.55));
+    roundrect(px, py, pw, ph, 14, admin_body());
+    roundrect_outline(px, py, pw, ph, 14, 3, admin_frame());
+    /* Header: black band, the full panel name, the close button. */
+    roundrect(px, py, pw, hh, 14, admin_header());
+    rect(px, py + hh / 2, pw, hh / 2, admin_header());
+    line(px + 12, py + hh - 1, px + pw - 12, py + hh - 1, 2, admin_frame());
+    /* Left-aligned in the header, as asked, instead of centred in the band. */
+    text_in_field(title, px + 16, py, hh, admin_frame(), fit_text_scale(title, title_w, hh / 58.0));
+    double cxx = px + pw - hh * 0.55;
+    double cr = hh * 0.3;
+    circle(cxx, py + hh / 2, cr, admin_off());
+    ring(cxx, py + hh / 2, cr, clamp(cr * 0.14, 2, 3), admin_frame());
+    text_in_box("X", cxx - cr, py + hh / 2 - cr, cr * 2, cr * 2, admin_frame(), cr / 30.0);
     /* Tabs. */
     double tw = (pw - 2 * admin_pad() - admin_gap()) / 2;
     double t = 0;
     while (t < 2) {
-        double tx = px + admin_pad() + t * (tw + admin_gap());
         const char *tl = admin_tab_label(t);
-        double sc = fit_text_scale(tl, tw - 20, tabs_h / 57.0);
-        if (admin_tab == t) {
-            roundrect(tx, tabs_y, tw, tabs_h, 10, admin_a(admin_on(), 0.96));
-            text_in_box(tl, tx, tabs_y, tw, tabs_h, 0xFFFFFF, sc);
-        } else {
-            roundrect(tx, tabs_y, tw, tabs_h, 10, admin_a(admin_off(), 0.94));
-            roundrect_outline(tx, tabs_y, tw, tabs_h, 10, 3, admin_a(admin_frame(), 0.75));
-            text_in_box(tl, tx, tabs_y, tw, tabs_h, admin_a(admin_dim_text(), 0.95), sc);
-        }
+        admin_btn(tl, px + admin_pad() + t * (tw + admin_gap()), tabs_y, tw, tabs_h, admin_tab == t,
+                  fit_text_scale(tl, tw - 16, tabs_h / 57.0));
         t = t + 1;
     }
-    /* Two-column grid of controls. */
-    double bw = (pw - 2 * admin_pad() - admin_gap()) / 2;
-    double idx = 0;
-    while (idx < 6) {
-        double row = floor(idx / 2);
-        double col = idx - row * 2;
-        double bx = px + admin_pad() + col * (bw + admin_gap());
-        double by = grid_top + row * (row_h + admin_gap());
-        if (admin_tab == 0) {
-            admin_draw_toggle(bx, by, bw, row_h, admin_cheat_label(idx), admin_cheat_value(idx));
-        } else {
-            admin_draw_action(bx, by, bw, row_h, admin_fight_label(idx), admin_fight_enabled(idx));
-        }
-        idx = idx + 1;
+    if (admin_tab == 1) {
+        admin_draw_players();
+        return;
     }
-    if (admin_msg_t > 0 && admin_msg != 0 && str_len(admin_msg) > 0) {
-        const char *m = admin_msg;
-        if (admin_msg_state >= 0) {
-            m = ds_concat(ds_concat(admin_msg, ": "), admin_on_off(admin_msg_state));
-        }
-        ctext_scaled(m, py + ph - msg_h, 0xFF9EB4, msg_h / 38.0);
-    }
+    admin_draw_cheats();
 }
 
 static void admin_draw(void) {
-    if (is_admin() == 0 || warn_open == 1 || studio_open == 1 || t_dir != 0) {
+    if (is_admin() == 0) {
         return;
     }
     if (admin_ball_x == 0 && admin_ball_y == 0) {
@@ -219,9 +217,12 @@ static void admin_draw(void) {
  * and the zeroed cooldowns survive every re-application the fight makes. */
 static void admin_tick(void) {
     admin_ball_t = admin_ball_t + dt;
-    if (admin_msg_t > 0) {
-        admin_msg_t = tick_down(admin_msg_t);
+    if (admin_panel_open == 0) {
+        /* The panel can also be closed from the back key or a battle: the nick
+         * field must not keep the keyboard up behind it. */
+        admin_input_blur();
     }
+    admin_input_sync();
     if (is_admin() == 0 || admin_in_battle() == 0 || finished != 0) {
         return;
     }

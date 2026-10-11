@@ -104,20 +104,12 @@ static void draw_nick_msg(const char *nick, const char *rest, double x, double y
 }
 
 static void button(const char *label, double x, double y, double w, double h) {
-    if (classic_theme == 1) {
-        roundrect(x, y, w, h, btn_radius, ui_purple);
-    } else {
-        cb_button_gradient(x, y, w, h, btn_radius, ui_purple);
-    }
+    cb_button_gradient(x, y, w, h, btn_radius, ui_purple);
     text_in_box(label, x, y, w, h, text_color, 1);
 }
 
 static void button_scaled(const char *label, double x, double y, double w, double h, double scale) {
-    if (classic_theme == 1) {
-        roundrect(x, y, w, h, btn_radius, ui_purple);
-    } else {
-        cb_button_gradient(x, y, w, h, btn_radius, ui_purple);
-    }
+    cb_button_gradient(x, y, w, h, btn_radius, ui_purple);
     text_in_box(label, x, y, w, h, text_color, scale);
 }
 
@@ -145,20 +137,9 @@ static void draw_back(void) { button(tr_back(), (screen_w - btn_w) / 2, back_y, 
 
 static double back_hit(double x, double y) { return hit_rect_pad(x, y, (screen_w - btn_w) / 2, back_y, btn_w, btn_h); }
 
-/* Classic theme moves the in-battle back button to the top-right corner. */
-static double battle_back_x(void) {
-    if (classic_theme == 1) {
-        return screen_w - btn_w - 16;
-    }
-    return (screen_w - btn_w) / 2;
-}
+static double battle_back_x(void) { return (screen_w - btn_w) / 2; }
 
-static double battle_back_y(void) {
-    if (classic_theme == 1) {
-        return 16;
-    }
-    return back_y;
-}
+static double battle_back_y(void) { return back_y; }
 
 static void draw_battle_back(void) { button(tr_back(), battle_back_x(), battle_back_y(), btn_w, btn_h); }
 
@@ -177,8 +158,17 @@ static void screen_fill(void) {
 
 static void draw_bottom_gradient(double top, double bottom) {
     double h = bg_gradient_h;
-    double bands = bg_gradient_bands;
+    double bands = h / 2;
     double y0 = screen_h - h;
+    /* Two pixels per band: the fade between the flat background and the
+     * gradient colour reads as one smooth wash in every theme instead of a
+     * stack of strips (the old thirty bands over 420 px were 14 px each). */
+    if (bands < bg_gradient_bands) {
+        bands = bg_gradient_bands;
+    }
+    if (bands > 400) {
+        bands = 400;
+    }
     double band_h = h / bands + 1;
     double i = 0;
     while (i < bands) {

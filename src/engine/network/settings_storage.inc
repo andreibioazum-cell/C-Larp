@@ -3,8 +3,7 @@
 typedef struct {
     DSMutex lock;
     int loaded, has_file;
-    int language, hitboxes, musicvol, winter, showfps;
-    int classic;
+    int language, hitboxes, musicvol, winter;
     int legal;
 } Settings;
 static Settings st = {.lock = DS_MUTEX_INIT};
@@ -20,7 +19,7 @@ static void settings_read(void) {
     char path[320], line[128];
     FILE *f;
     int language = 0, hitboxes = 1, musicvol = 70, has_file = 0;
-    int winter = 1, showfps = 0, classic = 0, legal = 0;
+    int winter = 1, legal = 0;
     st_lock();
     if (st.loaded) {
         st_unlock();
@@ -49,14 +48,6 @@ static void settings_read(void) {
                 winter = value;
                 continue;
             }
-            if (sscanf(line, "showfps %d", &value) == 1) {
-                showfps = value;
-                continue;
-            }
-            if (sscanf(line, "classic %d", &value) == 1) {
-                classic = value;
-                continue;
-            }
             if (sscanf(line, "legal %d", &value) == 1) {
                 legal = value;
                 continue;
@@ -69,8 +60,6 @@ static void settings_read(void) {
     st.hitboxes = hitboxes ? 1 : 0;
     st.musicvol = musicvol < 0 ? 0 : (musicvol > 100 ? 100 : musicvol);
     st.winter = winter ? 1 : 0;
-    st.showfps = showfps ? 1 : 0;
-    st.classic = classic ? 1 : 0;
     st.legal = legal;
     st.has_file = has_file;
     st.loaded = 1;
@@ -82,11 +71,8 @@ static void settings_write(void) {
     settings_read();
     data_file_path(path, sizeof(path), SETTINGS_FILE);
     st_lock();
-    snprintf(text, sizeof(text),
-             "lang %d\nhitboxes %d\nmusicvol %d\nwinter %d\nshowfps %d\n"
-             "classic %d\nlegal %d\n",
-             st.language, st.hitboxes, st.musicvol, st.winter, st.showfps, st.classic,
-             st.legal);
+    snprintf(text, sizeof(text), "lang %d\nhitboxes %d\nmusicvol %d\nwinter %d\nlegal %d\n", st.language,
+             st.hitboxes, st.musicvol, st.winter, st.legal);
     st.has_file = 1;
     st_unlock();
     file_write_atomic(path, text);
@@ -95,15 +81,13 @@ static void settings_write(void) {
 static void settings_push_to_cloud(void) {
     char nick[LOGIN_NICK_MAX + 1] = "";
     char body[BODY];
-    int language, hitboxes, musicvol, winter, showfps, classic;
+    int language, hitboxes, musicvol, winter;
     settings_read();
     st_lock();
     language = st.language;
     hitboxes = st.hitboxes;
     musicvol = st.musicvol;
     winter = st.winter;
-    showfps = st.showfps;
-    classic = st.classic;
     st_unlock();
     lg_lock();
     if (lg.status == NET_LOGIN_OK && lg.session_nick[0]) {
@@ -114,10 +98,8 @@ static void settings_push_to_cloud(void) {
         return;
     char url[URL];
     snprintf(url, sizeof(url), "%s/users/%s.json", net.base, nick);
-    snprintf(body, sizeof(body),
-             "{\"lang\":%d,\"hitboxes\":%d,\"musicvol\":%d,"
-             "\"winter\":%d,\"showfps\":%d,\"classic\":%d}",
-             language, hitboxes, musicvol, winter, showfps, classic);
+    snprintf(body, sizeof(body), "{\"lang\":%d,\"hitboxes\":%d,\"musicvol\":%d,\"winter\":%d}", language,
+             hitboxes, musicvol, winter);
     http_patch_async(url, body);
 }
 
@@ -182,44 +164,6 @@ void net_save_winter_theme(double on) {
     settings_push_to_cloud();
 }
 
-double net_load_fps_meter(void) {
-    double v;
-    settings_read();
-    st_lock();
-    v = (double)st.showfps;
-    st_unlock();
-    return v;
-}
-
-void net_save_fps_meter(double on) {
-    settings_read();
-    st_lock();
-    st.showfps = on ? 1 : 0;
-    st.loaded = 1;
-    st_unlock();
-    settings_write();
-    settings_push_to_cloud();
-}
-
-double net_load_classic_theme(void) {
-    double v;
-    settings_read();
-    st_lock();
-    v = (double)st.classic;
-    st_unlock();
-    return v;
-}
-
-void net_save_classic_theme(double on) {
-    settings_read();
-    st_lock();
-    st.classic = on ? 1 : 0;
-    st.loaded = 1;
-    st_unlock();
-    settings_write();
-    settings_push_to_cloud();
-}
-
 void net_save_settings(double language, double hitboxes) {
     settings_read();
     st_lock();
@@ -232,7 +176,7 @@ void net_save_settings(double language, double hitboxes) {
 }
 
 int settings_sync_with_cloud(const char *resp) {
-    int had_file, language, hitboxes, musicvol, winter, showfps, classic;
+    int had_file, language, hitboxes, musicvol, winter;
     settings_read();
     st_lock();
     had_file = st.has_file;
@@ -245,9 +189,7 @@ int settings_sync_with_cloud(const char *resp) {
     hitboxes = (int)num(resp, "hitboxes", -1);
     musicvol = (int)num(resp, "musicvol", -1);
     winter = (int)num(resp, "winter", -1);
-    showfps = (int)num(resp, "showfps", -1);
-    classic = (int)num(resp, "classic", -1);
-    if (language < 0 && hitboxes < 0 && musicvol < 0 && winter < 0 && showfps < 0 && classic < 0)
+    if (language < 0 && hitboxes < 0 && musicvol < 0 && winter < 0)
         return 0;
     st_lock();
     if (language >= 0)
@@ -258,16 +200,12 @@ int settings_sync_with_cloud(const char *resp) {
         st.musicvol = musicvol > 100 ? 100 : musicvol;
     if (winter >= 0)
         st.winter = winter ? 1 : 0;
-    if (showfps >= 0)
-        st.showfps = showfps ? 1 : 0;
-    if (classic >= 0)
-        st.classic = classic ? 1 : 0;
     st.loaded = 1;
     st_unlock();
     settings_write();
     if (net_log_ok())
-        LOG("settings restored from cloud (lang=%d hitboxes=%d musicvol=%d winter=%d showfps=%d classic=%d)", language,
-            hitboxes, musicvol, winter, showfps, classic);
+        LOG("settings restored from cloud (lang=%d hitboxes=%d musicvol=%d winter=%d)", language, hitboxes, musicvol,
+            winter);
     return 0;
 }
 

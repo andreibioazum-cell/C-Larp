@@ -27,6 +27,7 @@ static const char *tr_skin_elf_hint(void);
 static const char *tr_skin_legends_hint(void);
 static const char *tr_skins_need_legends(void);
 static const char *tr_cups_reward(double amount);
+static const char *tr_cups_cheated(void);
 static const char *tr_cups_lose(double amount);
 static const char *tr_banned(void);
 static const char *tr_promo(void);

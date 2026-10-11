@@ -153,7 +153,9 @@ static void draw_newyear_snow(double notice) {
         }
         double spin = spin_dir * (0.9 + 1.4 * hr);
         double ang = (hr + newyear_snow_t * spin) * 2 * pi;
-        tex(x - hw, y - hw, SNOWFLAKE_TEX, ang, s);
+        /* The bundled flake texture is light blue; tinting it white keeps the
+         * snow white in every theme instead of showing blue blobs. */
+        tex_tint(x - hw, y - hw, SNOWFLAKE_TEX, ang, s, 0xFFFFFFFF);
         i = i + 1;
     }
 }
