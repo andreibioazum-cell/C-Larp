@@ -65,6 +65,8 @@ const char *net_ban_list_nick(double idx) {
     return slot;
 }
 
+/* Cache only: bans.dat is folded in once, and the panel asks this for every
+ * visible row on every frame - no file I/O on the UI thread. */
 double net_ban_list_have(const char *nick) {
     int found = 0;
     if (!nick || !*nick) {
@@ -79,10 +81,7 @@ double net_ban_list_have(const char *nick) {
         }
     }
     ban_unlock();
-    if (found) {
-        return 1;
-    }
-    return is_banned_in_file(nick) ? 1 : 0;
+    return found ? 1 : 0;
 }
 
 double net_ban_list_busy(void) {
