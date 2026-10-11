@@ -328,6 +328,16 @@ void circle(float x, float y, float r, uint32_t color) {
     candy_x_drawn = x;
     candy_y_drawn = y;
 }
+/* The gradient buttons live in C++ (src/game/cpp/ui_fx.cpp); the state test
+ * never draws them, so a stub keeps the host link self-contained. */
+void cb_button_gradient(float x, float y, float w, float h, float rad, uint32_t color) {
+    (void)x;
+    (void)y;
+    (void)w;
+    (void)h;
+    (void)rad;
+    (void)color;
+}
 void tex_alpha(float x, float y, const char *name, float angle, float scale, double alpha) {
     (void)angle;
     if (name && CANDY_TEX && strcmp(name, CANDY_TEX) == 0) {

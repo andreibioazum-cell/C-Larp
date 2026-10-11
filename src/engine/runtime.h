@@ -89,6 +89,9 @@ void keyboard_backspace(void);
 void keyboard_commit_utf8(const char *utf8);
 void rect(float x, float y, float w, float h, uint32_t color);
 void roundrect(float x, float y, float w, float h, float r, uint32_t color);
+/* C++-implemented glossy vertical gradient drawn as per-scanline strips
+ * clipped to the rounded silhouette (src/game/cpp/ui_fx.cpp). */
+void cb_button_gradient(float x, float y, float w, float h, float r, uint32_t color);
 
 void rect_rot(float x, float y, float w, float h, float angle, uint32_t color);
 void circle(float x, float y, float r, uint32_t color);

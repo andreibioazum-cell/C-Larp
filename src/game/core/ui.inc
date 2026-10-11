@@ -104,12 +104,12 @@ static void draw_nick_msg(const char *nick, const char *rest, double x, double y
 }
 
 static void button(const char *label, double x, double y, double w, double h) {
-    roundrect(x, y, w, h, btn_radius, ui_purple);
+    cb_button_gradient(x, y, w, h, btn_radius, ui_purple);
     text_in_box(label, x, y, w, h, text_color, 1);
 }
 
 static void button_scaled(const char *label, double x, double y, double w, double h, double scale) {
-    roundrect(x, y, w, h, btn_radius, ui_purple);
+    cb_button_gradient(x, y, w, h, btn_radius, ui_purple);
     text_in_box(label, x, y, w, h, text_color, scale);
 }
 

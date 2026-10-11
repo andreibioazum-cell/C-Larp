@@ -108,15 +108,23 @@ jobs:
           set -euo pipefail
           TOOLCHAIN="$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin"
           GLUE="$NDK_ROOT/sources/android/native_app_glue"
-          SOURCES=(src/game/game.c src/engine/runtime.c src/platform/android/android_main.c "$GLUE/android_native_app_glue.c")
-          COMMON=(-std=c99 -O3 -s -fPIC -shared -Isrc -I. -I"$GLUE" -landroid -llog -ldl -lm -lvulkan)
+          C_SOURCES=(src/game/game.c src/engine/runtime.c src/platform/android/android_main.c "$GLUE/android_native_app_glue.c")
+          CPP_SOURCE=src/game/cpp/ui_fx.cpp
+          # C and C++ need different -std flags; the C++ unit is compiled once
+          # per ABI and linked into the same .so as the C99 game sources.
+          C_OPTS=(-std=c99 -O3 -s -fPIC -shared -Isrc -I. -I"$GLUE" -landroid -llog -ldl -lm -lvulkan)
+          CPP_OPTS=(-std=c++17 -fno-exceptions -fno-rtti -O3 -s -fPIC -Isrc)
           mkdir -p staging/lib/arm64-v8a staging/lib/armeabi-v7a staging/lib/x86_64
-          "$TOOLCHAIN/aarch64-linux-android26-clang" "${SOURCES[@]}" "${COMMON[@]}" \
-            -o staging/lib/arm64-v8a/libcb_game.so
-          "$TOOLCHAIN/armv7a-linux-androideabi26-clang" "${SOURCES[@]}" "${COMMON[@]}" \
-            -o staging/lib/armeabi-v7a/libcb_game.so
-          "$TOOLCHAIN/x86_64-linux-android26-clang" "${SOURCES[@]}" "${COMMON[@]}" \
-            -o staging/lib/x86_64/libcb_game.so
+          for ABI in arm64-v8a armeabi-v7a x86_64; do
+            case "$ABI" in
+              arm64-v8a) TRIPLE=aarch64-linux-android26;;
+              armeabi-v7a) TRIPLE=armv7a-linux-androideabi26;;
+              x86_64) TRIPLE=x86_64-linux-android26;;
+            esac
+            "$TOOLCHAIN/$TRIPLE-clang++" "${CPP_OPTS[@]}" -c "$CPP_SOURCE" -o "staging/ui_fx_$ABI.o"
+            "$TOOLCHAIN/$TRIPLE-clang" "${C_OPTS[@]}" "${C_SOURCES[@]}" "staging/ui_fx_$ABI.o" \
+              -o "staging/lib/$ABI/libcb_game.so"
+          done
 
       - name: Package and align APK
         run: |
