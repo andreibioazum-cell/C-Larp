@@ -271,7 +271,7 @@ static void draw_controls(void) {
         }
         text_in_box(sl, atk2_x - 70, atk2_y - 70, 140, 140, 0xFFFFFF, sls);
     }
-    draw_back();
+    draw_battle_back();
 }
 
 static void draw_result(const char *title) {

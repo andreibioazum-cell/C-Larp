@@ -6,7 +6,21 @@ static double title_y(void) { return back_y + btn_h + title_gap; }
 
 static double content_top(void) { return title_y() + list_top_gap; }
 
-static double menu_x(void) { return center_x(btn_w); }
+/* Classic theme: lobby buttons sit flush left and stretch nearly full width
+ * instead of the centered 280px standard look. */
+static double menu_btn_w(void) {
+    if (classic_theme == 1) {
+        return screen_w - 32;
+    }
+    return btn_w;
+}
+
+static double menu_x(void) {
+    if (classic_theme == 1) {
+        return 16;
+    }
+    return center_x(btn_w);
+}
 
 static double menu_stride(void) { return btn_h + btn_gap; }
 
@@ -15,7 +29,7 @@ static double menu_top(void) { return screen_h / 2 - (lobby_rows * btn_h + (lobb
 static double menu_row(double i) { return menu_top() + i * menu_stride(); }
 
 static double hit_menu_row(double px, double py, double i) {
-    return hit_rect_pad(px, py, menu_x(), menu_row(i), btn_w, btn_h);
+    return hit_rect_pad(px, py, menu_x(), menu_row(i), menu_btn_w(), btn_h);
 }
 
 static double settings_stride(void) {
@@ -49,7 +63,7 @@ static double settings_top(void) {
 static double settings_row_y(double i) { return settings_top() + i * settings_stride(); }
 
 static double hit_settings_row(double px, double py, double i) {
-    return hit_rect_pad(px, py, menu_x(), settings_row_y(i), btn_w, settings_btn_h());
+    return hit_rect_pad(px, py, menu_x(), settings_row_y(i), menu_btn_w(), settings_btn_h());
 }
 
 static double lobby_title_y(void) { return menu_top() - 70; }
@@ -260,7 +274,7 @@ static double modes_top(void) { return screen_h / 2 - (modes_rows * btn_h + (mod
 static double modes_row(double i) { return modes_top() + i * menu_stride(); }
 
 static double hit_modes_row(double px, double py, double i) {
-    return hit_rect_pad(px, py, menu_x(), modes_row(i), btn_w, btn_h);
+    return hit_rect_pad(px, py, menu_x(), modes_row(i), menu_btn_w(), btn_h);
 }
 
 static double warn_btn_w(void) { return fit_w(560); }

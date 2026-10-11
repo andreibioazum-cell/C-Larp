@@ -165,6 +165,7 @@ static void touch_warn(double x, double y, double action) {
         return;
     }
     if (hit_warn_btn(x, y) == 1) {
+        play_button_click();
         legal_accept();
     }
 }
@@ -290,6 +291,11 @@ static void touch_settings(double x, double y) {
         return;
     }
     if (hit_settings_row(x, y, 6) == 1) {
+        classic_theme = 1 - classic_theme;
+        save_settings();
+        return;
+    }
+    if (hit_settings_row(x, y, 7) == 1) {
         start_transition(ST_PRIVACY);
         return;
     }

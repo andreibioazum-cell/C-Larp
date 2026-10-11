@@ -409,6 +409,9 @@ static void update_online(void) {
     punch_left = tick_down(punch_left);
     follow_punch();
     super_cd = tick_down(super_cd);
+    if (admin_cheat_nocd() == 1) {
+        super_cd = 0;
+    }
     boom_t = tick_down(boom_t);
     tick_super_windup();
     tick_santa_follow();

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(CubicBattle4 LANGUAGES C)
+project(CubicBattle4 LANGUAGES C CXX)
 
 if(NOT CMAKE_C_COMPILER_ID MATCHES "^(Apple)?Clang$")
     message(FATAL_ERROR
@@ -24,6 +24,7 @@ set(CB_ANDROID_GLUE "${ANDROID_NDK}/sources/android/native_app_glue")
 
 add_library(cb_game SHARED
     "${CB_SOURCE_ROOT}/game/game.c"
+    "${CB_SOURCE_ROOT}/cpp/ui_fx.cpp"
     "${CB_SOURCE_ROOT}/engine/runtime.c"
     "${CB_SOURCE_ROOT}/platform/android/android_main.c"
     "${CB_ANDROID_GLUE}/android_native_app_glue.c"

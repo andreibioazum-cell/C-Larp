@@ -335,7 +335,7 @@ static void touch_game(double x, double y, double action, double id) {
             return;
         }
     }
-    if (back_hit(x, y) == 1 && action == 0) {
+    if (battle_back_hit(x, y) == 1 && action == 0) {
         start_transition(0);
         return;
     }

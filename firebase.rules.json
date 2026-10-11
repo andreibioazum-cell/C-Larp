@@ -66,6 +66,7 @@
         "promo_used": { ".validate": "newData.isNumber() && (newData.val() == 0 || newData.val() == 1)" },
                 "winter": { ".validate": "newData.isNumber() && (newData.val() == 0 || newData.val() == 1)" },
         "showfps": { ".validate": "newData.isNumber() && (newData.val() == 0 || newData.val() == 1)" },
+        "classic": { ".validate": "newData.isNumber() && (newData.val() == 0 || newData.val() == 1)" },
         "$other": { ".validate": false }
       }
     },

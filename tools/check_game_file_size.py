@@ -6,7 +6,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_LINES = 450
-SOURCE_SUFFIXES = {".c", ".h", ".inc", ".java", ".xml"}
+SOURCE_SUFFIXES = {".c", ".h", ".inc", ".cpp", ".java", ".xml"}
 SOURCE_ROOTS = (ROOT / "src", ROOT / "platform")
 
 

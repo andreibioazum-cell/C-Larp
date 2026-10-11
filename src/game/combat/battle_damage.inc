@@ -1,4 +1,8 @@
 static double take_damage(double dmg) {
+    /* God mode from the admin panel: the hit never lands at all. */
+    if (admin_cheat_god() == 1) {
+        return 0;
+    }
     /* Track the hit before Ebuc's turrets absorb it: shielded damage still
      * disqualifies the no-damage victory achievement. */
     if (dmg > 0) {

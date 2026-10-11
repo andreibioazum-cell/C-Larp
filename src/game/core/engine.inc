@@ -132,137 +132,6 @@ static void update_music(void) {
     snd_volume(LOBBY_MUSIC, music_volume / 100 * music_level);
 }
 
-static void update_warning(void) {
-    if (warn_open != 1) {
-        return;
-    }
-    if (warn_closing == 1) {
-        warn_close_t = clamp(warn_close_t + dt / warn_fade, 0, 1);
-        double p = warn_close_t;
-        warn_a = 1 - p * p * (3 - 2 * p);
-        if (warn_close_t >= 1) {
-            warn_a = 0;
-            warn_open = 0;
-            warn_closing = 0;
-        }
-        return;
-    }
-    warn_a = 1;
-    warn_t = warn_t + dt;
-    warn_ready = clamp(warn_t / warn_wait, 0, 1);
-}
-
-static void update_studio(void) {
-    if (studio_open != 1) {
-        return;
-    }
-    studio_t = studio_t + dt;
-    if (studio_t < studio_in) {
-        studio_a = studio_t / studio_in;
-        return;
-    }
-    if (studio_t <= studio_in + studio_hold) {
-        studio_a = 1;
-        studio_bg_a = 1;
-        return;
-    }
-    studio_a = 1 - (studio_t - studio_in - studio_hold) / studio_fade;
-    studio_bg_a = studio_a;
-    if (studio_a <= 0) {
-        studio_a = 0;
-        studio_bg_a = 0;
-        studio_open = 0;
-    }
-}
-
-static void update_alpha_notice(void) {
-    if (alpha_notice_done == 1) {
-        return;
-    }
-    if (warn_open == 1 || studio_open == 1) {
-        alpha_notice_t = 0;
-        return;
-    }
-    alpha_notice_t = alpha_notice_t + dt;
-    if (alpha_notice_t < alpha_notice_delay) {
-        return;
-    }
-    alpha_notice_done = 1;
-    alpha_notice_show(language);
-}
-
-static void tick_achievement_toast(void) {
-    ach_toast_t = tick_down(ach_toast_t);
-}
-
-static void tick_fps_meter(void) {
-    if (show_fps == 0) {
-        fps_acc = 0;
-        fps_frames = 0;
-        return;
-    }
-    fps_acc = fps_acc + dt;
-    fps_frames = fps_frames + 1;
-    if (fps_acc < fps_interval) {
-        return;
-    }
-    if (fps_acc > 0) {
-        fps_value = fps_frames / fps_acc;
-    }
-    fps_acc = 0;
-    fps_frames = 0;
-}
-
-static const char *achievement_toast_text(void) {
-    if (ach_toast_bit == ACH_FIRST_WIN) {
-        return tr_achievement_first_win();
-    }
-    if (ach_toast_bit == ACH_ALL_CHARACTERS) {
-        return tr_achievement_grass();
-    }
-    if (ach_toast_bit == ACH_LAST_HP) {
-        return tr_achievement_last_hp();
-    }
-    return tr_achievement_legends();
-}
-
-static void draw_achievement_toast(void) {
-    if (ach_toast_bit <= 0 || ach_toast_t <= 0) {
-        return;
-    }
-    double elapsed = ACH_TOAST_DURATION - ach_toast_t;
-    double w = fit_w(460);
-    double h = 70;
-    double x = center_x(w);
-    double home_y = 64;
-    double off = home_y + h + 8;
-    double y = home_y;
-    if (elapsed < ACH_TOAST_FADE_IN) {
-        double k = elapsed / ACH_TOAST_FADE_IN;
-        double ease = 1 - (1 - k) * (1 - k);
-        y = home_y - off * (1 - ease);
-    } else if (elapsed > ACH_TOAST_FADE_IN + ACH_TOAST_HOLD) {
-        double k2 = (elapsed - ACH_TOAST_FADE_IN - ACH_TOAST_HOLD) / ACH_TOAST_EXIT;
-        y = home_y - off * clamp(k2, 0, 1) * clamp(k2, 0, 1);
-    }
-    if (y + h <= 0) {
-        return;
-    }
-    roundrect(x, y, w, h, btn_radius, ui_purple);
-    const char *head = tr_achievement_toast_title();
-    const char *body = achievement_toast_text();
-    double hs = 0.42;
-    double bs = 0.62;
-    double gap = 6;
-    double hh = text_ink_height(head) * hs;
-    double ht = text_ink_top(head) * hs;
-    double bh = text_ink_height(body) * bs;
-    double bt = text_ink_top(body) * bs;
-    double top = y + (h - hh - gap - bh) / 2;
-    ctext_scaled(head, top - ht, text_color, hs);
-    ctext_scaled(body, top + hh + gap - bt, text_color, bs);
-}
-
 static void logic_update(void) {
     update_warning();
     update_studio();
@@ -273,6 +142,7 @@ static void logic_update(void) {
     reload_textures();
     tick_achievement_toast();
     tick_fps_meter();
+    admin_tick();
     if (game_state == ST_SOLO) {
         update_game();
     } else if (game_state == ST_ONLINE) {
@@ -337,6 +207,7 @@ static void logic_draw(void) {
      * epilepsy warning. */
     draw_newyear_over_notices();
     draw_achievement_toast();
+    admin_draw();
 }
 
 /* Saying goodbye when the game is left: half of the exits stay silent, the rest
@@ -373,6 +244,10 @@ static double logic_back(void) {
         return 1;
     }
     if (t_dir != 0) {
+        return 1;
+    }
+    if (admin_panel_open == 1) {
+        admin_panel_open = 0;
         return 1;
     }
     if (game_state == ST_ONLINE && chat_open == 1) {
@@ -432,12 +307,18 @@ static void logic_touch(double x, double y, double action, double id) {
     if (studio_open == 1) {
         return;
     }
+    /* The admin orb and its panel sit above every screen and consume their
+     * own touches first. */
+    if (admin_touch(x, y, action, id) == 1) {
+        return;
+    }
     /* Lobby has its own input handler, while the other screens use
      * touch_menu(). Detect controls on touch-down; class-card taps wait for
-     * release so a horizontal drag can page without selecting a character. */
+     * release so a horizontal drag can page without selecting a character.
+     * The click sound covers every screen, battles included, so even the
+     * in-game back button gives feedback. */
     double class_swipe = game_state == ST_CLASSES && classes_swipe_zone(x, y);
-    if (action == 0 && game_state != ST_SOLO && game_state != ST_ONLINE && class_swipe == 0 &&
-        menu_button_hit(x, y) == 1) {
+    if (action == 0 && class_swipe == 0 && menu_button_hit(x, y) == 1) {
         play_button_click();
     }
     if (game_state == ST_LOBBY) {

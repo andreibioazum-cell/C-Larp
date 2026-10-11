@@ -212,6 +212,8 @@ double net_load_winter_theme(void);
 void net_save_winter_theme(double on);
 double net_load_fps_meter(void);
 void net_save_fps_meter(double on);
+double net_load_classic_theme(void);
+void net_save_classic_theme(double on);
 
 void settings_mark_legal(void);
 double settings_legal_ts(void);
