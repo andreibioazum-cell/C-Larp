@@ -141,7 +141,6 @@ static void logic_update(void) {
     update_showdown_music();
     reload_textures();
     tick_achievement_toast();
-    tick_fps_meter();
     admin_tick();
     if (game_state == ST_SOLO) {
         update_game();
@@ -207,6 +206,8 @@ static void logic_draw(void) {
      * epilepsy warning. */
     draw_newyear_over_notices();
     draw_achievement_toast();
+    /* Last of all: the admin orb and its panel are never covered, not by the
+     * transition curtain, not by the epilepsy warning or the splash. */
     admin_draw();
 }
 
@@ -237,6 +238,12 @@ static void bye_notice_roll(void) {
 }
 
 static double logic_back(void) {
+    /* The admin panel is on top of everything, so it also gets the back key
+     * first: the epilepsy warning and the splash never hide it. */
+    if (admin_panel_open == 1) {
+        admin_panel_open = 0;
+        return 1;
+    }
     if (warn_open == 1) {
         return 0;
     }
@@ -244,10 +251,6 @@ static double logic_back(void) {
         return 1;
     }
     if (t_dir != 0) {
-        return 1;
-    }
-    if (admin_panel_open == 1) {
-        admin_panel_open = 0;
         return 1;
     }
     if (game_state == ST_ONLINE && chat_open == 1) {
@@ -293,6 +296,12 @@ static double logic_back(void) {
 }
 
 static void logic_touch(double x, double y, double action, double id) {
+    /* The admin orb and its panel sit above every screen - including the
+     * transition curtain and the epilepsy warning - and consume their own
+     * touches before anything else, so they never disappear mid-transition. */
+    if (admin_touch(x, y, action, id) == 1) {
+        return;
+    }
     if (t_dir != 0) {
         classes_swipe_reset();
         return;
@@ -305,11 +314,6 @@ static void logic_touch(double x, double y, double action, double id) {
         return;
     }
     if (studio_open == 1) {
-        return;
-    }
-    /* The admin orb and its panel sit above every screen and consume their
-     * own touches first. */
-    if (admin_touch(x, y, action, id) == 1) {
         return;
     }
     /* Lobby has its own input handler, while the other screens use

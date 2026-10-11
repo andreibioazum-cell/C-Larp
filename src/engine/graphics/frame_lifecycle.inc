@@ -54,14 +54,14 @@ void ds_graphics_error_screen(const char *m) {
     if (!ensure_font())
         return;
     int y = 12;
-    text_scaled("=== CUBIC BATTLE ERROR ===", 16, (float)y, pack_c(0xffffffff), 0.7f);
+    text_scaled("=== CUBIC BATTLE ERROR ===", 16, (float)y, pack_c(0xffe6e6e6), 0.7f);
     y += 30;
     if (m && *m) {
-        text_scaled(m, 16, (float)y, pack_c(0xffffb0b0), 0.6f);
+        text_scaled(m, 16, (float)y, pack_c(0xffc98f8f), 0.6f);
         y += 28;
     }
     y += 4;
-    text_scaled("--- console (last lines) ---", 16, (float)y, pack_c(0xff9aa0b0), 0.55f);
+    text_scaled("--- console (last lines) ---", 16, (float)y, pack_c(0xff6f7684), 0.55f);
     y += 24;
     int n = console_count();
     int start = n > 16 ? n - 16 : 0;
@@ -71,7 +71,7 @@ void ds_graphics_error_screen(const char *m) {
             y += 19;
             continue;
         }
-        uint32_t col = console_type(i) ? 0xffff8a80 : 0xffc8d0dc;
+        uint32_t col = console_type(i) ? 0xffb06a62 : 0xff7c828e;
         text_scaled(ln, 16, (float)y, col, 0.55f);
         y += 19;
         if (y > (cur_buf ? cur_buf->height : screen_h) - 8)

@@ -49,19 +49,6 @@ static const char *tr_winter_toggle(void) {
     return "Winter theme: OFF";
 }
 
-static const char *tr_classic_toggle(void) {
-    if (language == 1) {
-        if (classic_theme == 1) {
-            return "Тема: Классика";
-        }
-        return "Тема: Обычная";
-    }
-    if (classic_theme == 1) {
-        return "Theme: Classic";
-    }
-    return "Theme: Normal";
-}
-
 static const char *tr_newyear_banner(void) {
     if (language == 1) {
         return "С Новым годом!";
@@ -69,15 +56,3 @@ static const char *tr_newyear_banner(void) {
     return "Happy New Year!";
 }
 
-static const char *tr_fps_meter_toggle(void) {
-    if (language == 1) {
-        if (show_fps == 1) {
-            return "FPS в бою: ВКЛ";
-        }
-        return "FPS в бою: ВЫКЛ";
-    }
-    if (show_fps == 1) {
-        return "Battle FPS: ON";
-    }
-    return "Battle FPS: OFF";
-}

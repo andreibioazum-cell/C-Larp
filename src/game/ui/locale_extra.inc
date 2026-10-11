@@ -12,6 +12,49 @@ static const char *tr_class_astra_rework(void) {
     return "Astra (Rework)";
 }
 
+/* Admin panel tabs and the Players actions. */
+static const char *tr_admin_cheats_tab(void) {
+    if (language == 1) {
+        return "ЧИТЫ";
+    }
+    return "CHEATS";
+}
+
+static const char *tr_admin_players_tab(void) {
+    if (language == 1) {
+        return "ИГРОКИ";
+    }
+    return "PLAYERS";
+}
+
+static const char *tr_admin_ban(void) {
+    if (language == 1) {
+        return "БАН";
+    }
+    return "BAN";
+}
+
+static const char *tr_admin_unban(void) {
+    if (language == 1) {
+        return "РАЗБАН";
+    }
+    return "UNBAN";
+}
+
+static const char *tr_admin_bans(void) {
+    if (language == 1) {
+        return "БАН-ЛИСТ";
+    }
+    return "BAN LIST";
+}
+
+static const char *tr_admin_no_players(void) {
+    if (language == 1) {
+        return "Список пуст";
+    }
+    return "Nothing here";
+}
+
 static const char *tr_admin_ban_protected(void) {
     if (language == 1) {
         return "Администраторов нельзя банить";

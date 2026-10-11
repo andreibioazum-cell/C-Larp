@@ -1,8 +1,10 @@
-/* Admin panel: a floating orb that only the two admin accounts see. Drag it
- * anywhere, tap it to open a large dark-burgundy cheat panel with two tabs.
- * Everything here is session-local and gated behind is_admin(), the same
- * check the admin chat commands use, so a copied progress file cannot summon
- * the orb. */
+/* Admin panel: a small black-and-white "A" orb that only the two admin
+ * accounts see. Drag it anywhere, tap it to open a compact monochrome panel
+ * with two tabs - cheats and players. The panel is drawn above every screen,
+ * above the transition curtain and above the epilepsy warning, so it never
+ * hides itself, and nothing here prints a status line under the panel.
+ * Everything is session-local and gated behind is_admin(), the same check the
+ * admin chat commands use, so a copied progress file cannot summon the orb. */
 
 static double admin_a(double rgb, double a) {
     return (1 + floor(a * 254)) * 0x1000000 + rgb;
@@ -12,96 +14,98 @@ static double admin_in_battle(void) {
     return game_state == ST_SOLO || game_state == ST_ONLINE;
 }
 
+/* Compact panel: a bit over half of the screen wide, and only as tall as the
+ * cheat grid needs, so it never stretches over the whole display. */
+static double admin_pad(void) { return 10; }
+
+static double admin_gap(void) { return 6; }
+
+static double admin_header_h(void) { return clamp(screen_h * 0.055, 34, 56); }
+
+static double admin_tabs_h(void) { return clamp(screen_h * 0.045, 26, 44); }
+
+/* Three cheat rows, two buttons per row. */
+static double admin_row_h(void) { return clamp(screen_h * 0.075, 30, 76); }
+
 static double admin_panel_w(void) {
-    double w = screen_w - 24;
-    if (w > screen_h * 1.6) {
-        w = screen_h * 1.6;
+    double lim = screen_w - 24;
+    double w = screen_w * 0.58;
+    double cap = screen_h * 1.1;
+    if (w > cap) {
+        w = cap;
+    }
+    if (w > lim) {
+        w = lim;
+    }
+    if (w < 180) {
+        w = 180;
     }
     return w;
 }
 
-static double admin_panel_h(void) { return screen_h - 64; }
+/* Header, tabs and the three cheat rows decide the height. */
+static double admin_panel_h(void) {
+    double lim = screen_h - 32;
+    double h = admin_header_h() + admin_gap() + admin_tabs_h() + 2 * admin_gap() + 3 * admin_row_h() + 2 * admin_gap() +
+               admin_pad();
+    if (h > lim) {
+        h = lim;
+    }
+    if (h < 180) {
+        h = 180;
+    }
+    if (h > lim) {
+        h = lim;
+    }
+    return h;
+}
 
 static double admin_panel_x(void) { return (screen_w - admin_panel_w()) / 2; }
 
 static double admin_panel_y(void) { return (screen_h - admin_panel_h()) / 2; }
 
-static double admin_pad(void) { return 12; }
+static double admin_tabs_y(void) { return admin_panel_y() + admin_header_h() + admin_gap(); }
 
-static double admin_gap(void) { return 8; }
+static double admin_content_top(void) { return admin_tabs_y() + admin_tabs_h() + 2 * admin_gap(); }
 
-/* Rows fill everything between the tab strip and the message line. */
-static double admin_row_h(void) {
-    double avail = admin_panel_h() - 96 - 26 - 4 * admin_gap();
-    double h = avail / 3;
-    if (h < 34) {
-        h = 34;
+static double admin_content_bottom(void) { return admin_panel_y() + admin_panel_h() - admin_pad(); }
+
+/* The Players tab keeps a footer with its page controls. */
+static double admin_footer_h(void) { return clamp(admin_panel_h() * 0.11, 26, 42); }
+
+static double admin_list_bottom(void) { return admin_content_bottom() - admin_footer_h() - admin_gap(); }
+
+static double admin_player_row_h(void) { return clamp(screen_h * 0.05, 28, 44); }
+
+static double admin_players_per_page(void) {
+    double avail = admin_list_bottom() - admin_content_top();
+    double n = floor(avail / (admin_player_row_h() + admin_gap()));
+    if (n < 1) {
+        n = 1;
     }
-    return h;
+    return n;
 }
 
-static double admin_ball_r(void) {
-    return clamp(screen_h / 16, 26, 56);
-}
+static double admin_ball_r(void) { return clamp(screen_h / 34.0, 15, 26); }
 
-/* Burgundy palette. */
-static double admin_body(void) { return 0x2A0A16; }
+/* Monochrome palette: black surfaces, white outlines, grey secondary text. */
+static double admin_body(void) { return 0x000000; }
 
-static double admin_header(void) { return 0x430F23; }
+static double admin_header(void) { return 0x0D0D0D; }
 
-static double admin_frame(void) { return 0x8A2444; }
+static double admin_frame(void) { return 0xFFFFFF; }
 
-static double admin_on(void) { return 0xA62440; }
+static double admin_on(void) { return 0xFFFFFF; }
 
-static double admin_action(void) { return 0x6E1834; }
+static double admin_off(void) { return 0x000000; }
 
-static double admin_off(void) { return 0x1C0510; }
-
-static double admin_dim_text(void) { return 0xD8AABB; }
-
-static void admin_flash(const char *m) {
-    admin_msg = m;
-    admin_msg_state = -1;
-    admin_msg_t = 1.6;
-}
-
-static void admin_flash_state(const char *label, double v) {
-    admin_msg = label;
-    admin_msg_state = v;
-    admin_msg_t = 1.6;
-}
-
-static const char *admin_on_off(double v) {
-    if (v == 1) {
-        if (language == 1) {
-            return "вкл";
-        }
-        return "on";
-    }
-    if (language == 1) {
-        return "выкл";
-    }
-    return "off";
-}
-
-static const char *admin_solo_only(void) {
-    if (language == 1) {
-        return "Только в соло";
-    }
-    return "Solo only";
-}
+static double admin_dim_text(void) { return 0xB4B4B4; }
 
 static const char *admin_tab_label(double t) {
-    if (language == 1) {
-        if (t == 0) {
-            return "ЧИТЫ";
-        }
-        return "БОЙ";
-    }
     if (t == 0) {
-        return "CHEATS";
+        return tr_admin_cheats_tab();
     }
-    return "FIGHT";
+    return tr_admin_players_tab();
 }
 
 static const char *admin_cheat_label(double idx) {
@@ -141,43 +145,6 @@ static const char *admin_cheat_label(double idx) {
     return "Stun enemy";
 }
 
-static const char *admin_fight_label(double idx) {
-    if (language == 1) {
-        if (idx == 0) {
-            return "Хилка";
-        }
-        if (idx == 1) {
-            return "Убить врага";
-        }
-        if (idx == 2) {
-            return "Победа";
-        }
-        if (idx == 3) {
-            return "Телепорт";
-        }
-        if (idx == 4) {
-            return "Диско";
-        }
-        return "FPS";
-    }
-    if (idx == 0) {
-        return "Heal";
-    }
-    if (idx == 1) {
-        return "Kill enemy";
-    }
-    if (idx == 2) {
-        return "Instant win";
-    }
-    if (idx == 3) {
-        return "Teleport";
-    }
-    if (idx == 4) {
-        return "Disco";
-    }
-    return "FPS";
-}
-
 static double admin_cheat_value(double idx) {
     if (idx == 0) {
         return cheat_god;
@@ -195,16 +162,6 @@ static double admin_cheat_value(double idx) {
         return cheat_cc;
     }
     return cheat_estun;
-}
-
-static double admin_fight_enabled(double idx) {
-    if (idx == 0) {
-        return admin_in_battle() == 1 && finished == 0;
-    }
-    if (idx == 1 || idx == 2 || idx == 3) {
-        return game_state == ST_SOLO && finished == 0;
-    }
-    return 1;
 }
 
 static void admin_press_cheat(double idx) {
@@ -232,54 +189,11 @@ static void admin_press_cheat(double idx) {
     if (idx == 5) {
         cheat_estun = v;
     }
-    admin_flash_state(admin_cheat_label(idx), v);
-}
-
-static void admin_press_fight(double idx) {
-    if (admin_fight_enabled(idx) != 1) {
-        admin_flash(admin_solo_only());
-        return;
-    }
-    if (idx == 0) {
-        player->hp = player->max_hp;
-        admin_flash("HP");
-        return;
-    }
-    if (idx == 1) {
-        enemy_apply_damage(enemy->hp + 1);
-        return;
-    }
-    if (idx == 2) {
-        finish_game(1);
-        return;
-    }
-    if (idx == 3) {
-        player->x = enemy->x;
-        player->y = enemy->y;
-        admin_flash("TP");
-        return;
-    }
-    if (idx == 4) {
-        if (net_event() == 0) {
-            net_event_set(1);
-        } else {
-            net_event_set(0);
-        }
-        admin_flash("DISCO");
-        return;
-    }
-    show_fps = 1 - show_fps;
-    save_settings();
-    admin_flash_state(admin_fight_label(5), show_fps);
 }
 
 static void admin_press(double idx) {
     play_button_click();
-    if (admin_tab == 0) {
-        admin_press_cheat(idx);
-        return;
-    }
-    admin_press_fight(idx);
+    admin_press_cheat(idx);
 }
 
 /* Cheats read by the fight code every frame. */

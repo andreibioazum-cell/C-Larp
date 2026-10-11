@@ -296,24 +296,6 @@ static void draw_result(const char *title) {
     ctext_scaled(tr_tap_to_return(), y + 188, 0xFFFFFF, 0.62);
 }
 
-static void draw_fps_meter(void) {
-    if (show_fps == 0) {
-        return;
-    }
-    const char *label = ds_concat("FPS ", ds_num_to_string((double)(floor(fps_value + 0.5))));
-    double sc = fps_text_scale;
-    double tw = text_ink_width(label) * sc;
-    double th = text_ink_height(label) * sc;
-    double tt = text_ink_top(label) * sc;
-    double w = tw + 28;
-    double h = 36;
-    double x = (screen_w - w) / 2;
-    double y = screen_h - h - 16;
-    roundrect(x - 2, y - 2, w + 4, h + 4, h / 2 + 2, fps_frame_rgb);
-    roundrect(x, y, w, h, h / 2, fps_plate_rgb);
-    text_scaled(label, x + (w - tw) / 2, y + (h - th) / 2 - tt + 1.5, fps_text_rgb, sc);
-}
-
 static void draw_game(void) {
     resolve_fighter_looks();
     draw_arena_background();
@@ -347,7 +329,6 @@ static void draw_game(void) {
     hud_bar(20, 20, w, 28, player->hp, player->max_hp, 0x7ED321, 0);
     hud_bar(screen_w - w - 20, 20, w, 28, enemy->hp, enemy->max_hp, 0xE94560, 1);
     draw_controls();
-    draw_fps_meter();
     if (finished == 1) {
         draw_result(tr_victory());
     } else if (finished == 2) {

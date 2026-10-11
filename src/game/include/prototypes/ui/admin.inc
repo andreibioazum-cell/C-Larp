@@ -1,6 +1,9 @@
 static double admin_touch(double x, double y, double action, double id);
 static void admin_draw(void);
 static void admin_tick(void);
+static void admin_draw_players(void);
+static void admin_players_press(double x, double y);
+static void admin_draw_small_btn(const char *label, double x, double y, double w, double h, double enabled);
 static double admin_cheat_god(void);
 static double admin_cheat_damage_mult(void);
 static double admin_cheat_speed_mult(void);

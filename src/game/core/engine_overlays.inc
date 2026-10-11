@@ -65,24 +65,6 @@ static void tick_achievement_toast(void) {
     ach_toast_t = tick_down(ach_toast_t);
 }
 
-static void tick_fps_meter(void) {
-    if (show_fps == 0) {
-        fps_acc = 0;
-        fps_frames = 0;
-        return;
-    }
-    fps_acc = fps_acc + dt;
-    fps_frames = fps_frames + 1;
-    if (fps_acc < fps_interval) {
-        return;
-    }
-    if (fps_acc > 0) {
-        fps_value = fps_frames / fps_acc;
-    }
-    fps_acc = 0;
-    fps_frames = 0;
-}
-
 static const char *achievement_toast_text(void) {
     if (ach_toast_bit == ACH_FIRST_WIN) {
         return tr_achievement_first_win();

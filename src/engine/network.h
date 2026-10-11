@@ -210,10 +210,6 @@ double net_load_music_volume(void);
 void net_save_music_volume(double volume);
 double net_load_winter_theme(void);
 void net_save_winter_theme(double on);
-double net_load_fps_meter(void);
-void net_save_fps_meter(double on);
-double net_load_classic_theme(void);
-void net_save_classic_theme(double on);
 
 void settings_mark_legal(void);
 double settings_legal_ts(void);
@@ -225,6 +221,11 @@ double net_chat_is_ban(const char *msg);
 double net_chat_is_unban(const char *msg);
 const char *net_chat_ban_target(const char *msg);
 const char *net_chat_unban_target(const char *msg);
+double net_ban_list_count(void);
+double net_ban_list_have(const char *nick);
+const char *net_ban_list_nick(double idx);
+double net_ban_list_busy(void);
+void net_ban_list_refresh(void);
 
 double net_chat_is_text_cmd(const char *msg);
 const char *net_chat_text_cmd_text(const char *msg);

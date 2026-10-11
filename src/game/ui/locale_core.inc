@@ -68,20 +68,6 @@ static const char *tr_no_connection(void) {
     return "No connection";
 }
 
-static const char *tr_reconnecting(void) {
-    if (language == 1) {
-        return "Переподключение...";
-    }
-    return "Reconnecting...";
-}
-
-static const char *tr_connecting(void) {
-    if (language == 1) {
-        return "Подключение...";
-    }
-    return "Connecting...";
-}
-
 static const char *tr_chat(void) {
     if (language == 1) {
         return "Чат";

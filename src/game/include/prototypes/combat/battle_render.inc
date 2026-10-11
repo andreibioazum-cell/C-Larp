@@ -16,5 +16,4 @@ static void draw_enemy_hitbox(void);
 static void draw_enemy_body(void);
 static void draw_controls(void);
 static void draw_result(const char *title);
-static void draw_fps_meter(void);
 static void draw_game(void);

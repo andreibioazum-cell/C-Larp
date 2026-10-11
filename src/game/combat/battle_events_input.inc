@@ -234,17 +234,8 @@ static void draw_online(void) {
     double w = screen_w / 3;
     hud_bar(20, 20, w, 28, player->hp, player->max_hp, 0x7ED321, 0);
     draw_controls();
-    draw_fps_meter();
     draw_chat();
     draw_plates_hud();
-    double st = net_status();
-    double sy = chat_btn_y() + btn_h + 12;
-    if (st == 4) {
-        ctext(tr_no_connection(), sy, 0xFFFFFF);
-        ctext(tr_reconnecting(), sy + 32, 0xFFFFFF);
-    } else if (st == 1) {
-        ctext(tr_connecting(), sy, 0xFFFFFF);
-    }
     if (finished == 2) {
         draw_result(tr_defeat());
     }

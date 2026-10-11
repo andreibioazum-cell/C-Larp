@@ -69,9 +69,7 @@ static void draw_settings(void) {
     button("Русский", menu_x(), settings_row_y(2), menu_btn_w(), settings_btn_h());
     button(tr_hitboxes_toggle(), menu_x(), settings_row_y(3), menu_btn_w(), settings_btn_h());
     button(tr_music_state(), menu_x(), settings_row_y(4), menu_btn_w(), settings_btn_h());
-    button_scaled(tr_fps_meter_toggle(), menu_x(), settings_row_y(5), menu_btn_w(), settings_btn_h(), 0.8);
-    button_scaled(tr_classic_toggle(), menu_x(), settings_row_y(6), menu_btn_w(), settings_btn_h(), 0.8);
-    button_scaled(tr_privacy(), menu_x(), settings_row_y(7), menu_btn_w(), settings_btn_h(), 0.8);
+    button_scaled(tr_privacy(), menu_x(), settings_row_y(5), menu_btn_w(), settings_btn_h(), 0.8);
 }
 
 static void draw_privacy(void) {

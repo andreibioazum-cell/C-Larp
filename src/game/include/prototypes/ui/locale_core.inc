@@ -8,8 +8,6 @@ static const char *tr_tap_to_return(void);
 static const char *tr_victory(void);
 static const char *tr_defeat(void);
 static const char *tr_no_connection(void);
-static const char *tr_reconnecting(void);
-static const char *tr_connecting(void);
 static const char *tr_chat(void);
 static const char *tr_candy_timer(void);
 static const char *tr_no_messages(void);
