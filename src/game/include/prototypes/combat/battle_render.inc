@@ -2,6 +2,7 @@ static void draw_candies(void);
 static void draw_status_aura(double x, double y, double size, double rgb, double rim, double a);
 static void draw_remote_snow(void);
 static void finish_game(double result);
+static void award_battle_result(double result);
 static void draw_punch_box(double x, double y, double dx, double dy, double reach, double width, double alpha);
 static void draw_field(void);
 static double player_punching_now(void);

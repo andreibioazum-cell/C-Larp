@@ -32,16 +32,34 @@ static void adm_record_text(const char *s) {
     if (adm_text_n < 64 && s)
         snprintf(adm_text[adm_text_n++], sizeof(adm_text[0]), "%s", s);
 }
+#define ADM_RR_COLOR_MAX 512
+static int adm_rr_color_n;
+static uint32_t adm_rr_colors[ADM_RR_COLOR_MAX];
+static void adm_record_rr_color(uint32_t c) {
+    if (adm_rr_color_n < ADM_RR_COLOR_MAX)
+        adm_rr_colors[adm_rr_color_n++] = c;
+}
 static void adm_reset_log(void) {
     adm_color_n = 0;
     adm_text_n = 0;
     adm_rr_n = 0;
+    adm_rr_color_n = 0;
 }
 static int adm_has_text(const char *needle) {
     for (int i = 0; i < adm_text_n; i++)
         if (strstr(adm_text[i], needle))
             return 1;
     return 0;
+}
+/* The panel paints no half-transparent shapes: fills and outlines are either
+ * fully opaque (alpha 0xFF) or the plain no-alpha colour the game uses. */
+static int adm_all_flat(void) {
+    for (int i = 0; i < adm_rr_color_n; i++) {
+        uint32_t a = adm_rr_colors[i] >> 24;
+        if (a != 0 && a != 0xFF)
+            return 0;
+    }
+    return 1;
 }
 static int adm_all_greyscale(void) {
     for (int i = 0; i < adm_color_n; i++) {
@@ -160,9 +178,31 @@ char *ds_concat(const char *left, const char *right) {
     snprintf(buffers[turn], sizeof(buffers[turn]), "%s%s", left ? left : "", right ? right : "");
     return buffers[turn];
 }
-void keyboard_hide(void) {}
-void keyboard_clear(void) {}
-void keyboard_show(void) {}
+/* Keyboard stub with a real buffer: the admin nick field is driven through the
+ * same calls the platform keyboard uses. */
+static char stub_kb[128];
+static int stub_kb_visible;
+void keyboard_hide(void) { stub_kb_visible = 0; }
+void keyboard_clear(void) { stub_kb[0] = 0; }
+void keyboard_show(void) { stub_kb_visible = 1; }
+int keyboard_visible(void) { return stub_kb_visible; }
+const char *keyboard_get_text(void) { return stub_kb; }
+const char *keyboard_get_raw(void) { return stub_kb; }
+void keyboard_type(const char *text) { snprintf(stub_kb, sizeof(stub_kb), "%s", text ? text : ""); }
+void keyboard_backspace(void) {
+    size_t len = strlen(stub_kb);
+    if (len > 0)
+        stub_kb[len - 1] = 0;
+}
+int keyboard_enter_pressed(void) { return 0; }
+int keyboard_uses_editor(void) { return 0; }
+int keyboard_handle_key(int keycode, int action, int meta) {
+    (void)keycode;
+    (void)action;
+    (void)meta;
+    return 0;
+}
+static void stub_kb_set(const char *text) { snprintf(stub_kb, sizeof(stub_kb), "%s", text ? text : ""); }
 static double stub_net_slot = -1;
 static double stub_online[4];
 static double stub_level[4];
@@ -415,6 +455,7 @@ void rect(float x, float y, float width, float height, uint32_t color) {
 void roundrect(float x, float y, float w, float h, float rad, uint32_t color) {
     (void)rad;
     adm_record_color(color);
+    adm_record_rr_color(color);
     if (adm_rr_n == 0) {
         adm_rr_x = x;
         adm_rr_y = y;
@@ -1447,10 +1488,13 @@ int main(void) {
     assert(fabs(adm_last_circle_x - admin_ball_x) < 0.001);
     assert(fabs(adm_last_circle_y - admin_ball_y) < 0.001);
     assert(fabs(adm_last_circle_r - admin_ball_r()) < 0.001);
-    /* The menu button got smaller, and the disc is black with a white rim. */
+    /* The menu button got smaller, wears the short panel name and is a black
+     * disc with a white rim. */
     assert(admin_ball_r() >= 15 && admin_ball_r() <= 26);
-    assert((stub_circle_color >> 24) > 200 && ((stub_circle_color >> 16) & 255) == 0 &&
-           ((stub_circle_color >> 8) & 255) == 0 && (stub_circle_color & 255) == 0);
+    assert(strcmp(admin_orb_label(), "CCP") == 0);
+    assert(strcmp(tr_admin_title(), "CONTENT CREATOR PANEL") == 0);
+    /* Plain opaque black disc; the rim and the "CCP" are plain white. */
+    assert((stub_circle_color & 0xFFFFFF) == 0);
     for (int i = 0; i < adm_color_n; i++) {
         uint32_t c = adm_colors[i];
         assert(((c >> 16) & 255) == ((c >> 8) & 255) && ((c >> 8) & 255) == (c & 255));
@@ -1467,14 +1511,19 @@ int main(void) {
     assert(fabs(adm_rr_x - admin_panel_x()) < 0.001 && fabs(adm_rr_y - admin_panel_y()) < 0.001);
     assert(fabs(adm_rr_w - admin_panel_w()) < 0.001 && fabs(adm_rr_h - admin_panel_h()) < 0.001);
     assert(adm_all_greyscale() == 1);
+    /* Flat and opaque: no button in the panel fades, glows or uses alpha. */
+    assert(adm_all_flat() == 1);
     /* Compact: no more full-screen panel. */
     assert(admin_panel_w() < screen_w * 0.62 && admin_panel_h() < screen_h * 0.55);
-    /* Header prints "ADMIN" only: the admin nick is gone, and so is the old
-     * "label: on/off" status line under the panel. */
-    /* "ADMIN", "X", the orb's "A", two tabs and six cheat labels - and
+    /* The panel calls itself a content creator panel and the orb wears the
+     * short name; the admin nick and the old "label: on/off" status line under
+     * the panel are gone. */
+    /* The title, "X", the orb's "CCP", two tabs and six cheat labels - and
      * nothing else: no status line, no nick. */
     assert(adm_text_n == 11);
-    assert(adm_has_text("ADMIN") == 1);
+    assert(adm_has_text(tr_admin_title()) == 1);
+    assert(adm_has_text(admin_orb_label()) == 1);
+    assert(adm_has_text("ADMIN") == 0);
     assert(adm_has_text(ADMIN_NICK) == 0);
     assert(adm_has_text(": ") == 0);
     for (int i = 0; i < 6; i++)
@@ -1495,15 +1544,40 @@ int main(void) {
     adm_reset_log();
     admin_draw();
     assert(adm_all_greyscale() == 1);
-    assert(adm_has_text("remote_guy") == 1 && adm_has_text("old_cheater") == 1);
+    assert(adm_all_flat() == 1);
+    /* Page one: the two nicks that are in the room; the ban-list-only nick
+     * waits on page two. */
+    assert(admin_players_per_page() == 2);
+    assert(adm_has_text("remote_guy") == 1 && adm_has_text(ADMIN2_NICK) == 1);
+    assert(adm_has_text("old_cheater") == 0);
     assert(adm_has_text(tr_admin_bans()) == 1);
+    assert(adm_has_text(tr_admin_nick_hint()) == 1);
+    assert(adm_has_text(tr_admin_do_ban()) == 1 && adm_has_text(tr_admin_do_unban()) == 1);
     assert(adm_has_text(ADMIN_NICK) == 0);
 
-    /* One tap bans a player in the room, the next one lifts the ban. */
+    /* The nick field: tapping it opens the keyboard, the two buttons act on
+     * whatever was typed, even for a nick that is not in the room. */
     game_state = ST_ONLINE;
+    double abw = (admin_panel_w() - 2 * admin_pad() - admin_gap()) / 2;
+    double act_y = admin_players_act_y() + admin_players_field_h() / 2;
+    double field_y = admin_players_field_y() + admin_players_field_h() / 2;
+    assert(admin_input_active == 0);
+    admin_players_press(admin_panel_x() + admin_pad() + 20, field_y);
+    assert(admin_input_active == 1 && keyboard_visible() == 1);
+    stub_kb_set("typed_cheater");
+    admin_players_press(admin_panel_x() + admin_pad() + abw + admin_gap() + 10, act_y); /* ban */
+    assert(net_ban_list_have("typed_cheater") == 1);
+    assert(strstr(stub_last_chat, "typed_cheater") != NULL && strstr(stub_last_chat, "BANNED") != NULL);
+    assert(admin_players_total() == 4); /* the typed ban joins the list */
+    admin_players_press(admin_panel_x() + admin_pad() + 10, act_y); /* unban */
+    assert(net_ban_list_have("typed_cheater") == 0);
+    assert(strstr(stub_last_chat, "UNBANNED") != NULL);
+
+    /* One tap bans a player in the room, the next one lifts the ban. */
     double row_x = admin_panel_x() + admin_pad() + 12;
     double row_h = admin_player_row_h() + admin_gap();
-    double row_y = admin_content_top() + admin_player_row_h() / 2;
+    double row_y = admin_list_top() + admin_player_row_h() / 2;
+    stub_last_chat[0] = 0;
     assert(strstr(stub_last_chat, "BANNED") == NULL);
     admin_players_press(row_x, row_y);
     assert(net_ban_list_have("remote_guy") == 1);
@@ -1516,10 +1590,23 @@ int main(void) {
     admin_players_press(row_x, row_y + row_h);
     assert(net_ban_list_have(ADMIN2_NICK) == 0);
     assert(stub_ban_n == 1);
-    /* A nick that only lives in the ban list is unbanned by the same tap. */
+    /* The footer pages the list: a nick that only lives in the ban list is
+     * unbanned by a tap on its own page. */
+    double fbw = (admin_panel_w() - 2 * admin_pad() - 2 * admin_gap()) / 3;
+    double fy = admin_content_bottom() - admin_footer_h();
+    assert(admin_page == 0);
+    admin_players_press(admin_panel_x() + admin_pad() + 2 * (fbw + admin_gap()) + 4, fy + admin_footer_h() / 2);
+    assert(admin_page == 1);
+    adm_reset_log();
+    admin_draw();
+    assert(adm_all_greyscale() == 1 && adm_all_flat() == 1);
+    assert(adm_has_text("old_cheater") == 1);
+    assert(adm_has_text("remote_guy") == 0);
     assert(net_ban_list_have("old_cheater") == 1);
-    admin_players_press(row_x, row_y + 2 * row_h);
+    admin_players_press(row_x, row_y);
     assert(net_ban_list_have("old_cheater") == 0);
+    admin_players_press(admin_panel_x() + admin_pad() + 4, fy + admin_footer_h() / 2);
+    assert(admin_page == 0);
 
     /* The compact layout has to hold on every screen size. */
     admin_tab = 0;
@@ -1533,22 +1620,57 @@ int main(void) {
         assert(admin_panel_w() < screen_w * 0.62 && admin_panel_h() < screen_h * 0.55);
         assert(admin_content_top() < admin_content_bottom());
         /* six cheat buttons always fit between the tabs and the bottom edge */
-        assert(admin_content_top() + 3 * admin_row_h() + 2 * admin_gap() <= admin_content_bottom());
-        assert(admin_row_h() >= 26);
-        /* the player list keeps its footer and at least one row */
-        assert(admin_list_bottom() > admin_content_top());
+        assert(admin_grid_top() + 3 * admin_cheat_row_h() + 2 * admin_gap() <= admin_content_bottom() + 0.01);
+        assert(admin_cheat_row_h() >= 26);
+        /* the player list keeps its field, both buttons, its footer and at
+         * least one row */
+        assert(admin_list_top() > admin_players_act_y());
+        assert(admin_list_bottom() > admin_list_top());
         assert(admin_players_per_page() >= 1);
-        assert(admin_player_row_h() >= 24);
+        assert(admin_player_row_h() >= 26);
+        assert(admin_players_min_h() <= admin_content_h() + 0.01);
         adm_reset_log();
         admin_draw();
         assert(adm_all_greyscale() == 1);
+        assert(adm_all_flat() == 1);
     }
     screen_w = 1080;
     screen_h = 2400;
 
+    /* Any cheat switched on stains the battle: the win pays no Cups, and the
+     * mark stays even when the switch goes straight back off. */
+    admin_tab = 0;
+    net_ban_set("typed_cheater", 0);
+    assert(cheat_god == 0 && cheat_stain == 0);
+    admin_press(0); /* god mode on */
+    assert(cheat_god == 1 && cheat_stain == 1);
+    admin_press(0); /* ...and straight back off */
+    assert(cheat_god == 0 && cheat_stain == 1);
+    assert(admin_cups_allowed() == 0);
+    cups = 0;
+    cup_win = 50;
+    player->hp = player->max_hp;
+    player_was_hit = 0;
+    award_battle_result(1);
+    assert(cups == 0);
+    /* A fresh battle with every switch off pays normally again. */
+    admin_battle_stain_reset();
+    assert(admin_cups_allowed() == 1);
+    cups = 0;
+    award_battle_result(1);
+    assert(cups == 50);
+    /* Entering a battle with a cheat already on stains it as well. */
+    cheat_stain = 0;
+    cheat_speed = 1;
+    admin_battle_stain_reset();
+    assert(admin_cups_allowed() == 0);
+    cheat_speed = 0;
+    admin_battle_stain_reset();
+    assert(admin_cups_allowed() == 1);
+    cups = 0;
+
     /* The footer re-syncs the cloud ban list. */
-    double fbw = (admin_panel_w() - 2 * admin_pad() - 2 * admin_gap()) / 3;
-    double fy = admin_content_bottom() - admin_footer_h();
+    admin_tab = 1;
     admin_players_press(admin_panel_x() + admin_pad() + fbw + admin_gap() + 4, fy + admin_footer_h() / 2);
     assert(stub_ban_refresh_calls == 1);
     net_ban_set("remote_guy", 0);
@@ -1560,6 +1682,8 @@ int main(void) {
     game_state = ST_LOBBY;
     warn_open = 0;
     t_dir = 0;
+    admin_panel_close();
+    assert(admin_input_active == 0 && keyboard_visible() == 0);
     admin_panel_open = 0;
     screen_w = 320;
     screen_h = 180;

@@ -1,4 +1,8 @@
 static double admin_touch(double x, double y, double action, double id);
+static void admin_panel_close(void);
+static void admin_input_focus(void);
+static void admin_input_blur(void);
+static void admin_input_sync(void);
 static void admin_draw(void);
 static void admin_tick(void);
 static void admin_draw_players(void);
@@ -8,3 +12,6 @@ static double admin_cheat_god(void);
 static double admin_cheat_damage_mult(void);
 static double admin_cheat_speed_mult(void);
 static double admin_cheat_nocd(void);
+static double admin_any_cheat_on(void);
+static void admin_battle_stain_reset(void);
+static double admin_cups_allowed(void);

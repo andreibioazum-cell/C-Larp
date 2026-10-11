@@ -13,6 +13,12 @@ static const char *tr_class_astra_rework(void) {
 }
 
 /* Admin panel tabs and the Players actions. */
+/* The panel calls itself a content-creator tool, and the orb wears the
+ * short version of the same name. */
+static const char *tr_admin_title(void) {
+    return "CONTENT CREATOR PANEL";
+}
+
 static const char *tr_admin_cheats_tab(void) {
     if (language == 1) {
         return "ЧИТЫ";
@@ -53,6 +59,27 @@ static const char *tr_admin_no_players(void) {
         return "Список пуст";
     }
     return "Nothing here";
+}
+
+static const char *tr_admin_nick_hint(void) {
+    if (language == 1) {
+        return "Ник игрока";
+    }
+    return "Player nick";
+}
+
+static const char *tr_admin_do_ban(void) {
+    if (language == 1) {
+        return "ЗАБАНИТЬ";
+    }
+    return "BAN PLAYER";
+}
+
+static const char *tr_admin_do_unban(void) {
+    if (language == 1) {
+        return "РАЗБАНИТЬ";
+    }
+    return "UNBAN PLAYER";
 }
 
 static const char *tr_admin_ban_protected(void) {

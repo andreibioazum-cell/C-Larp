@@ -49,6 +49,9 @@ static void reset_battle(void) {
     azum_revived = 0;
     revive_prot = 0;
     cups_awarded = 0;
+    /* Entering a fight with a cheat already switched on stains it just like
+     * flipping one on during the fight does. */
+    admin_battle_stain_reset();
     match_seen_foe = 0;
     foes_seen_t = 0;
     foes_gone_t = 0;

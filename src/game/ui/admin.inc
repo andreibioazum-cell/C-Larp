@@ -1,4 +1,4 @@
-/* Admin panel: a small black-and-white "A" orb that only the two admin
+/* Admin panel: a small black-and-white "CCP" orb that only the two admin
  * accounts see. Drag it anywhere, tap it to open a compact monochrome panel
  * with two tabs - cheats and players. The panel is drawn above every screen,
  * above the transition curtain and above the epilepsy warning, so it never
@@ -14,18 +14,18 @@ static double admin_in_battle(void) {
     return game_state == ST_SOLO || game_state == ST_ONLINE;
 }
 
-/* Compact panel: a bit over half of the screen wide, and only as tall as the
- * cheat grid needs, so it never stretches over the whole display. */
+/* Compact panel: a bit over half of the screen wide and only as tall as its
+ * content needs, so it never stretches over the whole display. Every button in
+ * it shares one flat black-and-white style. */
 static double admin_pad(void) { return 10; }
 
 static double admin_gap(void) { return 6; }
 
-static double admin_header_h(void) { return clamp(screen_h * 0.055, 34, 56); }
+/* Chrome heights are measured from the screen, never from the panel, so the
+ * panel height stays a plain function of the content. */
+static double admin_header_h(void) { return clamp(screen_h * 0.03, 36, 56); }
 
-static double admin_tabs_h(void) { return clamp(screen_h * 0.045, 26, 44); }
-
-/* Three cheat rows, two buttons per row. */
-static double admin_row_h(void) { return clamp(screen_h * 0.075, 30, 76); }
+static double admin_tabs_h(void) { return clamp(screen_h * 0.025, 28, 44); }
 
 static double admin_panel_w(void) {
     double lim = screen_w - 24;
@@ -43,11 +43,44 @@ static double admin_panel_w(void) {
     return w;
 }
 
-/* Header, tabs and the three cheat rows decide the height. */
+/* Base row sizes: one cheat button, one list row, one field. */
+static double admin_row_h(void) { return clamp(screen_h * 0.055, 30, 64); }
+
+static double admin_player_row_h(void) { return clamp(screen_h * 0.04, 26, 44); }
+
+static double admin_players_field_h(void) { return clamp(admin_row_h() * 0.9, 30, 56); }
+
+static double admin_footer_h(void) { return clamp(screen_h * 0.028, 26, 40); }
+
+/* Six cheats sit in three rows of two. */
+static double admin_grid_h(void) { return 3 * admin_row_h() + 2 * admin_gap(); }
+
+/* Players tab needs the nick field, the ban / unban buttons, two rows and the
+ * footer under them. */
+static double admin_players_min_h(void) {
+    double fh = admin_players_field_h();
+    double rows = 2 * admin_player_row_h() + admin_gap();
+    return fh + admin_gap() + fh + admin_gap() + rows + admin_gap() + admin_footer_h();
+}
+
+/* Both tabs share one content height, so switching tabs never resizes the
+ * panel; the cheat grid is centred in whatever room the Players tab asks for. */
+static double admin_content_h(void) {
+    double grid = admin_grid_h();
+    double players = admin_players_min_h();
+    return grid > players ? grid : players;
+}
+
+static double admin_cheat_row_h(void) {
+    double h = (admin_content_h() - 2 * admin_gap()) / 3;
+    double cap = admin_row_h();
+    return h > cap ? cap : h;
+}
+
+/* Header, tabs and the taller tab decide the height. */
 static double admin_panel_h(void) {
     double lim = screen_h - 32;
-    double h = admin_header_h() + admin_gap() + admin_tabs_h() + 2 * admin_gap() + 3 * admin_row_h() + 2 * admin_gap() +
-               admin_pad();
+    double h = admin_header_h() + admin_gap() + admin_tabs_h() + 2 * admin_gap() + admin_content_h() + admin_pad();
     if (h > lim) {
         h = lim;
     }
@@ -70,16 +103,21 @@ static double admin_content_top(void) { return admin_tabs_y() + admin_tabs_h() +
 
 static double admin_content_bottom(void) { return admin_panel_y() + admin_panel_h() - admin_pad(); }
 
-/* The Players tab keeps a footer with its page controls. */
-static double admin_footer_h(void) { return clamp(admin_panel_h() * 0.11, 26, 42); }
+/* The cheat grid is centred while the Players tab fills the same box. */
+static double admin_grid_top(void) { return admin_content_top() + (admin_content_h() - admin_grid_h()) / 2; }
+
+/* The Players tab: nick field, then the ban / unban row, then the list. */
+static double admin_players_field_y(void) { return admin_content_top(); }
+
+static double admin_players_act_y(void) { return admin_players_field_y() + admin_players_field_h() + admin_gap(); }
+
+static double admin_list_top(void) { return admin_players_act_y() + admin_players_field_h() + admin_gap(); }
 
 static double admin_list_bottom(void) { return admin_content_bottom() - admin_footer_h() - admin_gap(); }
 
-static double admin_player_row_h(void) { return clamp(screen_h * 0.05, 28, 44); }
-
 static double admin_players_per_page(void) {
-    double avail = admin_list_bottom() - admin_content_top();
-    double n = floor(avail / (admin_player_row_h() + admin_gap()));
+    double avail = admin_list_bottom() - admin_list_top();
+    double n = floor((avail + admin_gap()) / (admin_player_row_h() + admin_gap()));
     if (n < 1) {
         n = 1;
     }
@@ -101,11 +139,74 @@ static double admin_off(void) { return 0x000000; }
 
 static double admin_dim_text(void) { return 0xB4B4B4; }
 
+/* One flat style for every button of the panel: same radius, same 2 px white
+ * outline and fully opaque fills. Off is black with white text, on is white
+ * with black text - a toggle simply flips between the two, with no fade,
+ * glow or other effect to look at. */
+static double admin_btn_r(void) { return 9; }
+
+static void admin_btn(const char *label, double x, double y, double w, double h, double on, double scale) {
+    if (on == 1) {
+        roundrect(x, y, w, h, admin_btn_r(), admin_on());
+        roundrect_outline(x, y, w, h, admin_btn_r(), 2, admin_frame());
+        text_in_box(label, x, y, w, h, admin_off(), scale);
+        return;
+    }
+    roundrect(x, y, w, h, admin_btn_r(), admin_off());
+    roundrect_outline(x, y, w, h, admin_btn_r(), 2, admin_frame());
+    text_in_box(label, x, y, w, h, admin_frame(), scale);
+}
+
+/* The orb wears the short name of the panel. */
+static const char *admin_orb_label(void) { return "CCP"; }
+
 static const char *admin_tab_label(double t) {
     if (t == 0) {
         return tr_admin_cheats_tab();
     }
     return tr_admin_players_tab();
+}
+
+/* Players tab: the nick field talks to the engine keyboard directly. The nick
+ * is copied into our own buffer, because the keyboard buffer is shared with
+ * the chat and login fields and outlives the panel. */
+static char admin_nick_buf[64];
+
+static void admin_nick_copy(const char *src) {
+    int i = 0;
+    if (src == 0) {
+        src = "";
+    }
+    while (i < 63 && src[i] != 0) {
+        admin_nick_buf[i] = src[i];
+        i = i + 1;
+    }
+    admin_nick_buf[i] = 0;
+}
+
+static void admin_input_sync(void) {
+    if (admin_input_active == 1 && keyboard_visible() == 1) {
+        admin_nick_copy(keyboard_get_text());
+        admin_input_nick = admin_nick_buf;
+    }
+}
+
+static void admin_input_focus(void) {
+    admin_input_active = 1;
+    keyboard_clear();
+    if (str_len(admin_input_nick) > 0) {
+        keyboard_type(admin_input_nick);
+    }
+    keyboard_show();
+}
+
+static void admin_input_blur(void) {
+    if (admin_input_active == 0) {
+        return;
+    }
+    admin_input_sync();
+    admin_input_active = 0;
+    keyboard_hide();
 }
 
 static const char *admin_cheat_label(double idx) {
@@ -164,12 +265,33 @@ static double admin_cheat_value(double idx) {
     return cheat_estun;
 }
 
+/* True while at least one cheat switch is on. */
+static double admin_any_cheat_on(void) {
+    if (cheat_god == 1 || cheat_damage == 1 || cheat_speed == 1 || cheat_nocd == 1 || cheat_cc == 1 ||
+        cheat_estun == 1) {
+        return 1;
+    }
+    return 0;
+}
+
+/* Called when a battle starts: entering a fight with a cheat already on marks
+ * it just like flipping one on during the fight does. */
+static void admin_battle_stain_reset(void) { cheat_stain = admin_any_cheat_on(); }
+
+/* A stained battle pays no Cups at the end. */
+static double admin_cups_allowed(void) { return cheat_stain == 0 ? 1 : 0; }
+
 static void admin_press_cheat(double idx) {
     double v = admin_cheat_value(idx);
     if (v == 1) {
         v = 0;
     } else {
         v = 1;
+    }
+    if (v == 1) {
+        /* Switching any cheat on leaves a mark on the current battle: a win
+         * then pays no Cups, even if the switch is flipped back off at once. */
+        cheat_stain = 1;
     }
     if (idx == 0) {
         cheat_god = v;

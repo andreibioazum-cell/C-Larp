@@ -158,8 +158,17 @@ static void screen_fill(void) {
 
 static void draw_bottom_gradient(double top, double bottom) {
     double h = bg_gradient_h;
-    double bands = bg_gradient_bands;
+    double bands = h / 2;
     double y0 = screen_h - h;
+    /* Two pixels per band: the fade between the flat background and the
+     * gradient colour reads as one smooth wash in every theme instead of a
+     * stack of strips (the old thirty bands over 420 px were 14 px each). */
+    if (bands < bg_gradient_bands) {
+        bands = bg_gradient_bands;
+    }
+    if (bands > 400) {
+        bands = 400;
+    }
     double band_h = h / bands + 1;
     double i = 0;
     while (i < bands) {

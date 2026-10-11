@@ -117,8 +117,21 @@ static void finish_game(double result) {
         arr_set(rpunch_a, i, 0);
         i = i + 1;
     }
-    if (result == 1 && cups_awarded == 0) {
+    if ((result == 1 || result == 2) && cups_awarded == 0) {
         cups_awarded = 1;
+        award_battle_result(result);
+    }
+}
+
+/* End-of-battle pay-out. A win played with any cheat switched on pays no Cups
+ * and hands out no win achievements, even if the cheat was switched back off
+ * right away; the loss penalty stays what it always was. */
+static void award_battle_result(double result) {
+    if (result == 1) {
+        if (admin_cups_allowed() == 0) {
+            ds_log("win: no cups, a cheat was used in this battle");
+            return;
+        }
         cups = cups + cup_win;
         if (candy_enabled == 1) {
             candies = candies + candy_win;
@@ -131,16 +144,14 @@ static void finish_game(double result) {
             grant_achievement(ACH_LAST_HP);
         }
         ds_log("win +%g cups +%g candies", cup_win, candy_win);
+        return;
     }
-    if (result == 2 && cups_awarded == 0) {
-        cups_awarded = 1;
-        cups = cups - cup_lose;
-        if (cups < 0) {
-            cups = 0;
-        }
-        save_progress();
-        ds_log("lose -%g cups", cup_lose);
+    cups = cups - cup_lose;
+    if (cups < 0) {
+        cups = 0;
     }
+    save_progress();
+    ds_log("lose -%g cups", cup_lose);
 }
 
 static void draw_punch_box(double x, double y, double dx, double dy, double reach, double width, double alpha) {
@@ -290,6 +301,8 @@ static void draw_result(const char *title) {
     ctext_scaled(title, y + 36, 0xFFFFFF, 1.12);
     if (finished == 2) {
         ctext_scaled(tr_cups_lose(reward), y + 126, 0xFFFFFF, 0.9);
+    } else if (admin_cups_allowed() == 0) {
+        ctext_scaled(tr_cups_cheated(), y + 126, 0xFFFFFF, 0.9);
     } else {
         ctext_scaled(tr_cups_reward(reward), y + 126, 0xFFFFFF, 0.9);
     }

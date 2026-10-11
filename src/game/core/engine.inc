@@ -241,7 +241,7 @@ static double logic_back(void) {
     /* The admin panel is on top of everything, so it also gets the back key
      * first: the epilepsy warning and the splash never hide it. */
     if (admin_panel_open == 1) {
-        admin_panel_open = 0;
+        admin_panel_close();
         return 1;
     }
     if (warn_open == 1) {
