@@ -98,8 +98,6 @@ static int ground_tiles;
 static int ground_fills;
 static uint32_t last_ground_fill;
 static const char *last_ground;
-static int showdown_playing;
-static int showdown_play_calls;
 static int lobby_playing;
 static int winter_playing;
 static int winter_loop_calls;
@@ -419,10 +417,7 @@ int snd_load(const char *name) {
     return name && *name;
 }
 int snd_play(const char *name) {
-    if (name && SHOWDOWN_MUSIC && strcmp(name, SHOWDOWN_MUSIC) == 0) {
-        showdown_playing = 1;
-        showdown_play_calls++;
-    }
+    (void)name;
     return 1;
 }
 int snd_loop(const char *name) {
@@ -440,15 +435,13 @@ int snd_playing(const char *name) {
         return lobby_playing;
     if (name && WINTER_JINGLE && strcmp(name, WINTER_JINGLE) == 0)
         return winter_playing;
-    return name && SHOWDOWN_MUSIC && strcmp(name, SHOWDOWN_MUSIC) == 0 ? showdown_playing : 0;
+    return 0;
 }
 void snd_stop(const char *name) {
     if (name && LOBBY_MUSIC && strcmp(name, LOBBY_MUSIC) == 0)
         lobby_playing = 0;
     if (name && WINTER_JINGLE && strcmp(name, WINTER_JINGLE) == 0)
         winter_playing = 0;
-    if (name && SHOWDOWN_MUSIC && strcmp(name, SHOWDOWN_MUSIC) == 0)
-        showdown_playing = 0;
 }
 void snd_volume(const char *name, double volume) {
     (void)name;
@@ -688,7 +681,7 @@ int main(void) {
     state_ready = 1;
     assert(player && enemy && punch && gift && enemy_gift);
     assert(ST_LOBBY == 0 && ST_SOLO == 1 && ST_ONLINE == 5);
-    assert(player->hp == 10 && enemy->hp == 10);
+    assert(player->hp == 20 && enemy->hp == 20);
     assert(class_level_tbl && remote_punches && plates_candies && flake_cache);
 
     assert(strcmp(tr_play(), "Play") == 0);
@@ -728,6 +721,13 @@ int main(void) {
     assert(strcmp(fighter_sprite(CLASS_ASTRA_REWORK, 0, SKIN_NORMAL), ORDINARY_TEX) == 0);
     assert(strcmp(class_card_tex(CLASS_ASTRA_REWORK, SKIN_NORMAL), ORDINARY_CARD_TEX) == 0);
     assert(class_has_super(CLASS_ASTRA_REWORK) == 1 && player_max_hp_for(CLASS_ASTRA_REWORK) == astra_hp);
+    /* Long-fight balance: every pool doubled (ordinary/santa 20, azum 13,
+     * astra 18, ebuc 24) and the ability numbers scaled with them, while the
+     * basic attacks kept their old damage - that is what makes fights last. */
+    assert(player_max_hp_for(CLASS_ORDINARY) == 20 && player_max_hp_for(CLASS_SANTA) == 20);
+    assert(azum_hp == 13 && astra_hp == 18 && ebuc_hp == 24 && enemy_base_hp == 20);
+    assert(punch_damage == 1 && enemy_damage == 1 && santa_damage == 0.25 && ebuc_damage == 1.0);
+    assert(ebuc_universe_damage >= ebuc_hp);
     azum_tex_ok = azum_punch_tex_ok = 1;
     azum_zombie_tex_ok = azum_zombie_punch_tex_ok = 1;
     assert(strcmp(fighter_sprite(CLASS_AZUM, 0, SKIN_NORMAL), AZUM_TEX) == 0);
@@ -1251,42 +1251,6 @@ int main(void) {
         game_state = ST_LOBBY;
     }
 
-    assert(strcmp(SHOWDOWN_MUSIC, "astra_azum_showdown.wav") == 0);
-    finished = 0;
-    player->hp = enemy->hp = 10;
-    game_state = ST_SOLO;
-    player_class = CLASS_ASTRA;
-    enemy_class = CLASS_AZUM;
-    assert(showdown_music_matchup() == 1);
-    player_class = CLASS_AZUM;
-    enemy_class = CLASS_ASTRA;
-    assert(showdown_music_matchup() == 1);
-    enemy_class = CLASS_ORDINARY;
-    assert(showdown_music_matchup() == 0);
-
-    game_state = ST_ONLINE;
-    online_ready = 1;
-    stub_net_slot = 0;
-    player_class = CLASS_AZUM;
-    arr_set(remotes, 1 * remote_fields + 5, 1);
-    arr_set(remotes, 1 * remote_fields + 10, CLASS_ASTRA);
-    assert(showdown_music_matchup() == 1);
-    arr_set(remotes, 2 * remote_fields + 5, 1);
-    arr_set(remotes, 2 * remote_fields + 10, CLASS_ORDINARY);
-    assert(showdown_music_matchup() == 0);
-    arr_set(remotes, 2 * remote_fields + 5, 0);
-
-    showdown_music_ok = 1;
-    showdown_music_reset();
-    showdown_play_calls = 0;
-    update_showdown_music();
-    assert(showdown_playing == 1 && showdown_play_calls == 1);
-    showdown_playing = 0;
-    update_showdown_music();
-    assert(showdown_music_done == 1);
-    update_showdown_music();
-    assert(showdown_play_calls == 1);
-    showdown_music_reset();
     /* Rework is its own developer-only class; accept the former pair only for
      * compatibility with clients that still send Astra + special skin. */
     assert(astra_rw_of(CLASS_ASTRA_REWORK, SKIN_NORMAL) == 1);
@@ -1609,7 +1573,7 @@ int main(void) {
     game_state = ST_ONLINE;
     cups = 999;
     game_reset();
-    assert(player->hp == 10);
+    assert(player->hp == 20);
     assert(game_state == ST_LOBBY);
     assert(cups == 0);
 

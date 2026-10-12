@@ -1,5 +1,4 @@
 static void reset_battle(void) {
-    showdown_music_reset();
     /* Re-check the Astra (Rework) permission once per battle instead of on
      * every frame that needs the variant. */
     astra_rw_refresh();

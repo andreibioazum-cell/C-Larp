@@ -62,7 +62,6 @@
 #include "combat/battle_events_input.inc"
 #include "fx/weather.inc"
 #include "fx/newyear.inc"
-#include "fx/showdown_music.inc"
 #include "fx/dust.inc"
 #include "core/textures.inc"
 #include "core/engine_overlays.inc"

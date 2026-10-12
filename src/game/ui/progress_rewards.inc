@@ -146,9 +146,6 @@ static void music_volume_apply(void) {
     if (newyear_jingle_ok == 1) {
         snd_volume(WINTER_JINGLE, music_volume / 100 * winter_jingle_volume);
     }
-    if (showdown_music_ok == 1) {
-        snd_volume(SHOWDOWN_MUSIC, music_volume / 100 * showdown_music_volume);
-    }
 }
 
 static void music_volume_cycle(void) {

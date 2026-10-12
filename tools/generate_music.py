@@ -265,85 +265,10 @@ def add_reverb(left: array, right: array) -> None:
             right[i] += (dry_r[i - offset] * 0.72 + dry_l[i - offset] * 0.28) * gain
 
 
-def showdown_track() -> tuple[array, array]:
-    """Original 160 BPM, 45-second panic-rock/chiptune showdown theme."""
-    left, right = stereo(45.0)
-    beat = 60.0 / 160.0
-    bar = beat * 4
-    progression = (
-        (40, (52, 55, 59)),  # E minor
-        (36, (48, 52, 55)),  # C
-        (43, (55, 59, 62)),  # G
-        (38, (50, 54, 57)),  # D
-    )
-    lead_a = (76, 79, 83, 81, 79, 76, 74, 71)
-    lead_b = (76, 78, 83, 86, 83, 81, 78, 74)
-
-    # Exactly 30 bars at 160 BPM = 45 seconds. The track starts immediately,
-    # grows at bars 8 and 16, then spends its last eight bars at full density.
-    for index in range(30):
-        start = index * bar
-        root, tones = progression[index % 4]
-        phase = 0 if index < 8 else (1 if index < 16 else 2)
-        intensity = (0.76, 0.90, 1.0)[phase]
-
-        # Wide power-chord bed / synthetic guitar wall.
-        for voice, note in enumerate((root, root + 7, root + 12)):
-            add_tone(left, right, start, bar + 0.06, note, 0.16 * intensity,
-                     (-0.72, 0.72, -0.18)[voice], "brass", 0.006, 0.10)
-        for voice, note in enumerate(tones):
-            add_tone(left, right, start, bar, note + 12, 0.055 * intensity,
-                     (voice - 1) * 0.65, "string", 0.025, 0.18)
-
-        # Driving sixteenth-note bass and chiptune ostinato.
-        for pulse in range(16):
-            t = start + pulse * beat / 4
-            bass_note = root + (12 if pulse in (7, 14) else 0)
-            add_pluck(left, right, t, beat * 0.24, bass_note, 0.22 * intensity, -0.10)
-            if phase >= 1 or pulse % 2 == 0:
-                chip = (root + 24, root + 31, root + 27, root + 31)[pulse % 4]
-                add_pluck(left, right, t, beat * 0.20, chip, 0.075 * intensity,
-                          0.38 if pulse % 2 else -0.38)
-
-        # Clear rock/breakbeat backbone at 160 BPM.
-        for pulse in range(4):
-            add_kick(left, right, start + pulse * beat, 0.43 * intensity)
-            add_noise(left, right, start + pulse * beat + beat / 2,
-                      0.045, 0.085 * intensity, 0.22, 42.0)
-        for pulse in (1, 3):
-            add_noise(left, right, start + pulse * beat, 0.14,
-                      0.19 * intensity, -0.16, 15.0)
-        if phase == 2:
-            for pulse in range(8):
-                add_noise(left, right, start + pulse * beat / 2,
-                          0.025, 0.035, 0.55, 65.0)
-
-        # Original urgent lead; alternate phrases avoid copying any reference.
-        if phase >= 1:
-            phrase = lead_a if index % 2 == 0 else lead_b
-            for pulse, note in enumerate(phrase):
-                add_tone(left, right, start + pulse * beat / 2,
-                         beat * 0.46, note + (2 if index % 4 == 3 else 0),
-                         0.135 * intensity, 0.24, "brass", 0.004, 0.06)
-
-    # Final hit fits inside the exact 45-second render.
-    add_tone(left, right, 44.25, 0.75, 40, 0.42, 0.0, "bass", 0.003, 0.65)
-    add_tone(left, right, 44.25, 0.75, 52, 0.30, -0.35, "brass", 0.003, 0.65)
-    add_tone(left, right, 44.25, 0.75, 59, 0.28, 0.35, "brass", 0.003, 0.65)
-    add_reverb(left, right)
-    # Dense, loud master for the showdown: strong saturation raises perceived
-    # loudness while write_track's peak normalization prevents clipping.
-    for i in range(len(left)):
-        left[i] *= 2.6
-        right[i] *= 2.6
-    return left, right
-
-
 def main() -> int:
     tracks = (
         ("lobbymusic.wav", lobby_track(), 0.025, 0.025),
         ("winter_jingle.wav", winter_track(), 0.025, 0.025),
-        ("astra_azum_showdown.wav", showdown_track(), 0.04, 1.25),
     )
     for name, (left, right), fade_in, fade_out in tracks:
         write_track(AUDIO / name, left, right, fade_in, fade_out)

@@ -108,7 +108,6 @@ static void logic_init(void) {
     apply_theme();
     apply_winter_theme();
     start_music();
-    showdown_music_load();
     update_newyear_jingle();
     cube_npc_tex_ok = png_load(CUBE_NPC_TEX);
     cube_npc_d0 = "Привет! Я Куб-НПС!";
@@ -145,7 +144,6 @@ static void logic_update(void) {
     update_alpha_notice();
     update_transition();
     update_music();
-    update_showdown_music();
     reload_textures();
     tick_achievement_toast();
     update_button_press();

@@ -188,11 +188,11 @@ static void apply_theme(void) {
     if (new_theme == 1) {
         ui_purple = 0xFF5F10A0;
         bg_screen = 0x1A1A2E;
-        transition_duration = 0.12;
+        transition_duration = 0.07;
     } else {
         ui_purple = 0xFFD4508A;
         bg_screen = 0xFF3A1530;
-        transition_duration = 0.12;
+        transition_duration = 0.07;
     }
 }
 
