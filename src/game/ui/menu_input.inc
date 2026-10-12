@@ -35,8 +35,7 @@ static void draw_login(void) {
     screen_fill();
     draw_login_field(tr_nick(), login_nick, tr_nick_ph(), login_nick_y(), login_field == 1);
     draw_login_field(tr_pass(), login_pass, tr_pass_ph(), login_pass_y(), login_field == 2);
-    double ox = btn_anim_offset(1, 2);
-    button_scaled(tr_login_btn(), login_btn_x() + ox, login_btn_y(), login_btn_w, btn_h, 0.65);
+    button_scaled(tr_login_btn(), login_btn_x(), login_btn_y(), login_btn_w, btn_h, 0.65);
     const char *err = login_error_text();
     if (str_len(err) > 0) {
         ctext(err, login_msg_y(), text_color);

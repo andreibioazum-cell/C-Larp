@@ -29,6 +29,8 @@ static double locked_text(void) { return locked_text_alpha * 16777216 + text_col
 
 static double fade_color(double rgb, double t, double fade) {
     double a = clamp(t / fade, 0, 1);
+    /* Smoothstep: message text eases in and out instead of ramping linearly. */
+    a = a * a * (3 - 2 * a);
     return (1 + floor(a * 254)) * 0x1000000 + rgb;
 }
 
@@ -103,22 +105,46 @@ static void draw_nick_msg(const char *nick, const char *rest, double x, double y
     text_scaled(rest, x + nw, y, base, scale);
 }
 
-static void button(const char *label, double x, double y, double w, double h) {
-    if (new_theme == 1) {
-        cb_button_gradient(x, y, w, h, btn_radius, ui_purple);
-    } else {
-        roundrect(x, y, w, h, btn_radius, ui_purple);
+/* Instant press feedback: the button under the finger shrinks a touch and
+ * brightens while held. Buttons used to slide in from the right; a responsive
+ * press feels better and keeps the screen swap instant. */
+static double button_press_k(double x, double y, double w, double h) {
+    if (press_down == 1 && hit_rect(press_x, press_y, x, y, w, h) == 1) {
+        return 1;
     }
-    text_in_box(label, x, y, w, h, text_color, 1);
+    return 0;
+}
+
+static void button(const char *label, double x, double y, double w, double h) {
+    double p = button_press_k(x, y, w, h);
+    double s = 1 - 0.04 * p;
+    double bx = x + w * (1 - s) / 2;
+    double by = y + h * (1 - s) / 2;
+    double bw = w * s;
+    double bh = h * s;
+    double col = shade(ui_purple, 1 + 0.14 * p);
+    if (new_theme == 1) {
+        cb_button_gradient(bx, by, bw, bh, btn_radius, col);
+    } else {
+        roundrect(bx, by, bw, bh, btn_radius, col);
+    }
+    text_in_box(label, bx, by, bw, bh, text_color, 1);
 }
 
 static void button_scaled(const char *label, double x, double y, double w, double h, double scale) {
+    double p = button_press_k(x, y, w, h);
+    double s = 1 - 0.04 * p;
+    double bx = x + w * (1 - s) / 2;
+    double by = y + h * (1 - s) / 2;
+    double bw = w * s;
+    double bh = h * s;
+    double col = shade(ui_purple, 1 + 0.14 * p);
     if (new_theme == 1) {
-        cb_button_gradient(x, y, w, h, btn_radius, ui_purple);
+        cb_button_gradient(bx, by, bw, bh, btn_radius, col);
     } else {
-        roundrect(x, y, w, h, btn_radius, ui_purple);
+        roundrect(bx, by, bw, bh, btn_radius, col);
     }
-    text_in_box(label, x, y, w, h, text_color, scale);
+    text_in_box(label, bx, by, bw, bh, text_color, scale);
 }
 
 static void roundrect_outline(double x, double y, double w, double h, double rad, double t, uint32_t c) {
@@ -154,8 +180,7 @@ static void apply_theme(void) {
 }
 
 static void draw_back(void) {
-    double ox = btn_anim_offset(0, 1);
-    button(tr_back(), (screen_w - btn_w) / 2 + ox, back_y, btn_w, btn_h);
+    button(tr_back(), (screen_w - btn_w) / 2, back_y, btn_w, btn_h);
 }
 
 static double back_hit(double x, double y) { return hit_rect_pad(x, y, (screen_w - btn_w) / 2, back_y, btn_w, btn_h); }

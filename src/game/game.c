@@ -20,7 +20,6 @@
 #include "ui/locale_progress.inc"
 #include "ui/locale_progress_part2.inc"
 #include "ui/locale_extra.inc"
-#include "ui/button_anim.inc"
 #include "core/ui.inc"
 #include "ui/progress_classes.inc"
 #include "ui/progress_rewards.inc"

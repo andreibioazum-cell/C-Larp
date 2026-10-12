@@ -5,7 +5,6 @@ static void start_transition(double target) {
     classes_swipe_reset();
     t_target = target;
     t_dir = 1;
-    btn_anim_begin_exit();
 }
 
 static void leave_screen(double state) {
@@ -24,7 +23,6 @@ static void leave_screen(double state) {
 }
 
 static double enter_screen(double state) {
-    btn_anim_begin_enter();
     if (state == ST_SOLO) {
         init_game();
         return 1;
@@ -118,9 +116,6 @@ static void logic_init(void) {
     cube_npc_d2 = "Попробуй режим Solo или Online!";
     cube_npc_d3 = "В магазине можно купить персонажей!";
     cube_npc_d4 = "Удачи в битве!";
-    /* Stage the menu buttons off-screen right: they fly in from there as soon
-     * as the intro notices are gone and the lobby is actually visible. */
-    btn_anim_begin_enter();
     ds_log("init: ready");
 }
 
@@ -153,11 +148,6 @@ static void logic_update(void) {
     update_showdown_music();
     reload_textures();
     tick_achievement_toast();
-    if (warn_open == 0 && studio_open == 0) {
-        /* While the epilepsy warning or the studio splash is up, the button
-         * fly-in waits: it plays exactly when the lobby is first visible. */
-        btn_anim_tick();
-    }
     admin_tick();
     if (game_state == ST_LOBBY) {
         cube_npc_bob_t = cube_npc_bob_t + dt;
@@ -329,6 +319,18 @@ static double logic_back(void) {
 }
 
 static void logic_touch(double x, double y, double action, double id) {
+    /* Track the held pointer for button press feedback before anything can
+     * consume or reject the event: 0 = down, 1 = up, 2 = move, 3 = cancel. */
+    if (action == 0) {
+        press_down = 1;
+        press_x = x;
+        press_y = y;
+    } else if (action == 2) {
+        press_x = x;
+        press_y = y;
+    } else if (action == 1 || action == 3) {
+        press_down = 0;
+    }
     /* The admin orb and its panel sit above every screen - including the
      * transition curtain and the epilepsy warning - and consume their own
      * touches before anything else, so they never disappear mid-transition. */

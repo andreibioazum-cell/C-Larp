@@ -2,9 +2,13 @@
  *
  * The typewriter reveals whole UTF-8 characters: slicing by raw bytes used to
  * land inside a Cyrillic letter, and the orphan byte fell back to the "?"
- * glyph at the end of the line. The panel slides up and fades in, long lines
- * word-wrap at full size instead of shrinking, and the cube gives a little
- * wobble when poked. */
+ * glyph at the end of the line. The panel slides up and fades in — and fades
+ * out again with its text still in place, so closing never pops to an empty
+ * box. Long lines word-wrap at full size instead of shrinking to fit.
+ *
+ * The draw path copies slices into small static scratch buffers: it runs
+ * every lobby frame, and per-frame str_sub() garbage would pile up in the
+ * session string pool until the next game restart. */
 
 static const char *cube_npc_dialogue_text(void) {
     if (cube_npc_dialogue_line == 0) return cube_npc_d0;
@@ -29,24 +33,55 @@ static double utf8_len(const char *s) {
 }
 
 static const char *utf8_prefix(const char *s, double chars) {
+    static char buf[512];
     double seen = 0;
+    size_t n = 0;
     const char *p = s;
     if (chars <= 0) {
-        return "";
+        buf[0] = 0;
+        return buf;
     }
     while (*p != 0 && seen < chars) {
         unsigned char c = (unsigned char)*p;
         p = p + 1;
+        n = n + 1;
         if ((c & 0xC0) != 0x80) {
             seen = seen + 1;
             /* Swallow the continuation bytes of this character so the cut
              * always lands on a codepoint boundary. */
             while (((unsigned char)*p & 0xC0) == 0x80) {
                 p = p + 1;
+                n = n + 1;
             }
         }
     }
-    return str_sub(s, 0, (double)(p - s));
+    if (n > 511) {
+        n = 511;
+    }
+    memcpy(buf, s, n);
+    buf[n] = 0;
+    return buf;
+}
+
+/* Byte slice of a string into scratch, for measuring and drawing one line at
+ * a time without allocating. */
+static const char *dial_slice(const char *s, double off, double len) {
+    static char buf[512];
+    size_t total = strlen(s);
+    size_t start = (size_t)off;
+    size_t want = (size_t)len;
+    if (start > total) {
+        start = total;
+    }
+    if (want > total - start) {
+        want = total - start;
+    }
+    if (want > 511) {
+        want = 511;
+    }
+    memcpy(buf, s + start, want);
+    buf[want] = 0;
+    return buf;
 }
 
 static double cube_npc_draw_sz = 60;
@@ -61,11 +96,9 @@ static double dial_text_pad = 20;
 static double dial_portrait_sz = 120;
 static double dial_text_sc = 1.05;
 static double dial_anim;
-static double dial_anim_time = 0.22;
-static double cube_npc_wob = 100;
+static double dial_anim_time = 0.18;
 
 static void cube_npc_tap(void) {
-    cube_npc_wob = 0;
     if (cube_npc_dialogue_active == 0) {
         cube_npc_dialogue_active = 1;
         cube_npc_dialogue_line = 0;
@@ -77,17 +110,19 @@ static void cube_npc_tap(void) {
         cube_npc_dialogue_chars = max_chars;
         return;
     }
-    cube_npc_dialogue_line = cube_npc_dialogue_line + 1;
-    if (cube_npc_dialogue_line >= cube_npc_dialogue_lines) {
+    double next = cube_npc_dialogue_line + 1;
+    if (next >= cube_npc_dialogue_lines) {
+        /* Keep the last line on screen while the panel fades out — clearing
+         * the text here would pop the body empty mid-animation. The rewind
+         * happens in cube_npc_tick() once the panel is fully gone. */
         cube_npc_dialogue_active = 0;
-        cube_npc_dialogue_line = 0;
-        cube_npc_dialogue_chars = 0;
         return;
     }
+    cube_npc_dialogue_line = next;
     cube_npc_dialogue_chars = 0;
 }
 
-/* Panel slide/fade plus the tap wobble, once per lobby frame. */
+/* Panel slide/fade, once per lobby frame. */
 static void cube_npc_tick(void) {
     double target = 1;
     double step = dt / dial_anim_time;
@@ -105,7 +140,11 @@ static void cube_npc_tick(void) {
             dial_anim = target;
         }
     }
-    cube_npc_wob = cube_npc_wob + dt;
+    if (cube_npc_dialogue_active != 1 && dial_anim <= 0) {
+        /* Fully closed: rewind the typewriter for the next greeting. */
+        cube_npc_dialogue_line = 0;
+        cube_npc_dialogue_chars = 0;
+    }
 }
 
 /* Greedy word wrap. Cuts happen only just before a word, i.e. right after an
@@ -122,8 +161,7 @@ static double dial_wrap(const char *vis, double max_w, double sc, double *starts
         while (wend < total && vis[(int)wend] != ' ') {
             wend = wend + 1;
         }
-        const char *cand = str_sub(vis, line_start, wend - line_start);
-        double w = text_ink_width(cand) * sc;
+        double w = text_ink_width(dial_slice(vis, line_start, wend - line_start)) * sc;
         if (w > max_w && wend > i && i > line_start) {
             /* The next word does not fit: close the line before it. */
             starts[(int)n] = line_start;
@@ -159,19 +197,11 @@ static void draw_lobby_npc_cube(void) {
     cube_npc_x = 20;
     cube_npc_y = screen_h - cube_npc_draw_sz - dial_panel_h - 14;
     double bob = sin(cube_npc_bob_t * 2.0) * 3;
-    /* Quick springy wobble after each tap. */
-    double wob = 0;
-    if (cube_npc_wob < 1.2) {
-        wob = sin(cube_npc_wob * 18.0) * exp(-cube_npc_wob * 5.0) * 0.12;
-    }
-    double sz = cube_npc_draw_sz * (1 + wob);
-    double draw_x = cube_npc_x + (cube_npc_draw_sz - sz) / 2;
-    double draw_y = cube_npc_y + bob + (cube_npc_draw_sz - sz) / 2;
     /* Cube sprite */
     if (cube_npc_tex_ok == 1) {
-        tex(draw_x, draw_y, CUBE_NPC_TEX, 0, sz / 512.0);
+        tex(cube_npc_x, cube_npc_y + bob, CUBE_NPC_TEX, 0, cube_npc_draw_sz / 512.0);
     } else {
-        roundrect(draw_x, draw_y, sz, sz, 6, ui_purple);
+        roundrect(cube_npc_x, cube_npc_y + bob, cube_npc_draw_sz, cube_npc_draw_sz, 6, ui_purple);
     }
     /* === Dialogue panel: slides up and fades in from below === */
     double e = dial_anim;
@@ -214,25 +244,21 @@ static void draw_lobby_npc_cube(void) {
     double text_area_w = px + pw - text_area_x - dial_text_pad;
     double starts[3];
     double lens[3];
-    const char *lines[3];
     double nlines = dial_wrap(visible, text_area_w, sc, starts, lens, 3);
     if (nlines <= 0) {
         return;
     }
-    double k = 0;
-    while (k < nlines) {
-        lines[(int)k] = str_sub(visible, starts[(int)k], lens[(int)k]);
-        k = k + 1;
-    }
     double line_step = text_ink_height("Ag") * sc * 1.35;
-    double th = text_ink_height(lines[0]) * sc;
-    double tt = text_ink_top(lines[0]) * sc;
+    const char *line0 = dial_slice(visible, starts[0], lens[0]);
+    double th = text_ink_height(line0) * sc;
+    double tt = text_ink_top(line0) * sc;
     double block_h = (nlines - 1) * line_step + th;
     double y0 = py + (ph - block_h) / 2 - tt;
     double text_c = a8 * 16777216 + 0xFFFFFF;
-    k = 0;
+    double k = 0;
     while (k < nlines) {
-        text_scaled(lines[(int)k], (float)text_area_x, (float)(y0 + k * line_step), (uint32_t)text_c, (float)sc);
+        text_scaled(dial_slice(visible, starts[(int)k], lens[(int)k]), (float)text_area_x,
+                    (float)(y0 + k * line_step), (uint32_t)text_c, (float)sc);
         k = k + 1;
     }
 }

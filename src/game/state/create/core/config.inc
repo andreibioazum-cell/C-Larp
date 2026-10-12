@@ -405,14 +405,10 @@ LOBBY_MUSIC = "lobbymusic.wav";
 BUTTON_CLICK_SOUND = "button_click.wav";
 button_click_ok = 0;
 
-/* Button slide-in animation (from the right side of the screen).
- * Each button appears one-by-one with a bouncy overshoot ease. */
-btn_anim_t = 0;
-btn_anim_active = 0;
-btn_anim_duration = 0.22;
-btn_anim_stagger = 0.024;
-btn_anim_exiting = 0;
-btn_anim_entering = 0;
+/* Held-pointer state for button press feedback. */
+press_down = 0;
+press_x = 0;
+press_y = 0;
 
 /* NPC cube in the lobby (debug placeholder) */
 CUBE_NPC_TEX = "Cube_20261007211025.png";
@@ -423,6 +419,6 @@ cube_npc_bob_t = 0;
 cube_npc_dialogue_active = 0;
 cube_npc_dialogue_line = 0;
 cube_npc_dialogue_chars = 0;
-cube_npc_dialogue_speed = 24;
+cube_npc_dialogue_speed = 27.6;
 cube_npc_dialogue_lines = 5;
 new_theme = 1;
