@@ -1,4 +1,4 @@
-/* NPC cube in the lobby — typewriter dialogue system. */
+/* NPC cube in the lobby — typewriter dialogue system (new theme only). */
 
 static const char *cube_npc_dialogue_text(void) {
     if (cube_npc_dialogue_line == 0) return cube_npc_d0;
@@ -31,35 +31,32 @@ static void cube_npc_tap(void) {
     cube_npc_dialogue_chars = 0;
 }
 
-/* NPC cube on-screen size in px. */
-static double cube_npc_draw_sz = 30;
+static double cube_npc_draw_sz = 50;
 static double cube_npc_x;
 static double cube_npc_y;
-static double cube_npc_hit_r = 24;
+static double cube_npc_hit_r = 30;
 
-/* Dialogue panel at the bottom of the screen (RPG-style). */
-static double dial_panel_h = 90;
+static double dial_panel_h = 110;
 static double dial_panel_margin = 10;
 static double dial_text_pad = 16;
-static double dial_portrait_sz = 48;
-static double dial_text_sc = 0.5;
+static double dial_portrait_sz = 64;
+static double dial_text_sc = 0.55;
 
 static void draw_lobby_npc_cube(void) {
-    /* Position: bottom-left, above the dialogue panel area */
     cube_npc_x = 20;
     cube_npc_y = screen_h - cube_npc_draw_sz - dial_panel_h - 14;
-    double bob = sin(cube_npc_bob_t * 2.0) * 2;
+    double bob = sin(cube_npc_bob_t * 2.0) * 3;
     double draw_y = cube_npc_y + bob;
     /* Shadow */
     circle(cube_npc_x + cube_npc_draw_sz / 2, draw_y + cube_npc_draw_sz + 3,
            cube_npc_draw_sz / 2.6, 0x28000000);
-    /* Cube sprite — 512px texture scaled down to ~30px on screen */
+    /* Cube sprite */
     if (cube_npc_tex_ok == 1) {
         tex(cube_npc_x, draw_y, CUBE_NPC_TEX, 0, cube_npc_draw_sz / 512.0);
     } else {
-        roundrect(cube_npc_x, draw_y, cube_npc_draw_sz, cube_npc_draw_sz, 4, ui_purple);
+        roundrect(cube_npc_x, draw_y, cube_npc_draw_sz, cube_npc_draw_sz, 6, ui_purple);
     }
-    /* === Dialogue panel at screen bottom === */
+    /* === Black & white dialogue panel at screen bottom === */
     if (cube_npc_dialogue_active != 1) {
         return;
     }
@@ -68,19 +65,19 @@ static void draw_lobby_npc_cube(void) {
     double ph = dial_panel_h;
     double px = pm;
     double py = screen_h - ph - pm;
-    /* Panel background */
-    roundrect(px, py, pw, ph, 12, 0xDD121222);
-    roundrect_outline(px, py, pw, ph, 12, 2, 0xFF5F10A0);
-    /* Portrait: small NPC cube on the left */
+    /* Panel background — dark gray */
+    roundrect(px, py, pw, ph, 12, 0xFF1A1A1A);
+    roundrect_outline(px, py, pw, ph, 12, 2, 0xFFCCCCCC);
+    /* Portrait: NPC cube on the left */
     double ptm = (ph - dial_portrait_sz) / 2;
     double ptx = px + 10;
     double pty = py + ptm;
     if (cube_npc_tex_ok == 1) {
         tex(ptx, pty, CUBE_NPC_TEX, 0, dial_portrait_sz / 512.0);
     } else {
-        roundrect(ptx, pty, dial_portrait_sz, dial_portrait_sz, 6, ui_purple);
+        roundrect(ptx, pty, dial_portrait_sz, dial_portrait_sz, 8, ui_purple);
     }
-    /* Typewriter text — right of portrait, left-aligned */
+    /* Typewriter text — right of portrait, left-aligned, white text */
     const char *full = cube_npc_dialogue_text();
     double shown = floor(cube_npc_dialogue_chars);
     double len = str_len(full);
@@ -90,7 +87,6 @@ static void draw_lobby_npc_cube(void) {
     double text_area_x = ptx + dial_portrait_sz + 10;
     double text_area_w = px + pw - text_area_x - dial_text_pad;
     double tw = text_ink_width(visible) * sc;
-    /* Shrink if text is too wide */
     if (tw > text_area_w) {
         sc = sc * text_area_w / tw;
         tw = text_ink_width(visible) * sc;
@@ -98,26 +94,24 @@ static void draw_lobby_npc_cube(void) {
     double th = text_ink_height(visible) * sc;
     double tt = text_ink_top(visible) * sc;
     double text_y = py + (ph - th) / 2 - tt;
-    text_scaled(visible, text_area_x, text_y, text_color, sc);
-    /* Blinking cursor */
+    text_scaled(visible, text_area_x, text_y, 0xFFFFFF, sc);
+    /* Blinking cursor — white */
     if (shown < len) {
         double cx = text_area_x + tw + 2;
         double cy = py + (ph - th) / 2;
         double blink = fmod(cube_npc_bob_t * 4, 2);
         if (blink < 1) {
-            rect(cx, cy, 2, th, text_color);
+            rect(cx, cy, 2, th, 0xFFFFFF);
         }
     }
 }
 
-/* Touch area for the NPC cube (generous padding for mobile). */
 static double hit_npc_cube(double px, double py) {
     return hit_rect_pad(px, py, cube_npc_x - cube_npc_hit_r + cube_npc_draw_sz / 2,
                         cube_npc_y - cube_npc_hit_r + cube_npc_draw_sz / 2,
                         cube_npc_hit_r * 2, cube_npc_hit_r * 2);
 }
 
-/* Touch the dialogue panel itself to advance text. */
 static double hit_npc_panel(double px, double py) {
     if (cube_npc_dialogue_active != 1) return 0;
     double pm = dial_panel_margin;

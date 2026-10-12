@@ -48,7 +48,9 @@ static void draw_lobby(void) {
     draw_menu_button(4, tr_achievements());
     draw_lobby_nick();
     draw_lobby_money();
-    draw_lobby_npc_cube();
+    if (new_theme == 1) {
+        draw_lobby_npc_cube();
+    }
     if (str_len(banned_msg) > 0) {
         ctext(banned_msg, lobby_msg_y(), text_color);
     }
@@ -61,30 +63,39 @@ static void draw_modes(void) {
     double ox2 = btn_anim_offset(2, modes_rows);
     double ox3 = btn_anim_offset(3, modes_rows);
     double ox4 = btn_anim_offset(4, modes_rows);
-    double ox5 = btn_anim_offset(5, modes_rows);
     button(tr_back(), menu_x() + ox0, modes_row(0), menu_btn_w(), btn_h);
     button(tr_solo(), menu_x() + ox1, modes_row(1), menu_btn_w(), btn_h);
     button(tr_online(), menu_x() + ox2, modes_row(2), menu_btn_w(), btn_h);
     button(tr_top(), menu_x() + ox3, modes_row(3), menu_btn_w(), btn_h);
     button(tr_promo(), menu_x() + ox4, modes_row(4), menu_btn_w(), btn_h);
-    button_scaled(tr_winter_toggle(), menu_x() + ox5, modes_row(5), menu_btn_w(), btn_h, 0.8);
+    if (new_theme == 1) {
+        double ox5 = btn_anim_offset(5, modes_rows);
+        button_scaled(tr_winter_toggle(), menu_x() + ox5, modes_row(5), menu_btn_w(), btn_h, 0.8);
+    }
+}
+
+static const char *theme_label(void) {
+    if (new_theme == 1) return "Тема: Новая";
+    return "Тема: Старая";
 }
 
 static void draw_settings(void) {
     screen_fill();
-    double row_count = 6;
+    double row_count = SETTINGS_ROWS;
     double ox0 = btn_anim_offset(0, row_count);
     double ox1 = btn_anim_offset(1, row_count);
     double ox2 = btn_anim_offset(2, row_count);
     double ox3 = btn_anim_offset(3, row_count);
     double ox4 = btn_anim_offset(4, row_count);
     double ox5 = btn_anim_offset(5, row_count);
+    double ox6 = btn_anim_offset(6, row_count);
     button(tr_back(), menu_x() + ox0, settings_row_y(0), menu_btn_w(), settings_btn_h());
     button("English", menu_x() + ox1, settings_row_y(1), menu_btn_w(), settings_btn_h());
     button("Русский", menu_x() + ox2, settings_row_y(2), menu_btn_w(), settings_btn_h());
     button(tr_hitboxes_toggle(), menu_x() + ox3, settings_row_y(3), menu_btn_w(), settings_btn_h());
     button(tr_music_state(), menu_x() + ox4, settings_row_y(4), menu_btn_w(), settings_btn_h());
-    button_scaled(tr_privacy(), menu_x() + ox5, settings_row_y(5), menu_btn_w(), settings_btn_h(), 0.8);
+    button(theme_label(), menu_x() + ox5, settings_row_y(5), menu_btn_w(), settings_btn_h());
+    button_scaled(tr_privacy(), menu_x() + ox6, settings_row_y(6), menu_btn_w(), settings_btn_h(), 0.8);
 }
 
 static void draw_privacy(void) {

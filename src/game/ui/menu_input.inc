@@ -212,8 +212,8 @@ static void touch_lobby(double x, double y, double action) {
     if (action != 0) {
         return;
     }
-    /* NPC cube tap or dialogue panel tap */
-    if (hit_npc_cube(x, y) == 1 || hit_npc_panel(x, y) == 1) {
+    /* NPC cube tap or dialogue panel tap (new theme only) */
+    if (new_theme == 1 && (hit_npc_cube(x, y) == 1 || hit_npc_panel(x, y) == 1)) {
         play_button_click();
         cube_npc_tap();
         return;
@@ -241,7 +241,7 @@ static void touch_lobby(double x, double y, double action) {
 }
 
 static void touch_modes(double x, double y) {
-    if (hit_modes_row(x, y, 5) == 1) {
+    if (new_theme == 1 && hit_modes_row(x, y, 5) == 1) {
         winter_theme = 1 - winter_theme;
         apply_winter_theme();
         save_settings();
@@ -293,6 +293,12 @@ static void touch_settings(double x, double y) {
         return;
     }
     if (hit_settings_row(x, y, 5) == 1) {
+        new_theme = 1 - new_theme;
+        apply_theme();
+        save_settings();
+        return;
+    }
+    if (hit_settings_row(x, y, 6) == 1) {
         start_transition(ST_PRIVACY);
         return;
     }

@@ -419,3 +419,4 @@ const char *cube_npc_d1;
 const char *cube_npc_d2;
 const char *cube_npc_d3;
 const char *cube_npc_d4;
+double new_theme;

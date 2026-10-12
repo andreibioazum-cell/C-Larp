@@ -7,22 +7,6 @@ static double shade(double rgb, double k) {
     return a * 16777216 + floor(r * k) * 65536 + floor(g * k) * 256 + floor(b * k);
 }
 
-static double blend_color(double a, double b, double t) {
-    double aa = floor(a / 16777216);
-    double ar = floor((a - aa * 16777216) / 65536);
-    double ag = floor((a - aa * 16777216) / 256) - ar * 256;
-    double ab = (a - aa * 16777216) - floor((a - aa * 16777216) / 256) * 256;
-    double ba = floor(b / 16777216);
-    double br = floor((b - ba * 16777216) / 65536);
-    double bg = floor((b - ba * 16777216) / 256) - br * 256;
-    double bb = (b - ba * 16777216) - floor((b - ba * 16777216) / 256) * 256;
-    double ra = aa + (ba - aa) * t;
-    double rr = ar + (br - ar) * t;
-    double rg = ag + (bg - ag) * t;
-    double rb = ab + (bb - ab) * t;
-    return floor(ra) * 16777216 + floor(rr) * 65536 + floor(rg) * 256 + floor(rb);
-}
-
 static double locked_bg(void) { return shade(ui_purple, locked_shade); }
 
 static double locked_text(void) { return locked_text_alpha * 16777216 + text_color; }
@@ -104,14 +88,14 @@ static void draw_nick_msg(const char *nick, const char *rest, double x, double y
 }
 
 static void button(const char *label, double x, double y, double w, double h) {
+    roundrect(x, y, w, h, btn_radius, ui_purple);
     roundrect_outline(x, y, w, h, btn_radius, 2, 0xFF000000);
-    cb_button_gradient(x, y, w, h, btn_radius, ui_purple);
     text_in_box(label, x, y, w, h, text_color, 1);
 }
 
 static void button_scaled(const char *label, double x, double y, double w, double h, double scale) {
+    roundrect(x, y, w, h, btn_radius, ui_purple);
     roundrect_outline(x, y, w, h, btn_radius, 2, 0xFF000000);
-    cb_button_gradient(x, y, w, h, btn_radius, ui_purple);
     text_in_box(label, x, y, w, h, text_color, scale);
 }
 
@@ -135,6 +119,14 @@ static void outline_arc(double cx, double cy, double rr, double t, uint32_t c, d
     line(cx + mx * 0.3827 * rr, cy + my * 0.9239 * rr, cx, cy + my * rr, t, c);
 }
 
+static void apply_theme(void) {
+    if (new_theme == 1) {
+        ui_purple = 0xFFD4508A;
+    } else {
+        ui_purple = 0xFF5F10A0;
+    }
+}
+
 static void draw_back(void) {
     double ox = btn_anim_offset(0, 1);
     button(tr_back(), (screen_w - btn_w) / 2 + ox, back_y, btn_w, btn_h);
@@ -150,39 +142,7 @@ static void draw_battle_back(void) { button(tr_back(), battle_back_x(), battle_b
 
 static double battle_back_hit(double x, double y) { return hit_rect_pad(x, y, battle_back_x(), battle_back_y(), btn_w, btn_h); }
 
-static void screen_fill(void) {
-    double top = bg_screen;
-    double bottom = bg_gradient_bottom;
-    if (newyear_active() == 1) {
-        top = newyear_bg_top;
-        bottom = newyear_bg_bottom;
-    }
-    rect(0, 0, screen_w, screen_h, top);
-    draw_bottom_gradient(top, bottom);
-}
-
-static void draw_bottom_gradient(double top, double bottom) {
-    double h = bg_gradient_h;
-    double bands = h / 2;
-    double y0 = screen_h - h;
-    /* Two pixels per band: the fade between the flat background and the
-     * gradient colour reads as one smooth wash in every theme instead of a
-     * stack of strips (the old thirty bands over 420 px were 14 px each). */
-    if (bands < bg_gradient_bands) {
-        bands = bg_gradient_bands;
-    }
-    if (bands > 400) {
-        bands = 400;
-    }
-    double band_h = h / bands + 1;
-    double i = 0;
-    while (i < bands) {
-        double t = (i + 1) / bands;
-        double y = y0 + i * (h / bands);
-        rect(0, y, screen_w, band_h, blend_color(top, bottom, t));
-        i = i + 1;
-    }
-}
+static void screen_fill(void) { rect(0, 0, screen_w, screen_h, bg_screen); }
 
 static void card_state(double x, double y, double w, double h, double selected, double locked) {
     if (selected == 1) {

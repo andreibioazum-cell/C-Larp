@@ -107,6 +107,7 @@ static void logic_init(void) {
     net_autologin(FIREBASE);
     progress_from_storage();
     settings_from_storage();
+    apply_theme();
     apply_winter_theme();
     start_music();
     showdown_music_load();
