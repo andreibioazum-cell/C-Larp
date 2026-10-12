@@ -106,18 +106,42 @@ static void draw_nick_msg(const char *nick, const char *rest, double x, double y
 }
 
 /* Press feedback: the button under the finger squeezes smoothly by 5% and
- * darkens about 25%, then springs back smoothly on release. press_k ramps in
- * and out (update_button_press), so both edges animate instead of snapping. */
+ * darkens about 25%, then springs back smoothly on release. The squeeze is
+ * owned by the button the finger landed on (press_btn_*): when the finger
+ * slides away the squeeze eases back out on that same button instead of
+ * snapping off, and if the finger slides back it eases in again. press_k
+ * ramps in and out (update_button_press), so every edge is animated. */
+static double press_btn_live;
+static double press_btn_x;
+static double press_btn_y;
+static double press_btn_w;
+static double press_btn_h;
+
 static double button_press_k(double x, double y, double w, double h) {
-    if (press_k <= 0 || hit_rect(press_x, press_y, x, y, w, h) != 1) {
-        return 0;
+    if (press_down == 1 && press_btn_live == 0 && hit_rect(press_x, press_y, x, y, w, h) == 1) {
+        /* First button under the finger owns the press. The capture sticks
+         * for the whole gesture so the squeeze can follow the finger. */
+        press_btn_live = 1;
+        press_btn_x = x;
+        press_btn_y = y;
+        press_btn_w = w;
+        press_btn_h = h;
     }
-    /* Smoothstep: the squeeze eases in and the release eases out. */
-    return press_k * press_k * (3 - 2 * press_k);
+    if (press_btn_live == 1 && x == press_btn_x && y == press_btn_y &&
+        w == press_btn_w && h == press_btn_h && press_k > 0) {
+        /* Smoothstep: the squeeze eases in and the release eases out. */
+        return press_k * press_k * (3 - 2 * press_k);
+    }
+    return 0;
 }
 
 static void update_button_press(void) {
-    double target = press_down;
+    /* Full squeeze only while the finger stays on the captured button. */
+    double target = 0;
+    if (press_down == 1 && press_btn_live == 1 &&
+        hit_rect(press_x, press_y, press_btn_x, press_btn_y, press_btn_w, press_btn_h) == 1) {
+        target = 1;
+    }
     double step = dt / 0.09;
     if (press_k < target) {
         press_k = press_k + step;
@@ -129,6 +153,10 @@ static void update_button_press(void) {
         if (press_k < target) {
             press_k = target;
         }
+    }
+    if (press_k <= 0 && target == 0) {
+        /* Fully at rest: let go so another button can be captured. */
+        press_btn_live = 0;
     }
 }
 
@@ -145,7 +173,7 @@ static void button(const char *label, double x, double y, double w, double h) {
     } else {
         roundrect(bx, by, bw, bh, btn_radius, col);
     }
-    text_in_box(label, bx, by, bw, bh, text_color, 1);
+    text_in_box(label, bx, by, bw, bh, shade(text_color, 1 - 0.25 * p), s);
 }
 
 static void button_scaled(const char *label, double x, double y, double w, double h, double scale) {
@@ -161,7 +189,7 @@ static void button_scaled(const char *label, double x, double y, double w, doubl
     } else {
         roundrect(bx, by, bw, bh, btn_radius, col);
     }
-    text_in_box(label, bx, by, bw, bh, text_color, scale);
+    text_in_box(label, bx, by, bw, bh, shade(text_color, 1 - 0.25 * p), scale * s);
 }
 
 static void roundrect_outline(double x, double y, double w, double h, double rad, double t, uint32_t c) {
@@ -188,11 +216,11 @@ static void apply_theme(void) {
     if (new_theme == 1) {
         ui_purple = 0xFF5F10A0;
         bg_screen = 0x1A1A2E;
-        transition_duration = 0.07;
+        transition_duration = 0.10;
     } else {
         ui_purple = 0xFFD4508A;
         bg_screen = 0xFF3A1530;
-        transition_duration = 0.07;
+        transition_duration = 0.10;
     }
 }
 

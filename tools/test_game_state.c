@@ -1822,8 +1822,9 @@ int main(void) {
     screen_h = 180;
 
     /* Buttons fire on release, not while held: a press is feedback only (the
-     * squeeze eases in and out), holding never fires, and a drag away cancels
-     * the tap. */
+     * squeeze eases in and out), holding never fires, a drag away cancels the
+     * tap and eases the squeeze back out on the pressed button, and the shop
+     * follows the same rules. */
     {
         int saved_h = screen_h;
         screen_h = 2400;
@@ -1838,12 +1839,14 @@ int main(void) {
         double ty = menu_row(0) + btn_h / 2;
         logic_touch(tx, ty, 0, 1);
         assert(t_dir == 0 && press_down == 1);
+        (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h); /* draw captures */
         int n = 0;
         while (n < 30) {
             update_button_press();
             n = n + 1;
         }
         assert(press_k > 0.95);
+        assert(button_press_k(menu_x(), menu_row(0), btn_w, btn_h) > 0.9);
         /* Holding never fires the button. */
         assert(t_dir == 0);
         /* Finger jitter keeps the tap armed; the release fires it. */
@@ -1856,25 +1859,77 @@ int main(void) {
             n = n + 1;
         }
         assert(press_k < 0.05);
+        assert(button_press_k(menu_x(), menu_row(0), btn_w, btn_h) == 0);
         t_dir = 0;
 
-        /* A drag away cancels the tap. */
+        /* Sliding off the pressed button eases the squeeze back out on that
+         * button instead of snapping it off. */
         logic_touch(tx, ty, 0, 1);
-        logic_touch(tx + 200, ty, 2, 1);
+        (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h);
+        n = 0;
+        while (n < 30) {
+            update_button_press();
+            n = n + 1;
+        }
+        assert(press_k > 0.95);
+        logic_touch(tx + 200, ty, 2, 1); /* the finger slides away, still down */
+        update_button_press();
+        assert(press_k > 0.5 && press_k < 0.95); /* easing out, not gone */
+        assert(button_press_k(menu_x(), menu_row(0), btn_w, btn_h) > 0); /* still shown */
+        n = 0;
+        while (n < 30) {
+            update_button_press();
+            n = n + 1;
+        }
+        assert(press_k < 0.05);
         logic_touch(tx + 200, ty, 1, 1);
-        assert(t_dir == 0);
+        assert(t_dir == 0); /* the drag cancelled the tap */
         t_dir = 0;
 
         /* The NPC cube opens its dialogue on release as well. */
+        cube_npc_d0 = "d0";
+        cube_npc_d1 = "d1";
+        cube_npc_d2 = "d2";
+        cube_npc_d3 = "d3";
+        cube_npc_d4 = "d4";
         draw_lobby_npc_cube();
         logic_touch(cube_npc_x + 30, cube_npc_y + 30, 0, 1);
         assert(cube_npc_dialogue_active == 0);
         logic_touch(cube_npc_x + 30, cube_npc_y + 30, 1, 1);
         assert(cube_npc_dialogue_active == 1);
-        cube_npc_dialogue_active = 0;
+        /* Tapping the screen outside the dialogue is its skip action: the talk
+         * advances and the menu rows behind it never fire. */
+        double ch0 = cube_npc_dialogue_chars;
+        logic_touch(tx, ty, 0, 1);
+        logic_touch(tx, ty, 1, 1);
+        assert(t_dir == 0); /* the Play row did not fire */
+        assert(cube_npc_dialogue_active == 1 && cube_npc_dialogue_chars > ch0);
+        n = 0;
+        while (cube_npc_dialogue_active == 1 && n < 20) {
+            logic_touch(tx, ty, 0, 1);
+            logic_touch(tx, ty, 1, 1);
+            n = n + 1;
+        }
+        assert(cube_npc_dialogue_active == 0 && t_dir == 0);
         cube_npc_dialogue_line = 0;
         cube_npc_dialogue_chars = 0;
 
+        /* The shop buttons act on release too, and drags cancel them. */
+        game_state = ST_CLASSES;
+        player_class = CLASS_ORDINARY;
+        double lx = levels_btn_x() + class_action_w() / 2;
+        double ly = class_actions_y() + btn_h / 2;
+        logic_touch(lx, ly, 0, 2);
+        assert(t_dir == 0);
+        logic_touch(lx, ly, 1, 2);
+        assert(t_dir == 1 && t_target == ST_LEVELS);
+        t_dir = 0;
+        logic_touch(lx, ly, 0, 2);
+        logic_touch(lx + 200, ly, 2, 2);
+        logic_touch(lx + 200, ly, 1, 2);
+        assert(t_dir == 0);
+
+        game_state = ST_LOBBY;
         screen_h = saved_h;
     }
 

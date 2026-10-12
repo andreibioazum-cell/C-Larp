@@ -161,10 +161,8 @@ static void legal_accept(void) {
 }
 
 static void touch_warn(double x, double y, double action) {
-    if (action != 0) {
-        return;
-    }
-    if (hit_warn_btn(x, y) == 1) {
+    /* The consent button acts on release like every other button. */
+    if (tap_event(x, y, action) == 1 && hit_warn_btn(tap_x, tap_y) == 1) {
         play_button_click();
         legal_accept();
     }
@@ -213,6 +211,14 @@ static void touch_lobby(double x, double y, double action) {
     }
     /* NPC cube tap or dialogue panel tap (new theme only) */
     if (new_theme == 1 && (hit_npc_cube(x, y) == 1 || hit_npc_panel(x, y) == 1)) {
+        play_button_click();
+        cube_npc_tap();
+        return;
+    }
+    /* With the dialogue open, tapping anywhere else on the screen is its
+     * skip action: the talk advances or closes and the menu rows behind it
+     * stay untouched. */
+    if (new_theme == 1 && cube_npc_dialogue_active == 1) {
         play_button_click();
         cube_npc_tap();
         return;
