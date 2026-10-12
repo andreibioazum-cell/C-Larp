@@ -27,6 +27,7 @@ static void draw_battle_back(void);
 static double battle_back_hit(double x, double y);
 static void screen_fill(void);
 static void draw_bottom_gradient(double top, double bottom);
+static void apply_theme(void);
 static void card_state(double x, double y, double w, double h, double selected, double locked);
 static void card(double x, double y, double w, double h, double selected);
 static void panel(double x, double y, double w, double h, double locked);

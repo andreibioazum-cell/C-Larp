@@ -117,7 +117,7 @@ static double menu_button_hit(double x, double y) {
         return 0;
     }
     if (game_state == ST_SETTINGS) {
-        while (i <= 6) {
+        while (i <= 7) {
             if (hit_settings_row(x, y, i) == 1) return 1;
             i = i + 1;
         }

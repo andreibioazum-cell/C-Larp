@@ -28,8 +28,8 @@ locked_text_alpha = 191;
 stat_star_on_color = 0xF7C948;
 stat_star_off_color = 0x0B0B12;
 stat_star_rim_color = 0x6A6A90;
-btn_w = 280;
-btn_h = 53;
+btn_w = 308;
+btn_h = 58;
 btn_gap = 15;
 btn_radius = 20;
 back_y = 24;
@@ -404,3 +404,26 @@ login_pass = "";
 LOBBY_MUSIC = "lobbymusic.wav";
 BUTTON_CLICK_SOUND = "button_click.wav";
 button_click_ok = 0;
+
+/* Button slide-in animation (from the right side of the screen).
+ * Each button appears one-by-one with a bouncy overshoot ease. */
+btn_anim_t = 0;
+btn_anim_active = 0;
+btn_anim_duration = 0.3;
+btn_anim_stagger = 0.042;
+btn_anim_offscreen = 600;
+btn_anim_exiting = 0;
+btn_anim_entering = 0;
+
+/* NPC cube in the lobby (debug placeholder) */
+CUBE_NPC_TEX = "Cube_20261007211025.png";
+cube_npc_tex_ok = 0;
+cube_npc_bob_t = 0;
+
+/* NPC dialogue system (typewriter-style speech bubble) */
+cube_npc_dialogue_active = 0;
+cube_npc_dialogue_line = 0;
+cube_npc_dialogue_chars = 0;
+cube_npc_dialogue_speed = 32;
+cube_npc_dialogue_lines = 5;
+new_theme = 1;

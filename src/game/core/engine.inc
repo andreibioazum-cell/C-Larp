@@ -5,6 +5,7 @@ static void start_transition(double target) {
     classes_swipe_reset();
     t_target = target;
     t_dir = 1;
+    btn_anim_begin_exit();
 }
 
 static void leave_screen(double state) {
@@ -23,6 +24,7 @@ static void leave_screen(double state) {
 }
 
 static double enter_screen(double state) {
+    btn_anim_begin_enter();
     if (state == ST_SOLO) {
         init_game();
         return 1;
@@ -105,10 +107,17 @@ static void logic_init(void) {
     net_autologin(FIREBASE);
     progress_from_storage();
     settings_from_storage();
+    apply_theme();
     apply_winter_theme();
     start_music();
     showdown_music_load();
     update_newyear_jingle();
+    cube_npc_tex_ok = png_load(CUBE_NPC_TEX);
+    cube_npc_d0 = "Привет! Я Куб-НПС!";
+    cube_npc_d1 = "Добро пожаловать в Cubic Battle 4!";
+    cube_npc_d2 = "Попробуй режим Solo или Online!";
+    cube_npc_d3 = "В магазине можно купить персонажей!";
+    cube_npc_d4 = "Удачи в битве!";
     ds_log("init: ready");
 }
 
@@ -141,7 +150,20 @@ static void logic_update(void) {
     update_showdown_music();
     reload_textures();
     tick_achievement_toast();
+    btn_anim_tick();
     admin_tick();
+    if (game_state == ST_LOBBY) {
+        cube_npc_bob_t = cube_npc_bob_t + dt;
+        if (cube_npc_dialogue_active == 1) {
+            double max_chars = str_len(cube_npc_dialogue_text());
+            if (cube_npc_dialogue_chars < max_chars) {
+                cube_npc_dialogue_chars = cube_npc_dialogue_chars + cube_npc_dialogue_speed * dt;
+                if (cube_npc_dialogue_chars > max_chars) {
+                    cube_npc_dialogue_chars = max_chars;
+                }
+            }
+        }
+    }
     if (game_state == ST_SOLO) {
         update_game();
     } else if (game_state == ST_ONLINE) {
