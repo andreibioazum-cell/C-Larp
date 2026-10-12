@@ -1,4 +1,10 @@
-/* NPC cube in the lobby — typewriter dialogue system (new theme only). */
+/* NPC cube in the lobby — typewriter dialogue system (new theme only).
+ *
+ * The typewriter reveals whole UTF-8 characters: slicing by raw bytes used to
+ * land inside a Cyrillic letter, and the orphan byte fell back to the "?"
+ * glyph at the end of the line. The panel slides up and fades in, long lines
+ * word-wrap at full size instead of shrinking, and the cube gives a little
+ * wobble when poked. */
 
 static const char *cube_npc_dialogue_text(void) {
     if (cube_npc_dialogue_line == 0) return cube_npc_d0;
@@ -9,14 +15,64 @@ static const char *cube_npc_dialogue_text(void) {
     return "";
 }
 
+/* UTF-8 helpers for the typewriter. The dialogue is Russian, so the reveal has
+ * to step over whole 2-byte characters and never cut a letter in half. */
+static double utf8_len(const char *s) {
+    double n = 0;
+    while (*s != 0) {
+        if (((unsigned char)*s & 0xC0) != 0x80) {
+            n = n + 1;
+        }
+        s = s + 1;
+    }
+    return n;
+}
+
+static const char *utf8_prefix(const char *s, double chars) {
+    double seen = 0;
+    const char *p = s;
+    if (chars <= 0) {
+        return "";
+    }
+    while (*p != 0 && seen < chars) {
+        unsigned char c = (unsigned char)*p;
+        p = p + 1;
+        if ((c & 0xC0) != 0x80) {
+            seen = seen + 1;
+            /* Swallow the continuation bytes of this character so the cut
+             * always lands on a codepoint boundary. */
+            while (((unsigned char)*p & 0xC0) == 0x80) {
+                p = p + 1;
+            }
+        }
+    }
+    return str_sub(s, 0, (double)(p - s));
+}
+
+static double cube_npc_draw_sz = 60;
+static double cube_npc_x;
+static double cube_npc_y;
+static double cube_npc_hit_r = 34;
+
+/* The dialogue window: big portrait, big text. */
+static double dial_panel_h = 190;
+static double dial_panel_margin = 14;
+static double dial_text_pad = 20;
+static double dial_portrait_sz = 120;
+static double dial_text_sc = 1.05;
+static double dial_anim;
+static double dial_anim_time = 0.22;
+static double cube_npc_wob = 100;
+
 static void cube_npc_tap(void) {
+    cube_npc_wob = 0;
     if (cube_npc_dialogue_active == 0) {
         cube_npc_dialogue_active = 1;
         cube_npc_dialogue_line = 0;
         cube_npc_dialogue_chars = 0;
         return;
     }
-    double max_chars = str_len(cube_npc_dialogue_text());
+    double max_chars = utf8_len(cube_npc_dialogue_text());
     if (cube_npc_dialogue_chars < max_chars) {
         cube_npc_dialogue_chars = max_chars;
         return;
@@ -31,75 +87,153 @@ static void cube_npc_tap(void) {
     cube_npc_dialogue_chars = 0;
 }
 
-static double cube_npc_draw_sz = 60;
-static double cube_npc_x;
-static double cube_npc_y;
-static double cube_npc_hit_r = 34;
+/* Panel slide/fade plus the tap wobble, once per lobby frame. */
+static void cube_npc_tick(void) {
+    double target = 1;
+    double step = dt / dial_anim_time;
+    if (cube_npc_dialogue_active != 1) {
+        target = 0;
+    }
+    if (dial_anim < target) {
+        dial_anim = dial_anim + step;
+        if (dial_anim > target) {
+            dial_anim = target;
+        }
+    } else if (dial_anim > target) {
+        dial_anim = dial_anim - step;
+        if (dial_anim < target) {
+            dial_anim = target;
+        }
+    }
+    cube_npc_wob = cube_npc_wob + dt;
+}
 
-static double dial_panel_h = 110;
-static double dial_panel_margin = 10;
-static double dial_text_pad = 16;
-static double dial_portrait_sz = 64;
-static double dial_text_sc = 0.55;
+/* Greedy word wrap. Cuts happen only just before a word, i.e. right after an
+ * ASCII space — a UTF-8 safe byte boundary — so line slices never split a
+ * Cyrillic letter. */
+static double dial_wrap(const char *vis, double max_w, double sc, double *starts, double *lens,
+                        double max_lines) {
+    double total = str_len(vis);
+    double n = 0;
+    double line_start = 0;
+    double i = 0;
+    while (i < total && n < max_lines) {
+        double wend = i;
+        while (wend < total && vis[(int)wend] != ' ') {
+            wend = wend + 1;
+        }
+        const char *cand = str_sub(vis, line_start, wend - line_start);
+        double w = text_ink_width(cand) * sc;
+        if (w > max_w && wend > i && i > line_start) {
+            /* The next word does not fit: close the line before it. */
+            starts[(int)n] = line_start;
+            lens[(int)n] = i - 1 - line_start;
+            n = n + 1;
+            line_start = i;
+        } else if (w > max_w && wend > i) {
+            /* One word alone is wider than the panel: give it its own line. */
+            starts[(int)n] = line_start;
+            lens[(int)n] = wend - line_start;
+            n = n + 1;
+            i = wend + 1;
+            line_start = i;
+        } else {
+            i = wend + 1;
+        }
+    }
+    if (n < max_lines && total > line_start) {
+        double lend = total;
+        while (lend > line_start && vis[(int)lend - 1] == ' ') {
+            lend = lend - 1;
+        }
+        if (lend > line_start) {
+            starts[(int)n] = line_start;
+            lens[(int)n] = lend - line_start;
+            n = n + 1;
+        }
+    }
+    return n;
+}
 
 static void draw_lobby_npc_cube(void) {
     cube_npc_x = 20;
     cube_npc_y = screen_h - cube_npc_draw_sz - dial_panel_h - 14;
     double bob = sin(cube_npc_bob_t * 2.0) * 3;
-    double draw_y = cube_npc_y + bob;
+    /* Quick springy wobble after each tap. */
+    double wob = 0;
+    if (cube_npc_wob < 1.2) {
+        wob = sin(cube_npc_wob * 18.0) * exp(-cube_npc_wob * 5.0) * 0.12;
+    }
+    double sz = cube_npc_draw_sz * (1 + wob);
+    double draw_x = cube_npc_x + (cube_npc_draw_sz - sz) / 2;
+    double draw_y = cube_npc_y + bob + (cube_npc_draw_sz - sz) / 2;
     /* Cube sprite */
     if (cube_npc_tex_ok == 1) {
-        tex(cube_npc_x, draw_y, CUBE_NPC_TEX, 0, cube_npc_draw_sz / 512.0);
+        tex(draw_x, draw_y, CUBE_NPC_TEX, 0, sz / 512.0);
     } else {
-        roundrect(cube_npc_x, draw_y, cube_npc_draw_sz, cube_npc_draw_sz, 6, ui_purple);
+        roundrect(draw_x, draw_y, sz, sz, 6, ui_purple);
     }
-    /* === Black & white dialogue panel at screen bottom === */
-    if (cube_npc_dialogue_active != 1) {
+    /* === Dialogue panel: slides up and fades in from below === */
+    double e = dial_anim;
+    if (cube_npc_dialogue_active != 1 && e <= 0) {
         return;
     }
+    double es = e * e * (3 - 2 * e);
+    double slide = (1 - es) * 46;
+    double alpha = es;
     double pm = dial_panel_margin;
     double pw = screen_w - 2 * pm;
     double ph = dial_panel_h;
     double px = pm;
-    double py = screen_h - ph - pm;
+    double py = screen_h - ph - pm + slide;
+    double a8 = floor(alpha * 255);
+    /* Soft drop shadow under the panel */
+    roundrect(px + 3, py + 9, pw, ph, 12, floor(alpha * 110) * 16777216);
     /* Panel background — dark gray */
-    roundrect(px, py, pw, ph, 12, 0xFF1A1A1A);
-    roundrect_outline(px, py, pw, ph, 12, 2, 0xFFCCCCCC);
+    roundrect(px, py, pw, ph, 12, a8 * 16777216 + 0x1A1A1A);
+    roundrect_outline(px, py, pw, ph, 12, 2, a8 * 16777216 + 0xCCCCCC);
     /* Portrait: NPC cube on the left */
     double ptm = (ph - dial_portrait_sz) / 2;
-    double ptx = px + 10;
+    double ptx = px + 12;
     double pty = py + ptm;
     if (cube_npc_tex_ok == 1) {
-        tex(ptx, pty, CUBE_NPC_TEX, 0, dial_portrait_sz / 512.0);
+        tex_alpha(ptx, pty, CUBE_NPC_TEX, 0, dial_portrait_sz / 512.0, alpha);
     } else {
-        roundrect(ptx, pty, dial_portrait_sz, dial_portrait_sz, 8, ui_purple);
+        roundrect(ptx, pty, dial_portrait_sz, dial_portrait_sz, 8, a8 * 16777216 + 0x8040FF);
     }
-    /* Typewriter text — right of portrait, left-aligned, white text */
+    /* Typewriter text — right of the portrait, big and word-wrapped. */
     const char *full = cube_npc_dialogue_text();
     double shown = floor(cube_npc_dialogue_chars);
-    double len = str_len(full);
-    if (shown > len) shown = len;
-    const char *visible = str_sub(full, 0, shown);
-    double sc = dial_text_sc;
-    double text_area_x = ptx + dial_portrait_sz + 10;
-    double text_area_w = px + pw - text_area_x - dial_text_pad;
-    double tw = text_ink_width(visible) * sc;
-    if (tw > text_area_w) {
-        sc = sc * text_area_w / tw;
-        tw = text_ink_width(visible) * sc;
+    double len = utf8_len(full);
+    if (shown > len) {
+        shown = len;
     }
-    double th = text_ink_height(visible) * sc;
-    double tt = text_ink_top(visible) * sc;
-    double text_y = py + (ph - th) / 2 - tt;
-    text_scaled(visible, text_area_x, text_y, 0xFFFFFF, sc);
-    /* Blinking cursor — white */
-    if (shown < len) {
-        double cx = text_area_x + tw + 2;
-        double cy = py + (ph - th) / 2;
-        double blink = fmod(cube_npc_bob_t * 4, 2);
-        if (blink < 1) {
-            rect(cx, cy, 2, th, 0xFFFFFF);
-        }
+    const char *visible = utf8_prefix(full, shown);
+    double sc = dial_text_sc;
+    double text_area_x = ptx + dial_portrait_sz + 14;
+    double text_area_w = px + pw - text_area_x - dial_text_pad;
+    double starts[3];
+    double lens[3];
+    const char *lines[3];
+    double nlines = dial_wrap(visible, text_area_w, sc, starts, lens, 3);
+    if (nlines <= 0) {
+        return;
+    }
+    double k = 0;
+    while (k < nlines) {
+        lines[(int)k] = str_sub(visible, starts[(int)k], lens[(int)k]);
+        k = k + 1;
+    }
+    double line_step = text_ink_height("Ag") * sc * 1.35;
+    double th = text_ink_height(lines[0]) * sc;
+    double tt = text_ink_top(lines[0]) * sc;
+    double block_h = (nlines - 1) * line_step + th;
+    double y0 = py + (ph - block_h) / 2 - tt;
+    double text_c = a8 * 16777216 + 0xFFFFFF;
+    k = 0;
+    while (k < nlines) {
+        text_scaled(lines[(int)k], (float)text_area_x, (float)(y0 + k * line_step), (uint32_t)text_c, (float)sc);
+        k = k + 1;
     }
 }
 
@@ -110,7 +244,7 @@ static double hit_npc_cube(double px, double py) {
 }
 
 static double hit_npc_panel(double px, double py) {
-    if (cube_npc_dialogue_active != 1) return 0;
+    if (cube_npc_dialogue_active != 1 || dial_anim < 0.25) return 0;
     double pm = dial_panel_margin;
     return hit_rect(px, py, pm, screen_h - dial_panel_h - pm, screen_w - 2 * pm, dial_panel_h);
 }

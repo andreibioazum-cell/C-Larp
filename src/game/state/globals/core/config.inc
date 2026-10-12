@@ -404,7 +404,6 @@ double btn_anim_t;
 double btn_anim_active;
 double btn_anim_duration;
 double btn_anim_stagger;
-double btn_anim_offscreen;
 double btn_anim_exiting;
 double btn_anim_entering;
 const char *CUBE_NPC_TEX;

@@ -118,6 +118,9 @@ static void logic_init(void) {
     cube_npc_d2 = "Попробуй режим Solo или Online!";
     cube_npc_d3 = "В магазине можно купить персонажей!";
     cube_npc_d4 = "Удачи в битве!";
+    /* Stage the menu buttons off-screen right: they fly in from there as soon
+     * as the intro notices are gone and the lobby is actually visible. */
+    btn_anim_begin_enter();
     ds_log("init: ready");
 }
 
@@ -150,12 +153,17 @@ static void logic_update(void) {
     update_showdown_music();
     reload_textures();
     tick_achievement_toast();
-    btn_anim_tick();
+    if (warn_open == 0 && studio_open == 0) {
+        /* While the epilepsy warning or the studio splash is up, the button
+         * fly-in waits: it plays exactly when the lobby is first visible. */
+        btn_anim_tick();
+    }
     admin_tick();
     if (game_state == ST_LOBBY) {
         cube_npc_bob_t = cube_npc_bob_t + dt;
+        cube_npc_tick();
         if (cube_npc_dialogue_active == 1) {
-            double max_chars = str_len(cube_npc_dialogue_text());
+            double max_chars = utf8_len(cube_npc_dialogue_text());
             if (cube_npc_dialogue_chars < max_chars) {
                 cube_npc_dialogue_chars = cube_npc_dialogue_chars + cube_npc_dialogue_speed * dt;
                 if (cube_npc_dialogue_chars > max_chars) {
@@ -215,7 +223,10 @@ static void logic_draw(void) {
         /* Snow beneath the transition curtain. */
         draw_newyear_under_notices();
         if (t_fade > 0) {
-            rect(0, 0, screen_w, screen_h, (1 + floor(t_fade * 254)) * 0x1000000);
+            /* Smoothstep the curtain alpha: the fade eases in and out instead
+             * of ramping linearly. */
+            double a = t_fade * t_fade * (3 - 2 * t_fade);
+            rect(0, 0, screen_w, screen_h, (1 + floor(a * 254)) * 0x1000000);
         }
     }
     if (warn_open == 1) {

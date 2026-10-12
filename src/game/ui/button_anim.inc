@@ -1,10 +1,15 @@
 /* Button slide-in / slide-out animation (new theme only).
  *
  * Flow:
- *   1. User taps a button → exit animation: buttons slide out to the right
+ *   1. User taps a button → exit animation: buttons whoosh out to the right,
+ *      travelling far enough to clear the screen edge completely
  *   2. Black fade covers the screen while buttons are sliding out
  *   3. Screen swap happens
- *   4. Fade-out: enter animation: buttons slide IN from the right with bounce
+ *   4. Fade-out: enter animation: buttons fly IN from far off-screen right
+ *      with a small settle overshoot
+ *
+ * The travel distance is derived from the live screen size, so on entry the
+ * buttons start past the right edge — never half-visible on screen.
  *
  * Old theme (new_theme == 0): no animation at all. */
 
@@ -22,6 +27,11 @@ static void btn_anim_begin_enter(void) {
     btn_anim_active = 1;
     btn_anim_exiting = 0;
     btn_anim_entering = 1;
+}
+
+/* Full travel: the button's left edge lands past the right screen edge. */
+static double btn_anim_travel(void) {
+    return screen_w + btn_w + 120;
 }
 
 /* Cubic ease-in for exit (accelerating away). */
@@ -49,17 +59,26 @@ static void btn_anim_tick(void) {
 static double btn_anim_offset(double row, double row_count) {
     (void)row_count;
     if (new_theme == 0 || btn_anim_active == 0) return 0;
+    double travel = btn_anim_travel();
     double delay = row * btn_anim_stagger;
     if (btn_anim_exiting == 1) {
-        double raw = (btn_anim_t - delay) / btn_anim_duration;
+        /* The exit is quicker than the enter and moves all rows together: the
+         * whoosh is over right before the transition curtain turns the screen
+         * black, so every button is seen leaving to the right. */
+        double raw = btn_anim_t / (btn_anim_duration * 0.5);
         double t = clamp(raw, 0, 1);
-        return btn_anim_exit_ease(t) * btn_anim_offscreen;
+        return btn_anim_exit_ease(t) * travel;
     }
     if (btn_anim_entering == 1) {
         double raw = (btn_anim_t - delay) / btn_anim_duration;
-        if (raw < 0) return btn_anim_offscreen;
+        if (raw < 0) return travel;
         double t = clamp(raw, 0, 1);
-        return (1 - btn_anim_enter_ease(t)) * btn_anim_offscreen;
+        double e = btn_anim_enter_ease(t);
+        double p = e < 1 ? e : 1;
+        double over = e > 1 ? (e - 1) : 0;
+        /* The overshoot is measured against the button, not the travel
+         * distance, so the bounce stays small no matter the screen width. */
+        return (1 - p) * travel - over * btn_w * 0.7;
     }
     return 0;
 }
