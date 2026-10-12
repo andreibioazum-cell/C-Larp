@@ -104,11 +104,13 @@ static void draw_nick_msg(const char *nick, const char *rest, double x, double y
 }
 
 static void button(const char *label, double x, double y, double w, double h) {
+    roundrect_outline(x, y, w, h, btn_radius, 2, 0xFF000000);
     cb_button_gradient(x, y, w, h, btn_radius, ui_purple);
     text_in_box(label, x, y, w, h, text_color, 1);
 }
 
 static void button_scaled(const char *label, double x, double y, double w, double h, double scale) {
+    roundrect_outline(x, y, w, h, btn_radius, 2, 0xFF000000);
     cb_button_gradient(x, y, w, h, btn_radius, ui_purple);
     text_in_box(label, x, y, w, h, text_color, scale);
 }
@@ -133,7 +135,10 @@ static void outline_arc(double cx, double cy, double rr, double t, uint32_t c, d
     line(cx + mx * 0.3827 * rr, cy + my * 0.9239 * rr, cx, cy + my * rr, t, c);
 }
 
-static void draw_back(void) { button(tr_back(), (screen_w - btn_w) / 2, back_y, btn_w, btn_h); }
+static void draw_back(void) {
+    double ox = btn_anim_offset(0, 1);
+    button(tr_back(), (screen_w - btn_w) / 2 + ox, back_y, btn_w, btn_h);
+}
 
 static double back_hit(double x, double y) { return hit_rect_pad(x, y, (screen_w - btn_w) / 2, back_y, btn_w, btn_h); }
 

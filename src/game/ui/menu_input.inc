@@ -35,7 +35,8 @@ static void draw_login(void) {
     screen_fill();
     draw_login_field(tr_nick(), login_nick, tr_nick_ph(), login_nick_y(), login_field == 1);
     draw_login_field(tr_pass(), login_pass, tr_pass_ph(), login_pass_y(), login_field == 2);
-    button_scaled(tr_login_btn(), login_btn_x(), login_btn_y(), login_btn_w, btn_h, 0.65);
+    double ox = btn_anim_offset(1, 2);
+    button_scaled(tr_login_btn(), login_btn_x() + ox, login_btn_y(), login_btn_w, btn_h, 0.65);
     const char *err = login_error_text();
     if (str_len(err) > 0) {
         ctext(err, login_msg_y(), text_color);
@@ -209,6 +210,12 @@ static void open_leaderboard(void) {
 
 static void touch_lobby(double x, double y, double action) {
     if (action != 0) {
+        return;
+    }
+    /* NPC cube tap or dialogue panel tap */
+    if (hit_npc_cube(x, y) == 1 || hit_npc_panel(x, y) == 1) {
+        play_button_click();
+        cube_npc_tap();
         return;
     }
     if (hit_menu_row(x, y, 0) == 1) {
