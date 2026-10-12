@@ -41,51 +41,7 @@ static void newyear_flake_refresh(double b, double i, double cyc) {
     arr_set(newyear_flake_cache, b + 6, hash01(i * 17 + cyc * 83 + 8));
 }
 
-static double newyear_snow_band1_lo(void) {
-    return menu_x() - newyear_snow_col_pad;
-}
-
-static double newyear_snow_band1_hi(void) {
-    return menu_x() + btn_w + newyear_snow_col_pad;
-}
-
-static double newyear_snow_band2_lo(void) {
-    return newyear_snow_band1_hi();
-}
-
-static double newyear_snow_band2_hi(void) {
-    return newyear_snow_band1_hi();
-}
-
-static double newyear_snow_x_of(double hx) {
-    double lo1 = newyear_snow_band1_lo();
-    double hi1 = newyear_snow_band1_hi();
-    double lo2 = newyear_snow_band2_lo();
-    double hi2 = newyear_snow_band2_hi();
-    if (lo2 < hi1) {
-        if (hi2 > hi1) {
-            hi1 = hi2;
-        }
-        lo2 = hi1;
-        hi2 = hi1;
-    }
-    double blocked1 = hi1 - lo1;
-    double blocked2 = hi2 - lo2;
-    double allowed_w = screen_w - blocked1 - blocked2;
-    if (allowed_w < 40) {
-        return hx * screen_w;
-    }
-    double x = hx * allowed_w;
-    if (x >= lo1) {
-        x = x + blocked1;
-    }
-    if (x >= lo2) {
-        x = x + blocked2;
-    }
-    return x;
-}
-
-static void draw_newyear_snow(double notice) {
+static void draw_newyear_snow(void) {
     if (newyear_menu_active() == 0) {
         return;
     }
@@ -111,42 +67,10 @@ static void draw_newyear_snow(double notice) {
         double hs = arr_get(newyear_flake_cache, b + 5);
         double hr = arr_get(newyear_flake_cache, b + 6);
         double sway = 14 * sin(newyear_snow_t * 0.6 + i * 2.1);
-        double x = newyear_snow_x_of(hx) + sway;
+        double x = hx * screen_w + sway;
         double y = -40 + ph * (screen_h + 80);
         double s = 0.35 + 0.5 * hs;
         double hw = 26 * s;
-        double hw_safe = hw * 1.5;
-        double lo1 = newyear_snow_band1_lo();
-        double hi1 = newyear_snow_band1_hi();
-        double lo2 = newyear_snow_band2_lo();
-        double hi2 = newyear_snow_band2_hi();
-        if (lo2 - hi1 < 2 * hw_safe + 4) {
-            if (hi2 > hi1) {
-                hi1 = hi2;
-            }
-            lo2 = hi1;
-            hi2 = hi1;
-        }
-        if (x + hw_safe > lo1 && x - hw_safe < hi1) {
-            if (x < menu_x()) {
-                x = lo1 - hw_safe - 2;
-            } else {
-                x = hi1 + hw_safe + 2;
-            }
-        }
-        if (hi2 > lo2 && x + hw_safe > lo2 && x - hw_safe < hi2) {
-            double mid2 = (lo2 + hi2) / 2;
-            if (x < mid2) {
-                x = lo2 - hw_safe - 2;
-            } else {
-                x = hi2 + hw_safe + 2;
-            }
-        }
-        /* The menu column only exists in the lobby. Over the studio splash each
-         * flake moves towards its full-width place, in step with the splash's
-         * opacity, so flakes glide across the screen instead of jumping.
-         * notice = 0 leaves the lobby layout untouched. */
-        x = x + (hx * screen_w + sway - x) * notice;
         double spin_dir = 1;
         if (ds_mod(i, 2) == 0) {
             spin_dir = -1;
@@ -209,22 +133,18 @@ static void update_newyear(void) {
     update_newyear_jingle();
 }
 
-/* Snowflakes are drawn in two passes around the lobby notices. The black
- * transition curtain must never be painted over flakes, and the epilepsy
- * warning must never be painted under them either - it is a solid black panel
- * with the legal text on it, and flakes floating across it would sit on top of
- * that text. So:
- *   - the under-pass runs before the curtain, and covers the epilepsy warning
- *     too: while the panel is fully opaque nothing shows through it anyway, and
- *     as it fades the lobby - with its snow - is revealed underneath;
+/* Snowflakes are drawn around the lobby notices. The black transition curtain
+ * must never be painted over flakes, and the epilepsy warning must never be
+ * painted under them either - it is a solid black panel with the legal text on
+ * it. So:
+ *   - the under-pass runs as part of the screen backdrop (screen_fill), below
+ *     every button, the dialogue and the notices: flakes fall across the
+ *     whole width, and while the warning panel is fully opaque nothing shows
+ *     through it anyway; as it fades the lobby - with its snow - is revealed
+ *     underneath;
  *   - the over-pass only lifts flakes above the studio splash, which has no
- *     text to protect, and is skipped while the curtain is up (t_fade > 0), so
- *     black is never drawn on top of snow.
- * Neither pass pauses the animation clock.
- * The lobby keeps flakes off its menu column so they never sit on a button. An
- * open studio splash has no menu, so the over-pass lets flakes cross the full
- * width and blends them back into the lobby layout as it fades
- * (draw_newyear_snow). */
+ *     text to protect, and is skipped while the curtain is up (t_fade > 0).
+ * Neither pass pauses the animation clock. */
 static double newyear_snow_under_notice_active(void) {
     if (newyear_menu_active() == 0 || studio_open == 1) {
         return 0;
@@ -241,23 +161,14 @@ static double newyear_snow_over_notice_active(void) {
     return newyear_menu_active() == 1 && studio_open == 1 && t_fade <= 0;
 }
 
-/* How far flakes are lifted to the full width: 1 while the studio splash is
- * fully opaque, following its fade, and 0 in the lobby layout. */
-static double newyear_notice_mix(void) {
-    if (studio_open == 1) {
-        return clamp(studio_a, 0, 1);
-    }
-    return 0;
-}
-
 static void draw_newyear_under_notices(void) {
     if (newyear_snow_under_notice_active() == 1) {
-        draw_newyear_snow(0);
+        draw_newyear_snow();
     }
 }
 
 static void draw_newyear_over_notices(void) {
     if (newyear_snow_over_notice_active() == 1) {
-        draw_newyear_snow(newyear_notice_mix());
+        draw_newyear_snow();
     }
 }

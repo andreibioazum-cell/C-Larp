@@ -405,10 +405,14 @@ LOBBY_MUSIC = "lobbymusic.wav";
 BUTTON_CLICK_SOUND = "button_click.wav";
 button_click_ok = 0;
 
-/* Held-pointer state for button press feedback. */
+/* Held-pointer state for button press feedback and release taps. */
 press_down = 0;
 press_x = 0;
 press_y = 0;
+press_k = 0;
+tap_armed = 0;
+tap_x = 0;
+tap_y = 0;
 
 /* NPC cube in the lobby (debug placeholder) */
 CUBE_NPC_TEX = "Cube_20261007211025.png";

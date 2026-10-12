@@ -148,6 +148,7 @@ static void logic_update(void) {
     update_showdown_music();
     reload_textures();
     tick_achievement_toast();
+    update_button_press();
     admin_tick();
     if (game_state == ST_LOBBY) {
         cube_npc_bob_t = cube_npc_bob_t + dt;
@@ -209,9 +210,9 @@ static void logic_draw(void) {
     if (t_fade >= 1) {
         rect(0, 0, screen_w, screen_h, 0xFF000000);
     } else {
+        /* Winter snow is drawn inside screen_fill(), as part of the backdrop,
+         * so it stays under every button and the dialogue. */
         draw_screen();
-        /* Snow beneath the transition curtain. */
-        draw_newyear_under_notices();
         if (t_fade > 0) {
             /* Smoothstep the curtain alpha: the fade eases in and out instead
              * of ramping linearly. */
@@ -351,20 +352,51 @@ static void logic_touch(double x, double y, double action, double id) {
     if (studio_open == 1) {
         return;
     }
-    /* Lobby has its own input handler, while the other screens use
-     * touch_menu(). Detect controls on touch-down; class-card taps wait for
-     * release so a horizontal drag can page without selecting a character.
-     * The click sound covers every screen, battles included, so even the
-     * in-game back button gives feedback. */
-    double class_swipe = game_state == ST_CLASSES && classes_swipe_zone(x, y);
-    if (action == 0 && class_swipe == 0 && menu_button_hit(x, y) == 1) {
-        play_button_click();
+    /* Battles keep raw touches - the joysticks and attack pads must react
+     * while held - and the class picker keeps its own down/move/up machine so
+     * swipes can page cards. Everything else is tap-only UI: a press is just
+     * feedback, the action fires on release and cancels when the finger
+     * slides away, so holding a button never repeats or fires early. The
+     * click sound covers every screen, battles included, so even the in-game
+     * back button gives feedback. */
+    if (game_state == ST_SOLO || game_state == ST_ONLINE || game_state == ST_CLASSES) {
+        double class_swipe = game_state == ST_CLASSES && classes_swipe_zone(x, y);
+        if (action == 0 && class_swipe == 0 && menu_button_hit(x, y) == 1) {
+            play_button_click();
+        }
+        if (game_state == ST_CLASSES) {
+            touch_classes(x, y, action, id);
+        } else {
+            touch_game(x, y, action, id);
+        }
+        return;
     }
-    if (game_state == ST_LOBBY) {
-        touch_lobby(x, y, action);
-    } else if (game_state == ST_SOLO || game_state == ST_ONLINE) {
-        touch_game(x, y, action, id);
-    } else {
-        touch_menu(x, y, action, id);
+    if (action == 0) {
+        tap_armed = 1;
+        tap_x = x;
+        tap_y = y;
+        return;
     }
+    if (action == 2) {
+        /* A drag beyond finger jitter cancels the tap. */
+        if (tap_armed == 1 && dist(x, y, tap_x, tap_y) > clamp(screen_w * 0.04, 32, 72)) {
+            tap_armed = 0;
+        }
+        return;
+    }
+    if (action == 1 && tap_armed == 1) {
+        /* Fire the button that was pressed (the tap origin, still within
+         * slop of the release), and let its squeeze spring back there too. */
+        press_x = tap_x;
+        press_y = tap_y;
+        if (menu_button_hit(tap_x, tap_y) == 1) {
+            play_button_click();
+        }
+        if (game_state == ST_LOBBY) {
+            touch_lobby(tap_x, tap_y, 0);
+        } else {
+            touch_menu(tap_x, tap_y, 0, id);
+        }
+    }
+    tap_armed = 0;
 }

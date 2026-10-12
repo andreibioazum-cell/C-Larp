@@ -570,6 +570,119 @@ void tex(float x, float y, const char *name, float angle, float scale) {
     }
 }
 
+/* --- Engine API pulled in by the full touch dispatch: the release-tap test
+ * reaches logic_touch -> touch_menu -> login -> progress_from_storage and
+ * friends. These paths are not exercised here; the stubs only satisfy the
+ * linker (with --gc-sections these used to be stripped as dead code). ----- */
+double net_auth(const char *url, const char *nick, const char *pass) {
+    (void)url;
+    (void)nick;
+    (void)pass;
+    return 2;
+}
+double net_event(void) { return 0; }
+void net_event_set(double mode) { (void)mode; }
+double net_load_cups(void) { return 0; }
+double net_load_candies(void) { return 0; }
+double net_load_class(void) { return 0; }
+double net_load_azum(void) { return 0; }
+double net_load_santa(void) { return 0; }
+double net_load_ebuc(void) { return 0; }
+double net_load_level(void) { return 0; }
+double net_load_levels_unlocked(void) { return 0; }
+double net_load_ordinary_level(void) { return 0; }
+double net_load_ordinary_levels_unlocked(void) { return 0; }
+double net_load_azum_level(void) { return 0; }
+double net_load_azum_levels_unlocked(void) { return 0; }
+double net_load_santa_level(void) { return 0; }
+double net_load_santa_levels_unlocked(void) { return 0; }
+double net_load_ebuc_level(void) { return 0; }
+double net_load_ebuc_levels_unlocked(void) { return 0; }
+double net_load_azum_skin(void) { return 0; }
+double net_load_astra(void) { return 0; }
+double net_load_astra_level(void) { return 0; }
+double net_load_astra_levels_unlocked(void) { return 0; }
+double net_load_achievement_flags(void) { return 0; }
+double net_load_azum_revives(void) { return 0; }
+double net_promo_check(const char *code) {
+    (void)code;
+    return 0;
+}
+double net_promo_used(void) { return 0; }
+void net_promo_mark_used(void) {}
+void net_leaderboard_fetch(const char *url) { (void)url; }
+double net_load_language(void) { return 0; }
+double net_load_hitboxes(void) { return 0; }
+void net_save_settings(double language, double hitboxes) {
+    (void)language;
+    (void)hitboxes;
+}
+double net_load_music_volume(void) { return 0; }
+void net_save_music_volume(double volume) { (void)volume; }
+double net_load_winter_theme(void) { return 0; }
+void net_save_winter_theme(double on) { (void)on; }
+void settings_mark_legal(void) {}
+double net_is_banned(const char *nick) {
+    (void)nick;
+    return 0;
+}
+double net_chat_is_ban(const char *msg) {
+    (void)msg;
+    return 0;
+}
+double net_chat_is_unban(const char *msg) {
+    (void)msg;
+    return 0;
+}
+const char *net_chat_ban_target(const char *msg) {
+    (void)msg;
+    return "";
+}
+const char *net_chat_unban_target(const char *msg) {
+    (void)msg;
+    return "";
+}
+double net_chat_is_text_cmd(const char *msg) {
+    (void)msg;
+    return 0;
+}
+const char *net_chat_text_cmd_text(const char *msg) {
+    (void)msg;
+    return "";
+}
+const char *net_chat_text_cmd_color(const char *msg) {
+    (void)msg;
+    return "";
+}
+void net_banner_send(const char *text, const char *color) {
+    (void)text;
+    (void)color;
+}
+void net_chat_trim(double keep) { (void)keep; }
+int png_load(const char *name) {
+    (void)name;
+    return 0;
+}
+double str_index_of(const char *hay, const char *needle) {
+    (void)hay;
+    (void)needle;
+    return -1;
+}
+const char *str_sub(const char *s, double start, double len) {
+    (void)s;
+    (void)start;
+    (void)len;
+    return "";
+}
+const char *str_trim(const char *s) {
+    (void)s;
+    return "";
+}
+const char *str_upper(const char *s) {
+    (void)s;
+    return "";
+}
+
 int main(void) {
     state_create();
     state_ready = 1;
@@ -766,10 +879,10 @@ int main(void) {
     assert(snowflake_draws == (int)newyear_menu_flakes);
     warn_a = 1;
 
-    /* Over the studio splash the snow spans the full width, including the centre
-     * column. Beneath the lobby the menu column stays clear. Closing the splash
-     * must not move any flake: the over-pass at zero opacity has to match the
-     * lobby layout exactly. */
+    /* Snow falls across the full width in both passes - the button column
+     * included, since the snow is drawn behind the buttons now. Closing the
+     * splash must not move any flake: the over-pass at zero opacity has to
+     * match the lobby layout exactly. */
     {
         int saved_w = screen_w;
         int saved_h = screen_h;
@@ -827,8 +940,9 @@ int main(void) {
                 }
             }
         }
-        /* The centre column is about 31% of a 1080 px screen; require at least 10%. */
-        assert(centre_lobby == 0);
+        /* The button column is about 31% of a 1080 px screen; flakes reach it
+         * in both passes, so require at least 10% of draws there. */
+        assert(centre_lobby >= 200 * (int)newyear_menu_flakes / 10);
         assert(handoff_mismatch == 0);
         assert(centre_over >= 200 * (int)newyear_menu_flakes / 10);
 
@@ -1742,6 +1856,63 @@ int main(void) {
     admin_panel_open = 0;
     screen_w = 320;
     screen_h = 180;
+
+    /* Buttons fire on release, not while held: a press is feedback only (the
+     * squeeze eases in and out), holding never fires, and a drag away cancels
+     * the tap. */
+    {
+        int saved_h = screen_h;
+        screen_h = 2400;
+        warn_open = 0;
+        studio_open = 0;
+        game_state = ST_LOBBY;
+        t_dir = 0;
+        t_target = 0;
+
+        /* Press the Play row: the squeeze eases in while the finger is down. */
+        double tx = menu_x() + btn_w / 2;
+        double ty = menu_row(0) + btn_h / 2;
+        logic_touch(tx, ty, 0, 1);
+        assert(t_dir == 0 && press_down == 1);
+        int n = 0;
+        while (n < 30) {
+            update_button_press();
+            n = n + 1;
+        }
+        assert(press_k > 0.95);
+        /* Holding never fires the button. */
+        assert(t_dir == 0);
+        /* Finger jitter keeps the tap armed; the release fires it. */
+        logic_touch(tx + 4, ty, 2, 1);
+        logic_touch(tx + 4, ty, 1, 1);
+        assert(t_dir == 1 && t_target == ST_MODES && press_down == 0);
+        n = 0;
+        while (n < 30) {
+            update_button_press();
+            n = n + 1;
+        }
+        assert(press_k < 0.05);
+        t_dir = 0;
+
+        /* A drag away cancels the tap. */
+        logic_touch(tx, ty, 0, 1);
+        logic_touch(tx + 200, ty, 2, 1);
+        logic_touch(tx + 200, ty, 1, 1);
+        assert(t_dir == 0);
+        t_dir = 0;
+
+        /* The NPC cube opens its dialogue on release as well. */
+        draw_lobby_npc_cube();
+        logic_touch(cube_npc_x + 30, cube_npc_y + 30, 0, 1);
+        assert(cube_npc_dialogue_active == 0);
+        logic_touch(cube_npc_x + 30, cube_npc_y + 30, 1, 1);
+        assert(cube_npc_dialogue_active == 1);
+        cube_npc_dialogue_active = 0;
+        cube_npc_dialogue_line = 0;
+        cube_npc_dialogue_chars = 0;
+
+        screen_h = saved_h;
+    }
 
     state_destroy();
     state_ready = 0;

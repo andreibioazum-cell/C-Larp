@@ -89,11 +89,11 @@ static double cube_npc_x;
 static double cube_npc_y;
 static double cube_npc_hit_r = 34;
 
-/* The dialogue window: big portrait, big text. */
-static double dial_panel_h = 190;
+/* The dialogue window: big portrait, big text, kept low. */
+static double dial_panel_h = 150;
 static double dial_panel_margin = 14;
 static double dial_text_pad = 20;
-static double dial_portrait_sz = 120;
+static double dial_portrait_sz = 96;
 static double dial_text_sc = 1.05;
 static double dial_anim;
 static double dial_anim_time = 0.18;

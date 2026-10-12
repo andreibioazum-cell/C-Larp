@@ -105,24 +105,41 @@ static void draw_nick_msg(const char *nick, const char *rest, double x, double y
     text_scaled(rest, x + nw, y, base, scale);
 }
 
-/* Instant press feedback: the button under the finger shrinks a touch and
- * brightens while held. Buttons used to slide in from the right; a responsive
- * press feels better and keeps the screen swap instant. */
+/* Press feedback: the button under the finger squeezes smoothly by 5% and
+ * darkens about 25%, then springs back smoothly on release. press_k ramps in
+ * and out (update_button_press), so both edges animate instead of snapping. */
 static double button_press_k(double x, double y, double w, double h) {
-    if (press_down == 1 && hit_rect(press_x, press_y, x, y, w, h) == 1) {
-        return 1;
+    if (press_k <= 0 || hit_rect(press_x, press_y, x, y, w, h) != 1) {
+        return 0;
     }
-    return 0;
+    /* Smoothstep: the squeeze eases in and the release eases out. */
+    return press_k * press_k * (3 - 2 * press_k);
+}
+
+static void update_button_press(void) {
+    double target = press_down;
+    double step = dt / 0.09;
+    if (press_k < target) {
+        press_k = press_k + step;
+        if (press_k > target) {
+            press_k = target;
+        }
+    } else if (press_k > target) {
+        press_k = press_k - step;
+        if (press_k < target) {
+            press_k = target;
+        }
+    }
 }
 
 static void button(const char *label, double x, double y, double w, double h) {
     double p = button_press_k(x, y, w, h);
-    double s = 1 - 0.04 * p;
+    double s = 1 - 0.05 * p;
     double bx = x + w * (1 - s) / 2;
     double by = y + h * (1 - s) / 2;
     double bw = w * s;
     double bh = h * s;
-    double col = shade(ui_purple, 1 + 0.14 * p);
+    double col = shade(ui_purple, 1 - 0.25 * p);
     if (new_theme == 1) {
         cb_button_gradient(bx, by, bw, bh, btn_radius, col);
     } else {
@@ -133,12 +150,12 @@ static void button(const char *label, double x, double y, double w, double h) {
 
 static void button_scaled(const char *label, double x, double y, double w, double h, double scale) {
     double p = button_press_k(x, y, w, h);
-    double s = 1 - 0.04 * p;
+    double s = 1 - 0.05 * p;
     double bx = x + w * (1 - s) / 2;
     double by = y + h * (1 - s) / 2;
     double bw = w * s;
     double bh = h * s;
-    double col = shade(ui_purple, 1 + 0.14 * p);
+    double col = shade(ui_purple, 1 - 0.25 * p);
     if (new_theme == 1) {
         cb_button_gradient(bx, by, bw, bh, btn_radius, col);
     } else {
@@ -171,11 +188,11 @@ static void apply_theme(void) {
     if (new_theme == 1) {
         ui_purple = 0xFF5F10A0;
         bg_screen = 0x1A1A2E;
-        transition_duration = 0.65;
+        transition_duration = 0.12;
     } else {
         ui_purple = 0xFFD4508A;
         bg_screen = 0xFF3A1530;
-        transition_duration = 0.15;
+        transition_duration = 0.12;
     }
 }
 
@@ -196,16 +213,20 @@ static double battle_back_hit(double x, double y) { return hit_rect_pad(x, y, ba
 static void screen_fill(void) {
     if (new_theme == 0) {
         rect(0, 0, screen_w, screen_h, bg_screen);
-        return;
+    } else {
+        double top = bg_screen;
+        double bottom = bg_gradient_bottom;
+        if (newyear_active() == 1) {
+            top = newyear_bg_top;
+            bottom = newyear_bg_bottom;
+        }
+        rect(0, 0, screen_w, screen_h, top);
+        draw_bottom_gradient(top, bottom);
     }
-    double top = bg_screen;
-    double bottom = bg_gradient_bottom;
-    if (newyear_active() == 1) {
-        top = newyear_bg_top;
-        bottom = newyear_bg_bottom;
-    }
-    rect(0, 0, screen_w, screen_h, top);
-    draw_bottom_gradient(top, bottom);
+    /* Winter snow is part of the backdrop: every menu screen paints its
+     * background here first, so flakes fall across the whole width - buttons
+     * included - yet never on top of a button or the dialogue. */
+    draw_newyear_under_notices();
 }
 
 static void draw_bottom_gradient(double top, double bottom) {
