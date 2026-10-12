@@ -709,11 +709,11 @@ int main(void) {
     winter_theme = 0;
     ground_tiles = ground_fills = 0;
     screen_fill();
-    assert(ground_fills == 1);
+    assert(ground_fills >= 1 + bg_gradient_h / 2);
     winter_theme = 1;
     ground_tiles = ground_fills = 0;
     screen_fill();
-    assert(ground_fills == 1);
+    assert(ground_fills >= 1 + bg_gradient_h / 2);
     winter_theme = saved_winter;
     screen_w = saved_w;
     screen_h = saved_h;

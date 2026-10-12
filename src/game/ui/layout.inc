@@ -8,7 +8,10 @@ static double content_top(void) { return title_y() + list_top_gap; }
 
 static double menu_btn_w(void) { return btn_w; }
 
-static double menu_x(void) { return screen_margin; }
+static double menu_x(void) {
+    if (new_theme == 1) return center_x(btn_w);
+    return screen_margin;
+}
 
 static double menu_stride(void) { return btn_h + btn_gap; }
 
