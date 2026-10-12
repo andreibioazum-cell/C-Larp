@@ -31,10 +31,10 @@ static void cube_npc_tap(void) {
     cube_npc_dialogue_chars = 0;
 }
 
-static double cube_npc_draw_sz = 50;
+static double cube_npc_draw_sz = 60;
 static double cube_npc_x;
 static double cube_npc_y;
-static double cube_npc_hit_r = 30;
+static double cube_npc_hit_r = 34;
 
 static double dial_panel_h = 110;
 static double dial_panel_margin = 10;
@@ -47,9 +47,6 @@ static void draw_lobby_npc_cube(void) {
     cube_npc_y = screen_h - cube_npc_draw_sz - dial_panel_h - 14;
     double bob = sin(cube_npc_bob_t * 2.0) * 3;
     double draw_y = cube_npc_y + bob;
-    /* Shadow */
-    circle(cube_npc_x + cube_npc_draw_sz / 2, draw_y + cube_npc_draw_sz + 3,
-           cube_npc_draw_sz / 2.6, 0x28000000);
     /* Cube sprite */
     if (cube_npc_tex_ok == 1) {
         tex(cube_npc_x, draw_y, CUBE_NPC_TEX, 0, cube_npc_draw_sz / 512.0);

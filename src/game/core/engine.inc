@@ -24,7 +24,7 @@ static void leave_screen(double state) {
 }
 
 static double enter_screen(double state) {
-    btn_anim_reset();
+    btn_anim_begin_enter();
     if (state == ST_SOLO) {
         init_game();
         return 1;
@@ -116,8 +116,8 @@ static void logic_init(void) {
     cube_npc_d0 = "Привет! Я Куб-НПС!";
     cube_npc_d1 = "Добро пожаловать в Cubic Battle 4!";
     cube_npc_d2 = "Попробуй режим Solo или Online!";
-    cube_npc_d3 = "В магазине можно купить персонажей.";
-    cube_npc_d4 = "...";
+    cube_npc_d3 = "В магазине можно купить персонажей!";
+    cube_npc_d4 = "Удачи в битве!";
     ds_log("init: ready");
 }
 

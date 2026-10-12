@@ -413,6 +413,7 @@ btn_anim_duration = 0.3;
 btn_anim_stagger = 0.042;
 btn_anim_offscreen = 600;
 btn_anim_exiting = 0;
+btn_anim_entering = 0;
 
 /* NPC cube in the lobby (debug placeholder) */
 CUBE_NPC_TEX = "Cube_20261007211025.png";
