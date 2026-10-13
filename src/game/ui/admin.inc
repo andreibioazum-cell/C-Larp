@@ -79,8 +79,6 @@ static double admin_panel_y(void) { return (screen_h - admin_panel_h()) / 2; }
 
 static double admin_content_top(void) { return admin_panel_y() + admin_header_h() + 2 * admin_gap(); }
 
-static double admin_content_bottom(void) { return admin_panel_y() + admin_panel_h() - admin_pad(); }
-
 /* Сетка читов занимает весь контент панели. */
 static double admin_grid_top(void) { return admin_content_top(); }
 

@@ -1670,7 +1670,8 @@ int main(void) {
         assert(adm_has_text(admin_cheat_label(i)) == 1);
     /* Сетка занимает весь контент панели: сверху донизу, без вкладок. */
     assert(fabs(admin_grid_top() - admin_content_top()) < 0.001);
-    assert(admin_grid_top() + 3 * admin_cheat_row_h() + 2 * admin_gap() <= admin_content_bottom() + 0.01);
+    assert(admin_grid_top() + 3 * admin_cheat_row_h() + 2 * admin_gap() <=
+               admin_panel_y() + admin_panel_h() - admin_pad() + 0.01);
 
     /* Клавиатура отдаёт текст в буфер самого поля: два разных поля не обязаны
      * делить одну строку на всех. */
@@ -1697,9 +1698,10 @@ int main(void) {
         assert(admin_panel_w() < screen_w * 0.75 && admin_panel_h() < screen_h * 0.55);
         /* the panel is a fifth wider than the old one: 20% up */
         assert(admin_panel_w() >= screen_w * 0.58);
-        assert(admin_content_top() < admin_content_bottom());
+        assert(admin_content_top() < admin_panel_y() + admin_panel_h() - admin_pad());
         /* six cheat buttons always fit between the header and the bottom edge */
-        assert(admin_grid_top() + 3 * admin_cheat_row_h() + 2 * admin_gap() <= admin_content_bottom() + 0.01);
+        assert(admin_grid_top() + 3 * admin_cheat_row_h() + 2 * admin_gap() <=
+               admin_panel_y() + admin_panel_h() - admin_pad() + 0.01);
         assert(admin_cheat_row_h() >= 26);
         adm_reset_log();
         admin_draw();
