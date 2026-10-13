@@ -112,7 +112,8 @@ static void update_remote_punches(void) {
                     double rlevel = net_player_level(s);
                     if (target == 0) {
                         if (revive_prot <= 0) {
-                            take_damage(rdmg);
+                            take_damage_at(rdmg, arr_get(remotes, s * remote_fields + 1),
+                                           arr_get(remotes, s * remote_fields + 2));
                             if (rcls == CLASS_SANTA) {
                                 if (player_poison <= 0) {
                                     player_poison_tick = santa_poison_tick_interval;
@@ -217,43 +218,6 @@ static void update_remote_snow(void) {
             if (arr_get(remote_snow, b + 5) > 0) {
                 arr_set(remote_snow, b + 5, tick_down(arr_get(remote_snow, b + 5)));
             }
-        }
-        s = s + 1;
-    }
-}
-
-static void smooth_remotes(void) {
-    double s = 0;
-    while (s < max_players) {
-        double b = s * remote_fields;
-        if (arr_get(remotes, b + 5) == 1) {
-            double rx = arr_get(remotes, b + 1);
-            double ry = arr_get(remotes, b + 2);
-            double ra = arr_get(remotes, b + 3);
-            double nx = arr_get(remotes, b + 7);
-            double ny = arr_get(remotes, b + 8);
-            double na = finite_or(arr_get(remotes, b + 9), 0);
-            ra = finite_or(ra, na);
-            if (dist(rx, ry, nx, ny) > remote_snap) {
-                rx = nx;
-                ry = ny;
-                ra = na;
-            } else {
-                rx = lerp(rx, nx, clamp(dt * remote_smooth, 0, 1));
-                ry = lerp(ry, ny, clamp(dt * remote_smooth, 0, 1));
-                double da = na - ra;
-                if (da > pi) {
-                    da = da - 2 * pi;
-                }
-                if (da < 0 - pi) {
-                    da = da + 2 * pi;
-                }
-                ra = ra + da * clamp(dt * remote_smooth, 0, 1);
-                tick_remote_dust(s, rx, ry, nx, ny);
-            }
-            arr_set(remotes, b + 1, rx);
-            arr_set(remotes, b + 2, ry);
-            arr_set(remotes, b + 3, ra);
         }
         s = s + 1;
     }

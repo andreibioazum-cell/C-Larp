@@ -32,6 +32,7 @@ static void update_event(void) {
         disco_t = 0;
     }
     tick_plates_event();
+    update_infect();
 }
 
 static double banner_named_color(const char *name) {
@@ -74,14 +75,16 @@ static void update_banner(void) {
         return;
     }
     double ts = net_banner_ts();
-    if (ts > 0) {
-        if (banner_skip == 1) {
-            banner_seen_ts = ts;
-            banner_skip = 0;
-        } else if (ts != banner_seen_ts) {
-            banner_seen_ts = ts;
-            banner_t = banner_show_time;
-        }
+    if (ts <= 0) {
+        /* The author's countdown ended and the banner was cleared on the
+         * server: drop it here at the same moment, so it disappears for
+         * everyone at once — and late joiners never linger on a dead banner. */
+        banner_t = 0;
+        return;
+    }
+    if (ts != banner_seen_ts) {
+        banner_seen_ts = ts;
+        banner_t = banner_show_time;
     }
     if (banner_t > 0) {
         double before = banner_t;
@@ -138,6 +141,7 @@ static void draw_online(void) {
     resolve_fighter_looks();
     draw_arena_background();
     draw_disco();
+    draw_infect();
     draw_field();
     draw_event_plates();
     draw_event_candies();
@@ -294,6 +298,12 @@ static void joy_touch(double x, double y, double action, double id) {
     }
 }
 
+/* The in-battle back button is release-only like the menu buttons: the press
+ * is feedback, the exit fires when the finger lifts on the same spot. */
+static double back_arm_id = -1;
+static double back_arm_x;
+static double back_arm_y;
+
 static void touch_game(double x, double y, double action, double id) {
     if (card_open != 0) {
         if (action == 0) {
@@ -310,6 +320,9 @@ static void touch_game(double x, double y, double action, double id) {
     if (action == 3) {
         aim_id = -1;
         super_id = -1;
+        blk_id = -1;
+        player_block = 0;
+        back_arm_id = -1;
         drop_joy();
         return;
     }
@@ -326,24 +339,66 @@ static void touch_game(double x, double y, double action, double id) {
             return;
         }
     }
-    if (battle_back_hit(x, y) == 1 && action == 0) {
-        start_transition(0);
+    if (action == 0 && battle_back_hit(x, y) == 1) {
+        back_arm_id = id;
+        back_arm_x = x;
+        back_arm_y = y;
         return;
     }
-    if (class_has_super(player_class) == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE)) {
-        if (action == 0 && sqrt((x - atk2_x) * (x - atk2_x) + (y - atk2_y) * (y - atk2_y)) <= 96) {
-            super_id = id;
+    if (id == back_arm_id) {
+        if (action == 0 || action == 3) {
+            /* The pointer id was reused or cancelled: the old press is dead. */
+            back_arm_id = -1;
             return;
         }
+        if (action == 2) {
+            if (dist(x, y, back_arm_x, back_arm_y) > clamp(screen_w * 0.04, 32, 72)) {
+                back_arm_id = -1;
+            }
+            return;
+        }
+        back_arm_id = -1;
+        if (dist(x, y, back_arm_x, back_arm_y) <= clamp(screen_w * 0.04, 32, 72)) {
+            play_button_click();
+            start_transition(0);
+        }
+        return;
+    }
+    /* The three combat buttons sit close together, so the nearest one wins the
+     * press. The guard is a hold button: fingers-down blocks, release drops. */
+    if (game_state == ST_SOLO || game_state == ST_ONLINE) {
+        double dp = dist(x, y, atk_x, atk_y);
+        double dsu = class_has_super(player_class) == 1 ? dist(x, y, atk2_x, atk2_y) : 1e9;
+        double db = dist(x, y, blk_x, blk_y);
+        if (action == 0 && db <= 96 && db <= dp && db <= dsu) {
+            blk_id = id;
+            player_block = 1;
+            return;
+        }
+        if (id == blk_id) {
+            if (action == 1 || action == 3) {
+                blk_id = -1;
+                player_block = 0;
+            }
+            return;
+        }
+        if (class_has_super(player_class) == 1) {
+            if (action == 0 && dsu <= 96 && dsu <= dp) {
+                super_id = id;
+                return;
+            }
+        }
+        if (action == 0 && dp <= 96) {
+            aim_id = id;
+            return;
+        }
+    }
+    if (class_has_super(player_class) == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE)) {
         if (action == 1 && id == super_id) {
             super_id = -1;
             fire_super();
             return;
         }
-    }
-    if (action == 0 && sqrt((x - atk_x) * (x - atk_x) + (y - atk_y) * (y - atk_y)) <= 96) {
-        aim_id = id;
-        return;
     }
     if (action == 1 && id == aim_id) {
         aim_id = -1;

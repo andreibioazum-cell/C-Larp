@@ -1,4 +1,7 @@
+static void damage_taken_shake(double dmg);
+static double block_covers(void);
 static double take_damage(double dmg);
+static double take_damage_at(double dmg, double sx, double sy);
 static void heal_after_attack(void);
 static void stun_enemy(double t);
 static void stun_player(double t);

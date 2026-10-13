@@ -3,16 +3,16 @@ static void universe_collapse(double dmg) {
         return;
     }
     if (game_state != ST_ONLINE) {
-        enemy_apply_damage(dmg);
+        enemy_apply_damage_at(dmg, universe_x, universe_y);
     }
     take_damage(dmg);
 }
 
-static void universe_collapse_remote(double dmg) {
+static void universe_collapse_remote(double dmg, double sx, double sy) {
     if (finished != 0) {
         return;
     }
-    take_damage(dmg);
+    take_damage_at(dmg, sx, sy);
 }
 
 static void tick_universe(void) {
@@ -117,10 +117,12 @@ static void update_remote_universe(void) {
                 double t = arr_get(remote_universe, b + 4) + dt;
                 arr_set(remote_universe, b + 4, t);
                 if (t >= ebuc_universe_collapse_time) {
+                    double ux = arr_get(remote_universe, b + 2);
+                    double uy = arr_get(remote_universe, b + 3);
                     arr_set(remote_universe, b + 1, 0);
                     arr_set(remote_universe, b, 0);
                     double rlevel = net_player_level(s);
-                    universe_collapse_remote(ebuc_universe_damage_for(rlevel));
+                    universe_collapse_remote(ebuc_universe_damage_for(rlevel), ux, uy);
                     if (finished != 0) {
                         return;
                     }
@@ -176,7 +178,7 @@ static double remote_dash_apply_hit(double slot, double leg) {
     if (target == 0) {
         remote_dash_set(slot, DASH_HIT_DONE, 1);
         if (revive_prot <= 0) {
-            take_damage(azum_dash_damage);
+            take_damage_at(azum_dash_damage, remote_dash_get(slot, DASH_X), remote_dash_get(slot, DASH_Y));
             stun_player(azum_dash_stun);
             ds_log("remote dash hit player");
             if (finished != 0) {
@@ -376,7 +378,7 @@ static void update_game(void) {
                     }
                 }
                 heal_after_attack();
-                if (enemy_apply_damage(astra_rw_self_damage()) == 1) {
+                if (enemy_apply_damage_at(astra_rw_self_damage(), player->x, player->y) == 1) {
                     return;
                 }
             }

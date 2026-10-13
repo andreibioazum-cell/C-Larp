@@ -98,8 +98,6 @@ static int ground_tiles;
 static int ground_fills;
 static uint32_t last_ground_fill;
 static const char *last_ground;
-static int showdown_playing;
-static int showdown_play_calls;
 static int lobby_playing;
 static int winter_playing;
 static int winter_loop_calls;
@@ -172,6 +170,13 @@ void ds_runtime_error(const char *format, ...) {
 
 void ds_log(const char *format, ...) {
     (void)format;
+}
+void ds_gfx_gray(double on) {
+    (void)on;
+}
+void ds_gfx_shake(double amp, double seconds) {
+    (void)amp;
+    (void)seconds;
 }
 double dist(double x, double y, double a, double b) {
     return hypot(x - a, y - b);
@@ -419,10 +424,7 @@ int snd_load(const char *name) {
     return name && *name;
 }
 int snd_play(const char *name) {
-    if (name && SHOWDOWN_MUSIC && strcmp(name, SHOWDOWN_MUSIC) == 0) {
-        showdown_playing = 1;
-        showdown_play_calls++;
-    }
+    (void)name;
     return 1;
 }
 int snd_loop(const char *name) {
@@ -440,15 +442,13 @@ int snd_playing(const char *name) {
         return lobby_playing;
     if (name && WINTER_JINGLE && strcmp(name, WINTER_JINGLE) == 0)
         return winter_playing;
-    return name && SHOWDOWN_MUSIC && strcmp(name, SHOWDOWN_MUSIC) == 0 ? showdown_playing : 0;
+    return 0;
 }
 void snd_stop(const char *name) {
     if (name && LOBBY_MUSIC && strcmp(name, LOBBY_MUSIC) == 0)
         lobby_playing = 0;
     if (name && WINTER_JINGLE && strcmp(name, WINTER_JINGLE) == 0)
         winter_playing = 0;
-    if (name && SHOWDOWN_MUSIC && strcmp(name, SHOWDOWN_MUSIC) == 0)
-        showdown_playing = 0;
 }
 void snd_volume(const char *name, double volume) {
     (void)name;
@@ -570,12 +570,125 @@ void tex(float x, float y, const char *name, float angle, float scale) {
     }
 }
 
+/* --- Engine API pulled in by the full touch dispatch: the release-tap test
+ * reaches logic_touch -> touch_menu -> login -> progress_from_storage and
+ * friends. These paths are not exercised here; the stubs only satisfy the
+ * linker (with --gc-sections these used to be stripped as dead code). ----- */
+double net_auth(const char *url, const char *nick, const char *pass) {
+    (void)url;
+    (void)nick;
+    (void)pass;
+    return 2;
+}
+double net_event(void) { return 0; }
+void net_event_set(double mode) { (void)mode; }
+double net_load_cups(void) { return 0; }
+double net_load_candies(void) { return 0; }
+double net_load_class(void) { return 0; }
+double net_load_azum(void) { return 0; }
+double net_load_santa(void) { return 0; }
+double net_load_ebuc(void) { return 0; }
+double net_load_level(void) { return 0; }
+double net_load_levels_unlocked(void) { return 0; }
+double net_load_ordinary_level(void) { return 0; }
+double net_load_ordinary_levels_unlocked(void) { return 0; }
+double net_load_azum_level(void) { return 0; }
+double net_load_azum_levels_unlocked(void) { return 0; }
+double net_load_santa_level(void) { return 0; }
+double net_load_santa_levels_unlocked(void) { return 0; }
+double net_load_ebuc_level(void) { return 0; }
+double net_load_ebuc_levels_unlocked(void) { return 0; }
+double net_load_azum_skin(void) { return 0; }
+double net_load_astra(void) { return 0; }
+double net_load_astra_level(void) { return 0; }
+double net_load_astra_levels_unlocked(void) { return 0; }
+double net_load_achievement_flags(void) { return 0; }
+double net_load_azum_revives(void) { return 0; }
+double net_promo_check(const char *code) {
+    (void)code;
+    return 0;
+}
+double net_promo_used(void) { return 0; }
+void net_promo_mark_used(void) {}
+void net_leaderboard_fetch(const char *url) { (void)url; }
+double net_load_language(void) { return 0; }
+double net_load_hitboxes(void) { return 0; }
+void net_save_settings(double language, double hitboxes) {
+    (void)language;
+    (void)hitboxes;
+}
+double net_load_music_volume(void) { return 0; }
+void net_save_music_volume(double volume) { (void)volume; }
+double net_load_winter_theme(void) { return 0; }
+void net_save_winter_theme(double on) { (void)on; }
+void settings_mark_legal(void) {}
+double net_is_banned(const char *nick) {
+    (void)nick;
+    return 0;
+}
+double net_chat_is_ban(const char *msg) {
+    (void)msg;
+    return 0;
+}
+double net_chat_is_unban(const char *msg) {
+    (void)msg;
+    return 0;
+}
+const char *net_chat_ban_target(const char *msg) {
+    (void)msg;
+    return "";
+}
+const char *net_chat_unban_target(const char *msg) {
+    (void)msg;
+    return "";
+}
+double net_chat_is_text_cmd(const char *msg) {
+    (void)msg;
+    return 0;
+}
+const char *net_chat_text_cmd_text(const char *msg) {
+    (void)msg;
+    return "";
+}
+const char *net_chat_text_cmd_color(const char *msg) {
+    (void)msg;
+    return "";
+}
+void net_banner_send(const char *text, const char *color) {
+    (void)text;
+    (void)color;
+}
+void net_chat_trim(double keep) { (void)keep; }
+int png_load(const char *name) {
+    (void)name;
+    return 0;
+}
+double str_index_of(const char *hay, const char *needle) {
+    (void)hay;
+    (void)needle;
+    return -1;
+}
+const char *str_sub(const char *s, double start, double len) {
+    (void)s;
+    (void)start;
+    (void)len;
+    return "";
+}
+const char *str_trim(const char *s) {
+    (void)s;
+    return "";
+}
+const char *str_upper(const char *s) {
+    (void)s;
+    return "";
+}
+
 int main(void) {
     state_create();
     state_ready = 1;
     assert(player && enemy && punch && gift && enemy_gift);
     assert(ST_LOBBY == 0 && ST_SOLO == 1 && ST_ONLINE == 5);
-    assert(player->hp == 10 && enemy->hp == 10);
+    assert(player->hp == 20 && enemy->hp == 20);
     assert(class_level_tbl && remote_punches && plates_candies && flake_cache);
 
     assert(strcmp(tr_play(), "Play") == 0);
@@ -615,6 +728,13 @@ int main(void) {
     assert(strcmp(fighter_sprite(CLASS_ASTRA_REWORK, 0, SKIN_NORMAL), ORDINARY_TEX) == 0);
     assert(strcmp(class_card_tex(CLASS_ASTRA_REWORK, SKIN_NORMAL), ORDINARY_CARD_TEX) == 0);
     assert(class_has_super(CLASS_ASTRA_REWORK) == 1 && player_max_hp_for(CLASS_ASTRA_REWORK) == astra_hp);
+    /* Long-fight balance: every pool doubled (ordinary/santa 20, azum 13,
+     * astra 18, ebuc 24) and the ability numbers scaled with them, while the
+     * basic attacks kept their old damage - that is what makes fights last. */
+    assert(player_max_hp_for(CLASS_ORDINARY) == 20 && player_max_hp_for(CLASS_SANTA) == 20);
+    assert(azum_hp == 13 && astra_hp == 18 && ebuc_hp == 24 && enemy_base_hp == 20);
+    assert(punch_damage == 1 && enemy_damage == 1 && santa_damage == 0.25 && ebuc_damage == 1.0);
+    assert(ebuc_universe_damage >= ebuc_hp);
     azum_tex_ok = azum_punch_tex_ok = 1;
     azum_zombie_tex_ok = azum_zombie_punch_tex_ok = 1;
     assert(strcmp(fighter_sprite(CLASS_AZUM, 0, SKIN_NORMAL), AZUM_TEX) == 0);
@@ -766,10 +886,10 @@ int main(void) {
     assert(snowflake_draws == (int)newyear_menu_flakes);
     warn_a = 1;
 
-    /* Over the studio splash the snow spans the full width, including the centre
-     * column. Beneath the lobby the menu column stays clear. Closing the splash
-     * must not move any flake: the over-pass at zero opacity has to match the
-     * lobby layout exactly. */
+    /* Snow falls across the full width in both passes - the button column
+     * included, since the snow is drawn behind the buttons now. Closing the
+     * splash must not move any flake: the over-pass at zero opacity has to
+     * match the lobby layout exactly. */
     {
         int saved_w = screen_w;
         int saved_h = screen_h;
@@ -827,8 +947,9 @@ int main(void) {
                 }
             }
         }
-        /* The centre column is about 31% of a 1080 px screen; require at least 10%. */
-        assert(centre_lobby == 0);
+        /* The button column is about 31% of a 1080 px screen; flakes reach it
+         * in both passes, so require at least 10% of draws there. */
+        assert(centre_lobby >= 200 * (int)newyear_menu_flakes / 10);
         assert(handoff_mismatch == 0);
         assert(centre_over >= 200 * (int)newyear_menu_flakes / 10);
 
@@ -1137,42 +1258,6 @@ int main(void) {
         game_state = ST_LOBBY;
     }
 
-    assert(strcmp(SHOWDOWN_MUSIC, "astra_azum_showdown.wav") == 0);
-    finished = 0;
-    player->hp = enemy->hp = 10;
-    game_state = ST_SOLO;
-    player_class = CLASS_ASTRA;
-    enemy_class = CLASS_AZUM;
-    assert(showdown_music_matchup() == 1);
-    player_class = CLASS_AZUM;
-    enemy_class = CLASS_ASTRA;
-    assert(showdown_music_matchup() == 1);
-    enemy_class = CLASS_ORDINARY;
-    assert(showdown_music_matchup() == 0);
-
-    game_state = ST_ONLINE;
-    online_ready = 1;
-    stub_net_slot = 0;
-    player_class = CLASS_AZUM;
-    arr_set(remotes, 1 * remote_fields + 5, 1);
-    arr_set(remotes, 1 * remote_fields + 10, CLASS_ASTRA);
-    assert(showdown_music_matchup() == 1);
-    arr_set(remotes, 2 * remote_fields + 5, 1);
-    arr_set(remotes, 2 * remote_fields + 10, CLASS_ORDINARY);
-    assert(showdown_music_matchup() == 0);
-    arr_set(remotes, 2 * remote_fields + 5, 0);
-
-    showdown_music_ok = 1;
-    showdown_music_reset();
-    showdown_play_calls = 0;
-    update_showdown_music();
-    assert(showdown_playing == 1 && showdown_play_calls == 1);
-    showdown_playing = 0;
-    update_showdown_music();
-    assert(showdown_music_done == 1);
-    update_showdown_music();
-    assert(showdown_play_calls == 1);
-    showdown_music_reset();
     /* Rework is its own developer-only class; accept the former pair only for
      * compatibility with clients that still send Astra + special skin. */
     assert(astra_rw_of(CLASS_ASTRA_REWORK, SKIN_NORMAL) == 1);
@@ -1495,7 +1580,7 @@ int main(void) {
     game_state = ST_ONLINE;
     cups = 999;
     game_reset();
-    assert(player->hp == 10);
+    assert(player->hp == 20);
     assert(game_state == ST_LOBBY);
     assert(cups == 0);
 
@@ -1742,6 +1827,118 @@ int main(void) {
     admin_panel_open = 0;
     screen_w = 320;
     screen_h = 180;
+
+    /* Buttons fire on release, not while held: a press is feedback only (the
+     * squeeze eases in and out), holding never fires, a drag away cancels the
+     * tap and eases the squeeze back out on the pressed button, and the shop
+     * follows the same rules. */
+    {
+        int saved_h = screen_h;
+        screen_h = 2400;
+        warn_open = 0;
+        studio_open = 0;
+        game_state = ST_LOBBY;
+        t_dir = 0;
+        t_target = 0;
+
+        /* Press the Play row: the squeeze eases in while the finger is down. */
+        double tx = menu_x() + btn_w / 2;
+        double ty = menu_row(0) + btn_h / 2;
+        logic_touch(tx, ty, 0, 1);
+        assert(t_dir == 0 && press_down == 1);
+        (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h); /* draw captures */
+        int n = 0;
+        while (n < 30) {
+            update_button_press();
+            n = n + 1;
+        }
+        assert(press_k > 0.95);
+        assert(button_press_k(menu_x(), menu_row(0), btn_w, btn_h) > 0.9);
+        /* Holding never fires the button. */
+        assert(t_dir == 0);
+        /* Finger jitter keeps the tap armed; the release fires it. */
+        logic_touch(tx + 4, ty, 2, 1);
+        logic_touch(tx + 4, ty, 1, 1);
+        assert(t_dir == 1 && t_target == ST_MODES && press_down == 0);
+        n = 0;
+        while (n < 30) {
+            update_button_press();
+            n = n + 1;
+        }
+        assert(press_k < 0.05);
+        assert(button_press_k(menu_x(), menu_row(0), btn_w, btn_h) == 0);
+        t_dir = 0;
+
+        /* Sliding off the pressed button eases the squeeze back out on that
+         * button instead of snapping it off. */
+        logic_touch(tx, ty, 0, 1);
+        (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h);
+        n = 0;
+        while (n < 30) {
+            update_button_press();
+            n = n + 1;
+        }
+        assert(press_k > 0.95);
+        logic_touch(tx + 200, ty, 2, 1); /* the finger slides away, still down */
+        update_button_press();
+        assert(press_k > 0.5 && press_k < 0.95); /* easing out, not gone */
+        assert(button_press_k(menu_x(), menu_row(0), btn_w, btn_h) > 0); /* still shown */
+        n = 0;
+        while (n < 30) {
+            update_button_press();
+            n = n + 1;
+        }
+        assert(press_k < 0.05);
+        logic_touch(tx + 200, ty, 1, 1);
+        assert(t_dir == 0); /* the drag cancelled the tap */
+        t_dir = 0;
+
+        /* The NPC cube opens its dialogue on release as well. */
+        cube_npc_d0 = "d0";
+        cube_npc_d1 = "d1";
+        cube_npc_d2 = "d2";
+        cube_npc_d3 = "d3";
+        cube_npc_d4 = "d4";
+        draw_lobby_npc_cube();
+        logic_touch(cube_npc_x + 30, cube_npc_y + 30, 0, 1);
+        assert(cube_npc_dialogue_active == 0);
+        logic_touch(cube_npc_x + 30, cube_npc_y + 30, 1, 1);
+        assert(cube_npc_dialogue_active == 1);
+        /* Tapping the screen outside the dialogue is its skip action: the talk
+         * advances and the menu rows behind it never fire. */
+        double ch0 = cube_npc_dialogue_chars;
+        logic_touch(tx, ty, 0, 1);
+        logic_touch(tx, ty, 1, 1);
+        assert(t_dir == 0); /* the Play row did not fire */
+        assert(cube_npc_dialogue_active == 1 && cube_npc_dialogue_chars > ch0);
+        n = 0;
+        while (cube_npc_dialogue_active == 1 && n < 20) {
+            logic_touch(tx, ty, 0, 1);
+            logic_touch(tx, ty, 1, 1);
+            n = n + 1;
+        }
+        assert(cube_npc_dialogue_active == 0 && t_dir == 0);
+        cube_npc_dialogue_line = 0;
+        cube_npc_dialogue_chars = 0;
+
+        /* The shop buttons act on release too, and drags cancel them. */
+        game_state = ST_CLASSES;
+        player_class = CLASS_ORDINARY;
+        double lx = levels_btn_x() + class_action_w() / 2;
+        double ly = class_actions_y() + btn_h / 2;
+        logic_touch(lx, ly, 0, 2);
+        assert(t_dir == 0);
+        logic_touch(lx, ly, 1, 2);
+        assert(t_dir == 1 && t_target == ST_LEVELS);
+        t_dir = 0;
+        logic_touch(lx, ly, 0, 2);
+        logic_touch(lx + 200, ly, 2, 2);
+        logic_touch(lx + 200, ly, 1, 2);
+        assert(t_dir == 0);
+
+        game_state = ST_LOBBY;
+        screen_h = saved_h;
+    }
 
     state_destroy();
     state_ready = 0;

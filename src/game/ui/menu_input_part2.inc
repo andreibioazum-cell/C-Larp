@@ -5,15 +5,38 @@ static void classes_swipe_reset(void) {
 
 static double classes_swipe_threshold(void) { return clamp(screen_w * 0.08, 48, 88); }
 
+static double classes_button_hit(double x, double y) {
+    return back_hit(x, y) == 1 || hit_levels_btn(x, y) == 1 || hit_skins_btn(x, y) == 1 ||
+           hit_classes_prev(x, y) == 1 || hit_classes_next(x, y) == 1;
+}
+
 static void touch_classes(double x, double y, double action, double id) {
     if (action == 3) {
         classes_swipe_reset();
+        tap_armed = 0;
         return;
     }
+    double fired = tap_event(x, y, action);
     if (action == 2) {
         return;
     }
     if (action == 1) {
+        if (fired == 1 && classes_button_hit(tap_x, tap_y) == 1) {
+            /* Buttons act on release only, like everywhere else. */
+            play_button_click();
+            if (back_hit(tap_x, tap_y) == 1) {
+                start_transition(ST_LOBBY);
+            } else if (hit_levels_btn(tap_x, tap_y) == 1) {
+                start_transition(ST_LEVELS);
+            } else if (hit_skins_btn(tap_x, tap_y) == 1) {
+                start_transition(ST_SKINS);
+            } else if (hit_classes_prev(tap_x, tap_y) == 1) {
+                classes_page_prev();
+            } else {
+                classes_page_next();
+            }
+            return;
+        }
         if (classes_swipe_id != id) {
             return;
         }
@@ -35,52 +58,27 @@ static void touch_classes(double x, double y, double action, double id) {
         }
         return;
     }
-    if (action != 0 || classes_swipe_id != -1) {
-        return;
-    }
-    if (back_hit(x, y) == 1) {
-        start_transition(ST_LOBBY);
-        return;
-    }
-    if (hit_levels_btn(x, y) == 1) {
-        start_transition(ST_LEVELS);
-        return;
-    }
-    if (hit_skins_btn(x, y) == 1) {
-        start_transition(ST_SKINS);
-        return;
-    }
-    if (hit_classes_prev(x, y) == 1) {
-        classes_page_prev();
-        return;
-    }
-    if (hit_classes_next(x, y) == 1) {
-        classes_page_next();
-        return;
-    }
-    if (classes_swipe_zone(x, y) == 1) {
-        classes_swipe_id = id;
-        classes_swipe_start_x = x;
-        classes_swipe_start_y = y;
-        double vi = classes_page_start();
-        double last = vi + classes_page_items();
-        while (vi < last) {
-            if (hit_class_card(x, y, vi) == 1) {
-                classes_swipe_card = vi;
-                break;
-            }
-            vi = vi + 1;
-        }
+    /* action == 0: a press on a button is feedback only. */
+    if (classes_swipe_id != -1 || classes_button_hit(x, y) == 1) {
         return;
     }
     double vi = classes_page_start();
     double last = vi + classes_page_items();
+    double card = -1;
     while (vi < last) {
         if (hit_class_card(x, y, vi) == 1) {
-            pick_class(visible_class_at(vi));
-            return;
+            card = vi;
+            break;
         }
         vi = vi + 1;
+    }
+    if (card >= 0 || classes_swipe_zone(x, y) == 1) {
+        /* Cards also pick on release, so a paging swipe never selects and a
+         * press can never buy anything early. */
+        classes_swipe_id = id;
+        classes_swipe_start_x = x;
+        classes_swipe_start_y = y;
+        classes_swipe_card = card;
     }
 }
 

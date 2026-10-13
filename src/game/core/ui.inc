@@ -29,6 +29,8 @@ static double locked_text(void) { return locked_text_alpha * 16777216 + text_col
 
 static double fade_color(double rgb, double t, double fade) {
     double a = clamp(t / fade, 0, 1);
+    /* Smoothstep: message text eases in and out instead of ramping linearly. */
+    a = a * a * (3 - 2 * a);
     return (1 + floor(a * 254)) * 0x1000000 + rgb;
 }
 
@@ -103,22 +105,83 @@ static void draw_nick_msg(const char *nick, const char *rest, double x, double y
     text_scaled(rest, x + nw, y, base, scale);
 }
 
-static void button(const char *label, double x, double y, double w, double h) {
-    if (new_theme == 1) {
-        cb_button_gradient(x, y, w, h, btn_radius, ui_purple);
-    } else {
-        roundrect(x, y, w, h, btn_radius, ui_purple);
+/* Press feedback: the button under the finger squeezes smoothly by 5% and
+ * darkens about 25%, then springs back smoothly on release. The squeeze is
+ * owned by the button the finger landed on (press_btn_*): when the finger
+ * slides away the squeeze eases back out on that same button instead of
+ * snapping off, and if the finger slides back it eases in again. press_k
+ * ramps in and out (update_button_press), so every edge is animated. */
+static double press_btn_live;
+static double press_btn_x;
+static double press_btn_y;
+static double press_btn_w;
+static double press_btn_h;
+
+static double button_press_k(double x, double y, double w, double h) {
+    if (press_down == 1 && press_btn_live == 0 && hit_rect(press_x, press_y, x, y, w, h) == 1) {
+        /* First button under the finger owns the press. The capture sticks
+         * for the whole gesture so the squeeze can follow the finger. */
+        press_btn_live = 1;
+        press_btn_x = x;
+        press_btn_y = y;
+        press_btn_w = w;
+        press_btn_h = h;
     }
-    text_in_box(label, x, y, w, h, text_color, 1);
+    if (press_btn_live == 1 && x == press_btn_x && y == press_btn_y &&
+        w == press_btn_w && h == press_btn_h && press_k > 0) {
+        /* Smoothstep: the squeeze eases in and the release eases out. */
+        return press_k * press_k * (3 - 2 * press_k);
+    }
+    return 0;
+}
+
+static void update_button_press(void) {
+    /* Full squeeze only while the finger stays on the captured button. */
+    double target = 0;
+    if (press_down == 1 && press_btn_live == 1 &&
+        hit_rect(press_x, press_y, press_btn_x, press_btn_y, press_btn_w, press_btn_h) == 1) {
+        target = 1;
+    }
+    double step = dt / 0.09;
+    if (press_k < target) {
+        press_k = press_k + step;
+        if (press_k > target) {
+            press_k = target;
+        }
+    } else if (press_k > target) {
+        press_k = press_k - step;
+        if (press_k < target) {
+            press_k = target;
+        }
+    }
+    if (press_k <= 0 && target == 0) {
+        /* Fully at rest: let go so another button can be captured. */
+        press_btn_live = 0;
+    }
+}
+
+static void button(const char *label, double x, double y, double w, double h) {
+    double p = button_press_k(x, y, w, h);
+    double s = 1 - 0.05 * p;
+    double bx = x + w * (1 - s) / 2;
+    double by = y + h * (1 - s) / 2;
+    double bw = w * s;
+    double bh = h * s;
+    double col = shade(ui_purple, 1 - 0.25 * p);
+    cb_button_gradient(bx, by, bw, bh, btn_radius, col);
+    text_in_box(label, bx, by, bw, bh, shade(text_color, 1 - 0.25 * p), s);
 }
 
 static void button_scaled(const char *label, double x, double y, double w, double h, double scale) {
-    if (new_theme == 1) {
-        cb_button_gradient(x, y, w, h, btn_radius, ui_purple);
-    } else {
-        roundrect(x, y, w, h, btn_radius, ui_purple);
-    }
-    text_in_box(label, x, y, w, h, text_color, scale);
+    double p = button_press_k(x, y, w, h);
+    double s = 1 - 0.05 * p;
+    double bx = x + w * (1 - s) / 2;
+    double by = y + h * (1 - s) / 2;
+    double bw = w * s;
+    double bh = h * s;
+    double col = shade(ui_purple, 1 - 0.25 * p);
+    cb_button_gradient(bx, by, bw, bh, btn_radius, col);
+    text_in_box(label, bx, by, bw, bh, shade(text_color, 1 - 0.25 * p), scale * s);
 }
 
 static void roundrect_outline(double x, double y, double w, double h, double rad, double t, uint32_t c) {
@@ -142,20 +205,14 @@ static void outline_arc(double cx, double cy, double rr, double t, uint32_t c, d
 }
 
 static void apply_theme(void) {
-    if (new_theme == 1) {
-        ui_purple = 0xFF5F10A0;
-        bg_screen = 0x1A1A2E;
-        transition_duration = 0.65;
-    } else {
-        ui_purple = 0xFFD4508A;
-        bg_screen = 0xFF3A1530;
-        transition_duration = 0.15;
-    }
+    /* The old pink theme is gone; these are the only look now. */
+    ui_purple = 0xFF5F10A0;
+    bg_screen = 0x1A1A2E;
+    transition_duration = 0.10;
 }
 
 static void draw_back(void) {
-    double ox = btn_anim_offset(0, 1);
-    button(tr_back(), (screen_w - btn_w) / 2 + ox, back_y, btn_w, btn_h);
+    button(tr_back(), (screen_w - btn_w) / 2, back_y, btn_w, btn_h);
 }
 
 static double back_hit(double x, double y) { return hit_rect_pad(x, y, (screen_w - btn_w) / 2, back_y, btn_w, btn_h); }
@@ -169,10 +226,6 @@ static void draw_battle_back(void) { button(tr_back(), battle_back_x(), battle_b
 static double battle_back_hit(double x, double y) { return hit_rect_pad(x, y, battle_back_x(), battle_back_y(), btn_w, btn_h); }
 
 static void screen_fill(void) {
-    if (new_theme == 0) {
-        rect(0, 0, screen_w, screen_h, bg_screen);
-        return;
-    }
     double top = bg_screen;
     double bottom = bg_gradient_bottom;
     if (newyear_active() == 1) {
@@ -181,6 +234,10 @@ static void screen_fill(void) {
     }
     rect(0, 0, screen_w, screen_h, top);
     draw_bottom_gradient(top, bottom);
+    /* Winter snow is part of the backdrop: every menu screen paints its
+     * background here first, so flakes fall across the whole width - buttons
+     * included - yet never on top of a button or the dialogue. */
+    draw_newyear_under_notices();
 }
 
 static void draw_bottom_gradient(double top, double bottom) {

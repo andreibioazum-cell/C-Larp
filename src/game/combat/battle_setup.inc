@@ -1,5 +1,4 @@
 static void reset_battle(void) {
-    showdown_music_reset();
     /* Re-check the Astra (Rework) permission once per battle instead of on
      * every frame that needs the variant. */
     astra_rw_refresh();
@@ -170,6 +169,13 @@ static void reset_battle(void) {
     snow_t = 0;
     plates_prev_mode = 0;
     plates_event_reset();
+    infect_t = -1;
+    ds_gfx_gray(0);
+    ds_gfx_shake(0, 0);
+    player_block = 0;
+    blk_id = -1;
+    enemy_block_left = 0;
+    enemy_block_cd = 0;
     joy.x = 130;
     joy.y = screen_h - 150;
     joy.r = 70;
@@ -177,6 +183,8 @@ static void reset_battle(void) {
     atk_y = screen_h - 150;
     atk2_x = screen_w - 140;
     atk2_y = screen_h - 310;
+    blk_x = screen_w - 215;
+    blk_y = screen_h - 230;
     drop_joy();
     arr_clear(remotes);
     arr_clear(remote_punches);
@@ -295,7 +303,9 @@ static void init_online(void) {
     chat_set_open(0);
     chat_bubbles_reset();
     online_ready = 0;
-    banner_skip = 1;
+    /* A (re)joining player is a new viewer: show the currently live banner
+     * instead of swallowing it like the old banner_skip did. */
+    banner_seen_ts = 0;
     banner_t = 0;
     progress_push_to_net();
     net_connect(FIREBASE, ROOM);

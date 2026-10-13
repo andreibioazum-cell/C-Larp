@@ -4,6 +4,7 @@ static const char *tr_solo(void);
 static const char *tr_online(void);
 static const char *tr_back(void);
 static const char *tr_punch(void);
+static const char *tr_block(void);
 static const char *tr_tap_to_return(void);
 static const char *tr_victory(void);
 static const char *tr_defeat(void);

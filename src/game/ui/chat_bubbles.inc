@@ -113,7 +113,14 @@ static void draw_chat_bubble_at(double x, double y, const char *msg, double t) {
     if (t <= 0 || str_len(msg) == 0) {
         return;
     }
-    double a = floor(clamp(t / chat_bubble_fade, 0, 1) * chat_bubble_alpha);
+    /* Soft pop-in and a smooth fade-out: the bubble rises a few pixels as it
+     * appears instead of snapping onto the player. */
+    double age = chat_bubble_time - t;
+    double kin = clamp(age / 0.18, 0, 1);
+    kin = kin * kin * (3 - 2 * kin);
+    double kout = clamp(t / chat_bubble_fade, 0, 1);
+    kout = kout * kout * (3 - 2 * kout);
+    double a = floor(kin * kout * chat_bubble_alpha);
     if (a <= 0) {
         return;
     }
@@ -143,6 +150,7 @@ static void draw_chat_bubble_at(double x, double y, const char *msg, double t) {
     if (by < 4) {
         by = 4;
     }
+    by = by + (1 - kin) * 10;
     roundrect(bx, by, bw, bh, 10, box);
     if (str_len(st) > 0) {
         tex(bx + 8, by + 8, st, 0, 0.4);

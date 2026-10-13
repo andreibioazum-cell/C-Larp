@@ -1,4 +1,7 @@
 static double start_enemy_attack(void) {
+    if (enemy_block_left > 0) {
+        return 0;
+    }
     double ta = atan2(player->y - enemy->y, player->x - enemy->x);
     double da = ta - enemy->angle;
     if (da > pi) {
@@ -85,6 +88,19 @@ static void enemy_engage(double desired) {
     enemy_move(enemy->svx, enemy->svy);
 }
 
+static void enemy_tick_block(void) {
+    if (enemy_block_left > 0) {
+        enemy_block_left = enemy_block_left - dt;
+        if (enemy_block_left <= 0) {
+            enemy_block_left = 0;
+            /* A guard is not held forever: drop it and rest a beat. */
+            enemy_block_cd = 1.1 + (rand() % 100) / 100.0 * 1.4;
+        }
+    } else if (enemy_block_cd > 0) {
+        enemy_block_cd = tick_down(enemy_block_cd);
+    }
+}
+
 static void update_enemy(void) {
     enemy_track_player();
     enemy->mvx = 0;
@@ -103,6 +119,7 @@ static void update_enemy(void) {
         }
     }
     enemy->dodge_cd = tick_down(enemy->dodge_cd);
+    enemy_tick_block();
     if (enemy->flank > 0) {
         enemy->flank = enemy->flank - dt;
     }
@@ -145,6 +162,11 @@ static void update_enemy(void) {
     }
     double pr = player_half();
     double reach = punch_forward_offset + enemy_punch_reach + pr;
+    if (enemy_block_left > 0) {
+        /* Guarding: planted feet, shield up, eyes on the player. */
+        enemy_face_player();
+        return;
+    }
     if (enemy->state == 1) {
         enemy_punch_x = enemy->x;
         enemy_punch_y = enemy->y;
@@ -183,7 +205,7 @@ static void update_enemy(void) {
             if (target == 0) {
                 enemy->hit = 1;
                 if (revive_prot <= 0) {
-                    take_damage(class_punch_damage_for(enemy_class, enemy_level));
+                    take_damage_at(class_punch_damage_for(enemy_class, enemy_level), enemy->x, enemy->y);
                     if (enemy_class == CLASS_SANTA) {
                         if (player_poison <= 0) {
                             player_poison_tick = santa_poison_tick_interval;
@@ -255,6 +277,14 @@ static void update_enemy(void) {
         if (enemy->react <= 0) {
             if (rand() % 100 < enemy_human_dodge_fail * 100) {
                 ds_log("enemy dodge fail (human)");
+            } else if (enemy_block_left <= 0 && enemy_block_cd <= 0 && rand() % 100 < 45) {
+                /* Humans do not always side-step: sometimes they plant their
+                 * feet and take the swing on a raised guard instead. */
+                enemy_block_left = 0.55 + (rand() % 100) / 100.0 * 0.5;
+                enemy->react =
+                    enemy_human_react_min + (rand() % 100) / 100.0 * (enemy_human_react_max - enemy_human_react_min);
+                ds_log("enemy blocks (human)");
+                return;
             } else {
                 double side = (enemy->y - player->y) * cos(player->angle) - (enemy->x - player->x) * sin(player->angle);
                 if (side >= 0) {
@@ -314,6 +344,12 @@ static void update_enemy(void) {
     if (enemy->flank <= 0) {
         enemy_pick_flank();
         enemy->flank = enemy_flank_time;
+    }
+    if (enemy_block_left <= 0 && enemy_block_cd <= 0 && rand() % 1000 < 5) {
+        /* Occasionally turtle up out of nowhere — reads like a cautious human
+         * catching their breath between exchanges. */
+        enemy_block_left = 0.5 + (rand() % 100) / 100.0 * 0.7;
+        return;
     }
     double desired = reach * 0.62;
     if (d < enemy_min_distance * 0.75) {

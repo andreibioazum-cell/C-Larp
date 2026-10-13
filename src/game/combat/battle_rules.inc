@@ -154,7 +154,8 @@ static double player_max_hp_for(double cls) {
     if (class_is_astra(cls)) {
         return astra_hp;
     }
-    return 10;
+    /* Ordinary and Santa share the common pool. */
+    return 20;
 }
 
 static double ebuc_station_hp_for(double lv) {

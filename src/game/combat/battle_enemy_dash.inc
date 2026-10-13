@@ -77,7 +77,7 @@ static void tick_enemy_dash(void) {
         if (strip_hits_player(enemy_dash_x0, enemy_dash_y0, enemy_dash_dx, enemy_dash_dy, 0, enemy_dash_travel,
                               dash_hit_radius_solo()) == 1) {
             enemy_dash_hit = 1;
-            take_damage(enemy_dash_damage);
+            take_damage_at(enemy_dash_damage, enemy->x, enemy->y);
             stun_player(azum_dash_stun);
             ds_log("enemy dash hit player");
         }
@@ -119,7 +119,7 @@ static void tick_dash_solo_hit(void) {
         dash_hit = 1;
         stun_enemy(azum_dash_stun);
         ds_log("dash hit enemy, hp %g", enemy->hp);
-        enemy_apply_damage(azum_dash_damage);
+        enemy_apply_damage_at(azum_dash_damage, player->x, player->y);
     }
 }
 

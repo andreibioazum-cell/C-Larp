@@ -35,8 +35,7 @@ static void draw_login(void) {
     screen_fill();
     draw_login_field(tr_nick(), login_nick, tr_nick_ph(), login_nick_y(), login_field == 1);
     draw_login_field(tr_pass(), login_pass, tr_pass_ph(), login_pass_y(), login_field == 2);
-    double ox = btn_anim_offset(1, 2);
-    button_scaled(tr_login_btn(), login_btn_x() + ox, login_btn_y(), login_btn_w, btn_h, 0.65);
+    button_scaled(tr_login_btn(), login_btn_x(), login_btn_y(), login_btn_w, btn_h, 0.65);
     const char *err = login_error_text();
     if (str_len(err) > 0) {
         ctext(err, login_msg_y(), text_color);
@@ -162,10 +161,8 @@ static void legal_accept(void) {
 }
 
 static void touch_warn(double x, double y, double action) {
-    if (action != 0) {
-        return;
-    }
-    if (hit_warn_btn(x, y) == 1) {
+    /* The consent button acts on release like every other button. */
+    if (tap_event(x, y, action) == 1 && hit_warn_btn(tap_x, tap_y) == 1) {
         play_button_click();
         legal_accept();
     }
@@ -212,8 +209,16 @@ static void touch_lobby(double x, double y, double action) {
     if (action != 0) {
         return;
     }
-    /* NPC cube tap or dialogue panel tap (new theme only) */
-    if (new_theme == 1 && (hit_npc_cube(x, y) == 1 || hit_npc_panel(x, y) == 1)) {
+    /* NPC cube tap or dialogue panel tap */
+    if (hit_npc_cube(x, y) == 1 || hit_npc_panel(x, y) == 1) {
+        play_button_click();
+        cube_npc_tap();
+        return;
+    }
+    /* With the dialogue open, tapping anywhere else on the screen is its
+     * skip action: the talk advances or closes and the menu rows behind it
+     * stay untouched. */
+    if (cube_npc_dialogue_active == 1) {
         play_button_click();
         cube_npc_tap();
         return;
@@ -241,7 +246,7 @@ static void touch_lobby(double x, double y, double action) {
 }
 
 static void touch_modes(double x, double y) {
-    if (new_theme == 1 && hit_modes_row(x, y, 5) == 1) {
+    if (hit_modes_row(x, y, 5) == 1) {
         winter_theme = 1 - winter_theme;
         apply_winter_theme();
         save_settings();
@@ -293,12 +298,6 @@ static void touch_settings(double x, double y) {
         return;
     }
     if (hit_settings_row(x, y, 5) == 1) {
-        new_theme = 1 - new_theme;
-        apply_theme();
-        save_settings();
-        return;
-    }
-    if (hit_settings_row(x, y, 6) == 1) {
         start_transition(ST_PRIVACY);
         return;
     }

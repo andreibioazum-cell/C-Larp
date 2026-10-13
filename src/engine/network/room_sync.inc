@@ -69,8 +69,18 @@ static int pull_event(char *resp, size_t cap) {
 static void parse_and_store_banner(const char *json, unsigned gen) {
     char text[CHAT_TEXT_MAX], color[BANNER_COLOR_MAX];
     long long ts;
-    if (!json || !*json || !strncmp(json, "null", 4))
+    if (!json || !*json || !strncmp(json, "null", 4)) {
+        /* The banner was cleared by its author: propagate the disappearance so
+         * every client drops it at the same time instead of each one keeping
+         * its own local countdown running. */
+        lock();
+        if (net_gen_ok(gen)) {
+            net.banner_ts = 0;
+            net.banner_text[0] = 0;
+        }
+        unlock();
         return;
+    }
     ts = (long long)num(json, "ts", 0);
     if (ts <= 0)
         return;

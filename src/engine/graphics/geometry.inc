@@ -14,6 +14,8 @@ static size_t geo_in, geo_icap;
 
 static int geo_push_vert(float x, float y, float u, float v, uint32_t c) {
 
+    /* Screen shake drifts every vertex together: the image rattles as one. */
+    x += gfx_shake_dx; y += gfx_shake_dy;
     if (geo_vn >= 65535)
         return 0;
     if (geo_vn == geo_vcap) {

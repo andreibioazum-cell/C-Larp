@@ -20,6 +20,20 @@ int ds_graphics_begin_frame(Buffer *b) {
         oh = 1;
     if (!ds_vk_begin_frame_backend((uint32_t)b->width, (uint32_t)b->height, ow, oh))
         return 0;
+    /* Screen shake decays with the game clock and picks a fresh random offset
+     * every frame while it lasts, easing out to a standstill. */
+    if (gfx_shake_left > 0) {
+        gfx_shake_left -= (float)dt;
+        if (gfx_shake_left < 0)
+            gfx_shake_left = 0;
+        float k = gfx_shake_dur > 0 ? gfx_shake_left / gfx_shake_dur : 0;
+        float a = gfx_shake_amp * k * k;
+        gfx_shake_dx = ((float)rand() / (float)RAND_MAX * 2.0f - 1.0f) * a;
+        gfx_shake_dy = ((float)rand() / (float)RAND_MAX * 2.0f - 1.0f) * a;
+    } else {
+        gfx_shake_dx = 0;
+        gfx_shake_dy = 0;
+    }
     /* Upload assets queued by the update step before game code resolves
      * fighter appearances. Delaying this until geometry construction caused
      * one-frame fallback cubes and pose/skin flicker. */

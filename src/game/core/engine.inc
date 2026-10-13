@@ -5,7 +5,6 @@ static void start_transition(double target) {
     classes_swipe_reset();
     t_target = target;
     t_dir = 1;
-    btn_anim_begin_exit();
 }
 
 static void leave_screen(double state) {
@@ -24,7 +23,6 @@ static void leave_screen(double state) {
 }
 
 static double enter_screen(double state) {
-    btn_anim_begin_enter();
     if (state == ST_SOLO) {
         init_game();
         return 1;
@@ -110,7 +108,6 @@ static void logic_init(void) {
     apply_theme();
     apply_winter_theme();
     start_music();
-    showdown_music_load();
     update_newyear_jingle();
     cube_npc_tex_ok = png_load(CUBE_NPC_TEX);
     cube_npc_d0 = "Привет! Я Куб-НПС!";
@@ -147,15 +144,15 @@ static void logic_update(void) {
     update_alpha_notice();
     update_transition();
     update_music();
-    update_showdown_music();
     reload_textures();
     tick_achievement_toast();
-    btn_anim_tick();
+    update_button_press();
     admin_tick();
     if (game_state == ST_LOBBY) {
         cube_npc_bob_t = cube_npc_bob_t + dt;
+        cube_npc_tick();
         if (cube_npc_dialogue_active == 1) {
-            double max_chars = str_len(cube_npc_dialogue_text());
+            double max_chars = utf8_len(cube_npc_dialogue_text());
             if (cube_npc_dialogue_chars < max_chars) {
                 cube_npc_dialogue_chars = cube_npc_dialogue_chars + cube_npc_dialogue_speed * dt;
                 if (cube_npc_dialogue_chars > max_chars) {
@@ -211,11 +208,14 @@ static void logic_draw(void) {
     if (t_fade >= 1) {
         rect(0, 0, screen_w, screen_h, 0xFF000000);
     } else {
+        /* Winter snow is drawn inside screen_fill(), as part of the backdrop,
+         * so it stays under every button and the dialogue. */
         draw_screen();
-        /* Snow beneath the transition curtain. */
-        draw_newyear_under_notices();
         if (t_fade > 0) {
-            rect(0, 0, screen_w, screen_h, (1 + floor(t_fade * 254)) * 0x1000000);
+            /* Smoothstep the curtain alpha: the fade eases in and out instead
+             * of ramping linearly. */
+            double a = t_fade * t_fade * (3 - 2 * t_fade);
+            rect(0, 0, screen_w, screen_h, (1 + floor(a * 254)) * 0x1000000);
         }
     }
     if (warn_open == 1) {
@@ -317,7 +317,44 @@ static double logic_back(void) {
     return 0;
 }
 
+/* Tap arming for release-only controls: a press arms the tap, a drag past
+ * finger jitter cancels it, and a completed tap reports 1 so the caller can
+ * fire the control at the tap origin. */
+static double tap_event(double x, double y, double action) {
+    if (action == 0) {
+        tap_armed = 1;
+        tap_x = x;
+        tap_y = y;
+        return 0;
+    }
+    if (action == 2) {
+        /* A drag beyond finger jitter cancels the tap. */
+        if (tap_armed == 1 && dist(x, y, tap_x, tap_y) > clamp(screen_w * 0.04, 32, 72)) {
+            tap_armed = 0;
+        }
+        return 0;
+    }
+    if (action == 1 && tap_armed == 1) {
+        tap_armed = 0;
+        return 1;
+    }
+    tap_armed = 0;
+    return 0;
+}
+
 static void logic_touch(double x, double y, double action, double id) {
+    /* Track the held pointer for button press feedback before anything can
+     * consume or reject the event: 0 = down, 1 = up, 2 = move, 3 = cancel. */
+    if (action == 0) {
+        press_down = 1;
+        press_x = x;
+        press_y = y;
+    } else if (action == 2) {
+        press_x = x;
+        press_y = y;
+    } else if (action == 1 || action == 3) {
+        press_down = 0;
+    }
     /* The admin orb and its panel sit above every screen - including the
      * transition curtain and the epilepsy warning - and consume their own
      * touches before anything else, so they never disappear mid-transition. */
@@ -338,20 +375,40 @@ static void logic_touch(double x, double y, double action, double id) {
     if (studio_open == 1) {
         return;
     }
-    /* Lobby has its own input handler, while the other screens use
-     * touch_menu(). Detect controls on touch-down; class-card taps wait for
-     * release so a horizontal drag can page without selecting a character.
-     * The click sound covers every screen, battles included, so even the
-     * in-game back button gives feedback. */
-    double class_swipe = game_state == ST_CLASSES && classes_swipe_zone(x, y);
-    if (action == 0 && class_swipe == 0 && menu_button_hit(x, y) == 1) {
-        play_button_click();
-    }
-    if (game_state == ST_LOBBY) {
-        touch_lobby(x, y, action);
-    } else if (game_state == ST_SOLO || game_state == ST_ONLINE) {
+    /* Battles keep raw touches - the joysticks and attack pads must react
+     * while held - and the shop keeps its own down/move/up machine so swipes
+     * can page cards; their buttons wait for release too. Everything else is
+     * tap-only UI: a press is just feedback, the action fires on release and
+     * cancels when the finger slides away, so holding a button never repeats
+     * or fires early. */
+    if (game_state == ST_SOLO || game_state == ST_ONLINE) {
+        /* The in-battle back button acts on release like every other button;
+         * the results tap and the chat controls keep their instant feedback. */
+        if (action == 0 && battle_back_hit(x, y) == 0 && menu_button_hit(x, y) == 1) {
+            play_button_click();
+        }
         touch_game(x, y, action, id);
-    } else {
-        touch_menu(x, y, action, id);
+        return;
+    }
+    if (game_state == ST_CLASSES) {
+        touch_classes(x, y, action, id);
+        return;
+    }
+    if (tap_event(x, y, action) == 1) {
+        /* Fire the button that was pressed (the tap origin, still within
+         * slop of the release), and let its squeeze spring back there too.
+         * An open dialogue consumes the tap as its skip action, so the menu
+         * rows behind it never fire. */
+        press_x = tap_x;
+        press_y = tap_y;
+        double dialog_skip = game_state == ST_LOBBY && cube_npc_dialogue_active == 1;
+        if (menu_button_hit(tap_x, tap_y) == 1 && dialog_skip == 0) {
+            play_button_click();
+        }
+        if (game_state == ST_LOBBY) {
+            touch_lobby(tap_x, tap_y, 0);
+        } else {
+            touch_menu(tap_x, tap_y, 0, id);
+        }
     }
 }

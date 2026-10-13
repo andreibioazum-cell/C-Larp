@@ -8,8 +8,8 @@ static Player *player_new(void) {
     self->y = 0;
     self->size = 30;
     self->angle = 0;
-    self->hp = 10;
-    self->max_hp = 10;
+    self->hp = 20;
+    self->max_hp = 20;
     return self;
 }
 
@@ -26,8 +26,8 @@ static Enemy *enemy_new(void) {
     self->x = 0;
     self->y = 0;
     self->size = 25;
-    self->hp = 10;
-    self->max_hp = 10;
+    self->hp = 20;
+    self->max_hp = 20;
     self->angle = 0;
     self->state = 0;
     self->state_time = 0;

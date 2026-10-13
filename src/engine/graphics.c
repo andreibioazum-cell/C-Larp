@@ -2,6 +2,7 @@
 #include "engine/graphics/types.inc"
 #include "engine/graphics/geometry.inc"
 #include "engine/graphics/vulkan_backend.inc"
+#include "engine/graphics/fx_filters.inc"
 #include "engine/graphics/autoscale.inc"
 #include "engine/graphics/lifecycle.inc"
 #include "engine/graphics/tex_round.inc"

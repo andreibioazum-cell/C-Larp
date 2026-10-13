@@ -125,7 +125,6 @@ def check_assets() -> None:
     required = (
         ROOT / "assets" / "audio" / "lobbymusic.wav",
         ROOT / "assets" / "audio" / "winter_jingle.wav",
-        ROOT / "assets" / "audio" / "astra_azum_showdown.wav",
         ROOT / "assets" / "fonts" / "ComicRelief-Regular.ttf",
         ROOT / "assets" / "shaders" / "sprite.vert",
         ROOT / "assets" / "shaders" / "solid.frag",
@@ -138,7 +137,6 @@ def check_assets() -> None:
     durations = {
         "lobbymusic.wav": 35,
         "winter_jingle.wav": 35,
-        "astra_azum_showdown.wav": 45,
     }
     for name, expected in durations.items():
         path = ROOT / "assets" / "audio" / name

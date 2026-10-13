@@ -51,6 +51,9 @@ struct Texture {
 
     int upload_tries;
     uint32_t *pixels;
+    /* Pre-grayscale copy of pixels while the black-and-white filter is on, so
+     * the original colors can be restored when it switches off. */
+    uint32_t *gray_backup;
     TexGpu gpu;
 };
 
@@ -116,10 +119,21 @@ typedef struct {
     } v;
 } DSCmd;
 
+/* Black-and-white filter and screen shake state shared by the command color
+ * packer, the geometry layer and the frame loop (one translation unit). */
+static int gfx_gray_on;
+static float gfx_shake_dx, gfx_shake_dy;
+static float gfx_shake_amp, gfx_shake_left, gfx_shake_dur;
+
 static uint32_t pack_c(uint32_t c) {
     uint32_t a = (c >> 24) & 0xff, r = (c >> 16) & 0xff, g = (c >> 8) & 0xff, b = c & 0xff;
     if (!a)
         a = 255;
+    if (gfx_gray_on) {
+        /* Classic luma weights; keeps the same perceived brightness. */
+        uint32_t y = (299 * r + 587 * g + 114 * b) / 1000;
+        r = g = b = y;
+    }
     return r | (g << 8) | (b << 16) | (a << 24);
 }
 static char *strdup_safe(const char *s) {

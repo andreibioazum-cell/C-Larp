@@ -79,6 +79,12 @@ static double admin_handle(const char *msg) {
         ds_log("admin: event 2 plates");
         return 1;
     }
+    if (str_eq(msg, "event 4") == 1) {
+        net_event_set(4);
+        net_chat_send(ds_concat(ds_concat("INFECTION EVENT by ", by), "!"));
+        ds_log("admin: event 4 infection");
+        return 1;
+    }
     if (net_chat_is_ban(msg) == 1) {
         const char *t1 = net_chat_ban_target(msg);
         if (str_len(t1) > 0) {
@@ -106,8 +112,9 @@ static double admin_handle(const char *msg) {
         const char *btxt = net_chat_text_cmd_text(msg);
         const char *bcol = net_chat_text_cmd_color(msg);
         if (str_len(btxt) > 0) {
-            net_banner_send(btxt, bcol);
-            ds_log("admin text: %s (%s)", btxt, bcol);
+            /* Every banner carries its author's nick: "Dimasi4ek229: текст". */
+            net_banner_send(ds_concat(ds_concat(by, ": "), btxt), bcol);
+            ds_log("admin text: %s (%s)", ds_concat(ds_concat(by, ": "), btxt), bcol);
             return 1;
         }
     }
@@ -121,7 +128,8 @@ static void chat_send(void) {
     }
     if (is_admin() == 1) {
         if (str_eq(chat_input, "event 0") == 1 || str_eq(chat_input, "event 1") == 1 ||
-            str_eq(chat_input, "event 2") == 1 || str_eq(chat_input, "event 3") == 1) {
+            str_eq(chat_input, "event 2") == 1 || str_eq(chat_input, "event 3") == 1 ||
+            str_eq(chat_input, "event 4") == 1) {
             admin_handle(chat_input);
             chat_input = "";
             keyboard_clear();

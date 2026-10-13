@@ -6,6 +6,7 @@ double music_volume;
 double winter_jingle_volume;
 double event_mode;
 double disco_t;
+double infect_t;
 double event_t;
 double event_flakes;
 double plates_size;

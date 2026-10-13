@@ -107,6 +107,11 @@ void tex_tint(float x, float y, const char *name, float angle, float scale, uint
 void tex_alpha(float x, float y, const char *name, float angle, float scale, double alpha);
 void tex_round(float x, float y, const char *name, float scale, float radius);
 
+/* Grayscale filter for the whole frame (1 = black and white, 0 = normal) and
+ * a small decaying screen shake (amplitude in pixels, duration in seconds). */
+void ds_gfx_gray(double on);
+void ds_gfx_shake(double amp, double seconds);
+
 int snd_load(const char *name);
 int snd_play(const char *name);
 
