@@ -161,8 +161,11 @@ static void legal_accept(void) {
 }
 
 static void touch_warn(double x, double y, double action) {
-    /* The consent button acts on release like every other button. */
-    if (tap_event(x, y, action) == 1 && hit_warn_btn(tap_x, tap_y) == 1) {
+    /* The consent button acts on the press, like every other button. */
+    if (action != 0) {
+        return;
+    }
+    if (hit_warn_btn(x, y) == 1) {
         play_button_click();
         legal_accept();
     }

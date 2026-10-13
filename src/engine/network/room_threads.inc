@@ -152,7 +152,11 @@ static void *reader_thread(void *arg) {
                 if (ev < 0)
                     ev = 0;
                 lock();
-                net.event = ev;
+                /* An event this client just switched is still being written;
+                 * overwriting it with the server's previous value here made
+                 * the switch flicker off again. */
+                if (now_ms() >= event_local_until_ms)
+                    net.event = ev;
                 unlock();
             }
             next_event = now_ms() + EVENT_TICK;

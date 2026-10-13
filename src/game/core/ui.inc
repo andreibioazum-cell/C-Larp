@@ -105,12 +105,21 @@ static void draw_nick_msg(const char *nick, const char *rest, double x, double y
     text_scaled(rest, x + nw, y, base, scale);
 }
 
-/* Press feedback: the button under the finger squeezes smoothly by 5% and
- * darkens about 25%, then springs back smoothly on release. The squeeze is
- * owned by the button the finger landed on (press_btn_*): when the finger
- * slides away the squeeze eases back out on that same button instead of
- * snapping off, and if the finger slides back it eases in again. press_k
- * ramps in and out (update_button_press), so every edge is animated. */
+/* Press feedback: a button answers the touch itself, not the release. The
+ * press squeezes it by 5% and darkens it by 25%, and the squeeze then springs
+ * back on its own - the finger does not have to lift, stay put or be let go
+ * gently, the pulse always runs to the end. That is what makes a press feel
+ * like a press instead of a hold.
+ *
+ * The pulse is owned by the control the finger landed on (press_btn_*): the
+ * first one drawn under the touch claims it, so a card claims it before the
+ * pill inside it. press_k ramps 0 -> 1 -> 0 (update_button_press), and every
+ * edge is smoothstepped, so the squeeze eases in and eases back out. */
+#define PRESS_IN_TIME 0.06
+#define PRESS_OUT_TIME 0.13
+#define PRESS_SQUEEZE 0.05
+#define PRESS_SHADE 0.25
+
 static double press_btn_live;
 static double press_btn_x;
 static double press_btn_y;
@@ -118,71 +127,77 @@ static double press_btn_w;
 static double press_btn_h;
 
 static double button_press_k(double x, double y, double w, double h) {
-    if (press_down == 1 && press_btn_live == 0 && hit_rect(press_x, press_y, x, y, w, h) == 1) {
-        /* First button under the finger owns the press. The capture sticks
-         * for the whole gesture so the squeeze can follow the finger. */
+    if (press_new == 1 && press_phase == 0 && hit_rect(press_x, press_y, x, y, w, h) == 1) {
+        /* A fresh touch: this control owns the pulse. */
+        press_new = 0;
         press_btn_live = 1;
         press_btn_x = x;
         press_btn_y = y;
         press_btn_w = w;
         press_btn_h = h;
+        press_k = 0;
+        press_phase = 1;
     }
-    if (press_btn_live == 1 && x == press_btn_x && y == press_btn_y &&
-        w == press_btn_w && h == press_btn_h && press_k > 0) {
-        /* Smoothstep: the squeeze eases in and the release eases out. */
+    if (press_btn_live == 1 && press_phase != 0 && x == press_btn_x && y == press_btn_y && w == press_btn_w &&
+        h == press_btn_h) {
+        /* Smoothstep: the squeeze eases in and the spring back eases out. */
         return press_k * press_k * (3 - 2 * press_k);
     }
     return 0;
 }
 
 static void update_button_press(void) {
-    /* Full squeeze only while the finger stays on the captured button. */
-    double target = 0;
-    if (press_down == 1 && press_btn_live == 1 &&
-        hit_rect(press_x, press_y, press_btn_x, press_btn_y, press_btn_w, press_btn_h) == 1) {
-        target = 1;
-    }
-    double step = dt / 0.09;
-    if (press_k < target) {
-        press_k = press_k + step;
-        if (press_k > target) {
-            press_k = target;
+    if (press_phase == 1) {
+        press_k = press_k + dt / PRESS_IN_TIME;
+        if (press_k >= 1) {
+            press_k = 1;
+            press_phase = 2;
         }
-    } else if (press_k > target) {
-        press_k = press_k - step;
-        if (press_k < target) {
-            press_k = target;
-        }
+        return;
     }
-    if (press_k <= 0 && target == 0) {
-        /* Fully at rest: let go so another button can be captured. */
-        press_btn_live = 0;
+    if (press_phase == 2) {
+        press_k = press_k - dt / PRESS_OUT_TIME;
+        if (press_k <= 0) {
+            /* Back to rest: the next touch may claim any control again. */
+            press_k = 0;
+            press_phase = 0;
+            press_btn_live = 0;
+        }
     }
 }
 
 static void button(const char *label, double x, double y, double w, double h) {
     double p = button_press_k(x, y, w, h);
-    double s = 1 - 0.05 * p;
+    double s = 1 - PRESS_SQUEEZE * p;
     double bx = x + w * (1 - s) / 2;
     double by = y + h * (1 - s) / 2;
     double bw = w * s;
     double bh = h * s;
-    double col = shade(ui_purple, 1 - 0.25 * p);
+    double col = shade(ui_purple, 1 - PRESS_SHADE * p);
     cb_button_gradient(bx, by, bw, bh, btn_radius, col);
-    text_in_box(label, bx, by, bw, bh, shade(text_color, 1 - 0.25 * p), s);
+    text_in_box(label, bx, by, bw, bh, shade(text_color, 1 - PRESS_SHADE * p), s);
 }
 
 static void button_scaled(const char *label, double x, double y, double w, double h, double scale) {
     double p = button_press_k(x, y, w, h);
-    double s = 1 - 0.05 * p;
+    double s = 1 - PRESS_SQUEEZE * p;
     double bx = x + w * (1 - s) / 2;
     double by = y + h * (1 - s) / 2;
     double bw = w * s;
     double bh = h * s;
-    double col = shade(ui_purple, 1 - 0.25 * p);
+    double col = shade(ui_purple, 1 - PRESS_SHADE * p);
     cb_button_gradient(bx, by, bw, bh, btn_radius, col);
-    text_in_box(label, bx, by, bw, bh, shade(text_color, 1 - 0.25 * p), scale * s);
+    text_in_box(label, bx, by, bw, bh, shade(text_color, 1 - PRESS_SHADE * p), scale * s);
 }
+
+/* Cards and list rows answer a touch the same way a button does, so a shop
+ * card is not a dead panel with a live button glued into it. The whole box
+ * shrinks by s around its own centre: squeeze_x / squeeze_y give the pressed
+ * left edge and the pressed y of anything measured from the box's top, so the
+ * contents ride the squeeze with the panel. */
+static double squeeze_x(double x, double w, double s) { return x + w * (1 - s) / 2; }
+
+static double squeeze_y(double y, double top, double h, double s) { return top + h * (1 - s) / 2 + (y - top) * s; }
 
 static void roundrect_outline(double x, double y, double w, double h, double rad, double t, uint32_t c) {
     double o = t / 2;
@@ -263,19 +278,18 @@ static void draw_bottom_gradient(double top, double bottom) {
     }
 }
 
-static void card_state(double x, double y, double w, double h, double selected, double locked) {
+/* k = 1 is the resting look; a pressed card passes k < 1 to darken itself. */
+static void card_state(double x, double y, double w, double h, double selected, double locked, double k) {
     if (selected == 1) {
         roundrect(x - card_ring_pad, y - card_ring_pad, w + 2 * card_ring_pad, h + 2 * card_ring_pad, btn_radius + 4,
                   card_ring);
     }
     if (locked == 1) {
-        roundrect(x, y, w, h, btn_radius, shade(card_bg, locked_shade));
+        roundrect(x, y, w, h, btn_radius, shade(shade(card_bg, locked_shade), k));
         return;
     }
-    roundrect(x, y, w, h, btn_radius, card_bg);
+    roundrect(x, y, w, h, btn_radius, shade(card_bg, k));
 }
-
-static void card(double x, double y, double w, double h, double selected) { card_state(x, y, w, h, selected, 0); }
 
 static void panel(double x, double y, double w, double h, double locked) {
     if (locked == 1) {

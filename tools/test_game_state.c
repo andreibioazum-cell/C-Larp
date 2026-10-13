@@ -1828,10 +1828,11 @@ int main(void) {
     screen_w = 320;
     screen_h = 180;
 
-    /* Buttons fire on release, not while held: a press is feedback only (the
-     * squeeze eases in and out), holding never fires, a drag away cancels the
-     * tap and eases the squeeze back out on the pressed button, and the shop
-     * follows the same rules. */
+    /* Buttons fire on the press itself: the click, the squeeze and the action
+     * all happen on touch down, and the squeeze springs back on its own - the
+     * finger never has to lift, stay put or be let go gently. Nothing is
+     * fired twice by a drag, and the shop follows the same rule for its pill,
+     * while the card body waits for the release so a swipe can still page. */
     {
         int saved_h = screen_h;
         screen_h = 2400;
@@ -1841,59 +1842,57 @@ int main(void) {
         t_dir = 0;
         t_target = 0;
 
-        /* Press the Play row: the squeeze eases in while the finger is down. */
+        /* Press the Play row: it goes on the touch itself. */
         double tx = menu_x() + btn_w / 2;
         double ty = menu_row(0) + btn_h / 2;
         logic_touch(tx, ty, 0, 1);
-        assert(t_dir == 0 && press_down == 1);
-        (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h); /* draw captures */
+        assert(t_dir == 1 && t_target == ST_MODES && press_down == 1);
+        /* The squeeze is claimed by the button the draw passes under it. */
+        assert(press_new == 1);
+        (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h);
+        assert(press_new == 0 && press_phase == 1);
+        update_button_press();
+        assert(press_k > 0 && press_k < 1); /* easing in */
+        assert(button_press_k(menu_x(), menu_row(0), btn_w, btn_h) > 0);
         int n = 0;
+        while (n < 3) {
+            update_button_press();
+            n = n + 1;
+        }
+        assert(press_k > 0.95); /* fully squeezed and darkened */
+        /* The finger is still down - and the button springs back anyway. */
+        assert(press_down == 1);
+        n = 0;
         while (n < 30) {
             update_button_press();
             n = n + 1;
         }
-        assert(press_k > 0.95);
-        assert(button_press_k(menu_x(), menu_row(0), btn_w, btn_h) > 0.9);
-        /* Holding never fires the button. */
-        assert(t_dir == 0);
-        /* Finger jitter keeps the tap armed; the release fires it. */
+        assert(press_k == 0 && press_phase == 0);
+        assert(button_press_k(menu_x(), menu_row(0), btn_w, btn_h) == 0);
+        /* Letting go changes nothing: the row already fired. */
         logic_touch(tx + 4, ty, 2, 1);
         logic_touch(tx + 4, ty, 1, 1);
         assert(t_dir == 1 && t_target == ST_MODES && press_down == 0);
-        n = 0;
-        while (n < 30) {
-            update_button_press();
-            n = n + 1;
-        }
-        assert(press_k < 0.05);
-        assert(button_press_k(menu_x(), menu_row(0), btn_w, btn_h) == 0);
         t_dir = 0;
 
-        /* Sliding off the pressed button eases the squeeze back out on that
-         * button instead of snapping it off. */
+        /* A drag off a pressed button does not fire it a second time, and a
+         * release in the middle of nowhere fires nothing at all. */
+        t_target = 0;
         logic_touch(tx, ty, 0, 1);
-        (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h);
-        n = 0;
-        while (n < 30) {
-            update_button_press();
-            n = n + 1;
-        }
-        assert(press_k > 0.95);
-        logic_touch(tx + 200, ty, 2, 1); /* the finger slides away, still down */
-        update_button_press();
-        assert(press_k > 0.5 && press_k < 0.95); /* easing out, not gone */
-        assert(button_press_k(menu_x(), menu_row(0), btn_w, btn_h) > 0); /* still shown */
-        n = 0;
-        while (n < 30) {
-            update_button_press();
-            n = n + 1;
-        }
-        assert(press_k < 0.05);
+        assert(t_dir == 1 && t_target == ST_MODES);
+        logic_touch(tx + 200, ty, 2, 1);
         logic_touch(tx + 200, ty, 1, 1);
-        assert(t_dir == 0); /* the drag cancelled the tap */
+        assert(t_target == ST_MODES);
         t_dir = 0;
+        t_target = 0;
+        logic_touch(menu_x() + btn_w / 2, menu_row(0) - 200, 0, 1);
+        assert(t_dir == 0);
+        logic_touch(menu_x() + btn_w / 2, menu_row(0) - 200, 1, 1);
+        assert(t_dir == 0);
+        (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h);
+        assert(press_phase == 0);
 
-        /* The NPC cube opens its dialogue on release as well. */
+        /* The NPC cube opens its dialogue on the press as well. */
         cube_npc_d0 = "d0";
         cube_npc_d1 = "d1";
         cube_npc_d2 = "d2";
@@ -1901,40 +1900,100 @@ int main(void) {
         cube_npc_d4 = "d4";
         draw_lobby_npc_cube();
         logic_touch(cube_npc_x + 30, cube_npc_y + 30, 0, 1);
-        assert(cube_npc_dialogue_active == 0);
-        logic_touch(cube_npc_x + 30, cube_npc_y + 30, 1, 1);
         assert(cube_npc_dialogue_active == 1);
         /* Tapping the screen outside the dialogue is its skip action: the talk
          * advances and the menu rows behind it never fire. */
         double ch0 = cube_npc_dialogue_chars;
         logic_touch(tx, ty, 0, 1);
-        logic_touch(tx, ty, 1, 1);
         assert(t_dir == 0); /* the Play row did not fire */
         assert(cube_npc_dialogue_active == 1 && cube_npc_dialogue_chars > ch0);
         n = 0;
         while (cube_npc_dialogue_active == 1 && n < 20) {
             logic_touch(tx, ty, 0, 1);
-            logic_touch(tx, ty, 1, 1);
             n = n + 1;
         }
         assert(cube_npc_dialogue_active == 0 && t_dir == 0);
         cube_npc_dialogue_line = 0;
         cube_npc_dialogue_chars = 0;
 
-        /* The shop buttons act on release too, and drags cancel them. */
+        /* The shop buttons fire on the press; a drag no longer cancels them. */
         game_state = ST_CLASSES;
         player_class = CLASS_ORDINARY;
         double lx = levels_btn_x() + class_action_w() / 2;
         double ly = class_actions_y() + btn_h / 2;
         logic_touch(lx, ly, 0, 2);
-        assert(t_dir == 0);
-        logic_touch(lx, ly, 1, 2);
         assert(t_dir == 1 && t_target == ST_LEVELS);
         t_dir = 0;
+        t_target = 0;
         logic_touch(lx, ly, 0, 2);
         logic_touch(lx + 200, ly, 2, 2);
         logic_touch(lx + 200, ly, 1, 2);
-        assert(t_dir == 0);
+        assert(t_dir == 1 && t_target == ST_LEVELS);
+        t_dir = 0;
+
+        /* One shop card, sold once: the pill buys on the press, the rest of
+         * the card on the release, and a swipe pages instead of buying. */
+        cups = 1000;
+        classes_page = 1; /* the second card: Azum, 65 cups */
+        double v0 = classes_page_start();
+        double cls = visible_class_at(v0);
+        assert(cls != CLASS_ORDINARY && class_owned_of(cls) == 0);
+        double card_x = classes_card_x(v0) + classes_card_w() / 2;
+        double card_y = classes_top() + class_card_h / 2;
+        double pill_x = classes_card_x(v0) + class_pick_inset() + class_pick_w() / 2;
+        double pill_y = class_pick_y() + class_pick_h / 2;
+
+        /* The pill is a button: it buys the moment the finger lands. */
+        logic_touch(pill_x, pill_y, 0, 3);
+        assert(class_owned_of(cls) == 1 && player_class == cls && cups == 1000 - class_cost_of(cls));
+        /* The squeeze of a press on the pill belongs to the whole card. */
+        assert(press_new == 1);
+        (void)button_press_k(classes_card_x(v0), classes_top(), classes_card_w(), class_card_h);
+        assert(press_new == 0 && press_phase == 1);
+        n = 0;
+        while (n < 3) {
+            update_button_press();
+            n = n + 1;
+        }
+        assert(button_press_k(classes_card_x(v0), classes_top(), classes_card_w(), class_card_h) > 0.8);
+        assert(button_press_k(classes_card_x(v0) + class_pick_inset(), class_pick_y(), class_pick_w(),
+                              class_pick_h) == 0);
+        n = 0;
+        while (n < 30) {
+            update_button_press();
+            n = n + 1;
+        }
+        assert(press_k == 0 && press_phase == 0);
+
+        /* The card body takes the press as feedback only: nothing is bought
+         * until the finger lifts on the same card. */
+        set_class_owned(cls, 0);
+        player_class = CLASS_ORDINARY;
+        cups = 1000;
+        logic_touch(card_x, card_y, 0, 4);
+        assert(class_owned_of(cls) == 0 && cups == 1000);
+        (void)button_press_k(classes_card_x(v0), classes_top(), classes_card_w(), class_card_h);
+        assert(press_phase == 1); /* the card itself is what darkens */
+        n = 0;
+        while (n < 30) {
+            update_button_press();
+            n = n + 1;
+        }
+        assert(class_owned_of(cls) == 0);
+        logic_touch(card_x, card_y, 1, 4);
+        assert(class_owned_of(cls) == 1 && player_class == cls && cups == 1000 - class_cost_of(cls));
+
+        /* A sideways drag over a card pages the list instead of buying. */
+        set_class_owned(cls, 0);
+        player_class = CLASS_ORDINARY;
+        cups = 1000;
+        classes_page = 1;
+        logic_touch(card_x, card_y, 0, 5);
+        logic_touch(card_x - classes_swipe_threshold() - 10, card_y, 2, 5);
+        assert(classes_page == 2);
+        logic_touch(card_x - classes_swipe_threshold() - 10, card_y, 1, 5);
+        assert(class_owned_of(cls) == 0 && cups == 1000);
+        classes_page = 0;
 
         game_state = ST_LOBBY;
         screen_h = saved_h;

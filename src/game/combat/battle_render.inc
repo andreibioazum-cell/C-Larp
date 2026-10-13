@@ -69,8 +69,6 @@ static void draw_remote_snow(void) {
 
 static void finish_game(double result) {
     finished = result;
-    aim_id = -1;
-    super_id = -1;
     punch->active = 0;
     punch->hit = 0;
     punch_left = 0;
@@ -266,22 +264,28 @@ static void draw_enemy_body(void) {
     draw_guard(enemy->x, enemy->y, enemy->angle, enemy_block_left > 0, enemy_scale);
 }
 
+/* A combat pad answers a press the way a menu button does: it shrinks a
+ * little and darkens, so a punch that goes off on the touch still reads as a
+ * press and not as a misfire. */
+static void draw_pad(double cx, double cy, double r, uint32_t col, const char *label, double scale) {
+    double p = button_press_k(cx - r, cy - r, r * 2, r * 2);
+    double s = 1 - PRESS_SQUEEZE * p;
+    double rr = r * s;
+    circle(cx, cy, rr, shade(col, 1 - PRESS_SHADE * p));
+    ring(cx, cy, rr, 4, 0x000000);
+    text_in_box(label, cx - rr, cy - rr, rr * 2, rr * 2, 0xFFFFFF, scale * s);
+}
+
 static void draw_controls(void) {
     ring(joy.x, joy.y, joy.r, 4, 0x000000);
     circle(joy.x + joy.ox, joy.y + joy.oy, 34, 0x000000);
     /* All three combat buttons are one size: 55px radius with a 110px label. */
-    circle(atk_x, atk_y, 55, 0xE94560);
-    ring(atk_x, atk_y, 55, 4, 0x000000);
-    text_in_box(tr_punch(), atk_x - 55, atk_y - 55, 110, 110, 0xFFFFFF, 0.55);
+    draw_pad(atk_x, atk_y, 55, 0xE94560, tr_punch(), 0.55);
     if (game_state == ST_SOLO || game_state == ST_ONLINE) {
         /* Guard sits between the punch and ability buttons, a little left. */
-        circle(blk_x, blk_y, 55, player_block == 1 ? 0x2E6FBF : 0x3A5A8C);
-        ring(blk_x, blk_y, 55, 4, 0x000000);
-        text_in_box(tr_block(), blk_x - 55, blk_y - 55, 110, 110, 0xFFFFFF, 0.55);
+        draw_pad(blk_x, blk_y, 55, player_block == 1 ? 0x2E6FBF : 0x3A5A8C, tr_block(), 0.55);
     }
     if (class_has_super(player_class) == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE)) {
-        circle(atk2_x, atk2_y, 55, 0x5F10A0);
-        ring(atk2_x, atk2_y, 55, 4, 0x000000);
         const char *sl = tr_super();
         if (player_class == CLASS_EBUC) {
             sl = tr_super_ebuc();
@@ -301,7 +305,7 @@ static void draw_controls(void) {
             sl = ds_concat(ds_num_to_string((double)(floor(left + 0.999))), "");
             sls = 0.95;
         }
-        text_in_box(sl, atk2_x - 55, atk2_y - 55, 110, 110, 0xFFFFFF, sls);
+        draw_pad(atk2_x, atk2_y, 55, 0x5F10A0, sl, sls);
     }
     draw_battle_back();
 }

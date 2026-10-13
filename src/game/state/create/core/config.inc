@@ -413,14 +413,16 @@ LOBBY_MUSIC = "lobbymusic.wav";
 BUTTON_CLICK_SOUND = "button_click.wav";
 button_click_ok = 0;
 
-/* Held-pointer state for button press feedback and release taps. */
+/* Press feedback state: where the finger is, how far the squeeze of the
+ * button under it has run (press_k) and which way it is going (press_phase:
+ * 0 idle, 1 squeezing in, 2 springing back). press_new marks a touch that
+ * went down since the last drawn frame, waiting for its button to claim it. */
 press_down = 0;
 press_x = 0;
 press_y = 0;
 press_k = 0;
-tap_armed = 0;
-tap_x = 0;
-tap_y = 0;
+press_phase = 0;
+press_new = 0;
 
 /* NPC cube in the lobby (debug placeholder) */
 CUBE_NPC_TEX = "Cube_20261007211025.png";

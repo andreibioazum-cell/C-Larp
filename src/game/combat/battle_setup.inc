@@ -42,7 +42,6 @@ static void reset_battle(void) {
     punch->hit = 0;
     punch_left = 0;
     punch_cd = 0;
-    aim_id = -1;
     aim_a = 0;
     santa_follow = 0;
     azum_revived = 0;
@@ -64,7 +63,6 @@ static void reset_battle(void) {
     super_cd = 0;
     queued_punch = 0;
     queued_super = 0;
-    super_id = -1;
     boom_t = 0;
     boom_x = 0;
     boom_y = 0;

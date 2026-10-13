@@ -34,8 +34,6 @@ double atk_y;
 double atk2_x;
 double atk2_y;
 double joy_id;
-double aim_id;
-double super_id;
 double blk_x;
 double blk_y;
 double blk_id;

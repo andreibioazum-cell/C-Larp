@@ -122,6 +122,15 @@ static double hit_class_card(double px, double py, double vi) {
     return hit_rect(px, py, classes_card_x(vi), classes_top(), classes_card_w(), class_card_h);
 }
 
+/* The price / pick pill drawn at the bottom of a shop card. It is part of the
+ * card, but it is a button in its own right: pressing it buys or picks on the
+ * touch itself, while the rest of the card waits for the finger to lift so a
+ * swipe can still page the list. */
+static double hit_class_pill(double px, double py, double vi) {
+    return hit_rect_pad(px, py, classes_card_x(vi) + class_pick_inset(), class_pick_y(), class_pick_w(),
+                        class_pick_h);
+}
+
 static double classes_nav_w(void) { return 36; }
 
 static double classes_nav_h(void) { return 48; }
