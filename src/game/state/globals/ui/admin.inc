@@ -9,10 +9,6 @@ double admin_ball_grab_dx;
 double admin_ball_grab_dy;
 double admin_ball_t;
 double admin_panel_open;
-double admin_tab;
-double admin_page;
-const char *admin_input_nick;
-double admin_input_active;
 /* Cheat stain: once any switch is flipped on, the current battle pays no
  * Cups at the end - even if the switch goes straight back off. */
 double cheat_stain;

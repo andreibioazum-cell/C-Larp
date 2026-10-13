@@ -130,11 +130,13 @@ static void settings_from_storage(void) {
     show_hitboxes = net_load_hitboxes();
     music_volume = net_load_music_volume();
     winter_theme = net_load_winter_theme();
+    gfx_ultra = net_load_gfx_ultra();
 }
 
 static void save_settings(void) {
     net_save_settings(language, show_hitboxes);
     net_save_winter_theme(winter_theme);
+    net_save_gfx_ultra(gfx_ultra);
 }
 
 static void music_volume_apply(void) {

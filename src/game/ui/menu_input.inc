@@ -275,6 +275,16 @@ static void touch_modes(double x, double y) {
     }
     if (hit_modes_row(x, y, 4) == 1) {
         start_transition(ST_PROMO);
+        return;
+    }
+    if (hit_gfx_low(x, y) == 1) {
+        gfx_ultra = 0;
+        save_settings();
+        return;
+    }
+    if (hit_gfx_ultra(x, y) == 1) {
+        gfx_ultra = 1;
+        save_settings();
     }
 }
 

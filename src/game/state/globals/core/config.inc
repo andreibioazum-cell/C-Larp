@@ -161,6 +161,8 @@ double snow_tex_ok;
 double snow_t;
 double candy_tex_ok;
 double winter_theme;
+/* Графика: 0 - низкая, 1 - ультра (тени, цветокоррекция, виньетка). */
+double gfx_ultra;
 double show_hitboxes;
 double hitbox_rgb;
 double hitbox_zone_alpha;

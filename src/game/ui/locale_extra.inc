@@ -19,69 +19,6 @@ static const char *tr_admin_title(void) {
     return "CONTENT CREATOR PANEL";
 }
 
-static const char *tr_admin_cheats_tab(void) {
-    if (language == 1) {
-        return "ЧИТЫ";
-    }
-    return "CHEATS";
-}
-
-static const char *tr_admin_players_tab(void) {
-    if (language == 1) {
-        return "ИГРОКИ";
-    }
-    return "PLAYERS";
-}
-
-static const char *tr_admin_ban(void) {
-    if (language == 1) {
-        return "БАН";
-    }
-    return "BAN";
-}
-
-static const char *tr_admin_unban(void) {
-    if (language == 1) {
-        return "РАЗБАН";
-    }
-    return "UNBAN";
-}
-
-static const char *tr_admin_bans(void) {
-    if (language == 1) {
-        return "БАН-ЛИСТ";
-    }
-    return "BAN LIST";
-}
-
-static const char *tr_admin_no_players(void) {
-    if (language == 1) {
-        return "Список пуст";
-    }
-    return "Nothing here";
-}
-
-static const char *tr_admin_nick_hint(void) {
-    if (language == 1) {
-        return "Ник игрока";
-    }
-    return "Player nick";
-}
-
-static const char *tr_admin_do_ban(void) {
-    if (language == 1) {
-        return "ЗАБАНИТЬ";
-    }
-    return "BAN PLAYER";
-}
-
-static const char *tr_admin_do_unban(void) {
-    if (language == 1) {
-        return "РАЗБАНИТЬ";
-    }
-    return "UNBAN PLAYER";
-}
-
 static const char *tr_admin_ban_protected(void) {
     if (language == 1) {
         return "Администраторов нельзя банить";

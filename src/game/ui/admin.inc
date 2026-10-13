@@ -25,11 +25,10 @@ static double admin_gap(void) { return 6; }
  * panel height stays a plain function of the content. */
 static double admin_header_h(void) { return clamp(screen_h * 0.03, 36, 56); }
 
-static double admin_tabs_h(void) { return clamp(screen_h * 0.025, 28, 44); }
-
 static double admin_panel_w(void) {
     double lim = screen_w - 24;
-    double w = screen_w * 0.58;
+    /* Панель на 20% шире прежней. */
+    double w = screen_w * 0.70;
     double cap = screen_h * 1.1;
     if (w > cap) {
         w = cap;
@@ -43,33 +42,14 @@ static double admin_panel_w(void) {
     return w;
 }
 
-/* Base row sizes: one cheat button, one list row, one field. */
-static double admin_row_h(void) { return clamp(screen_h * 0.055, 30, 64); }
-
-static double admin_player_row_h(void) { return clamp(screen_h * 0.04, 26, 44); }
-
-static double admin_players_field_h(void) { return clamp(admin_row_h() * 0.9, 30, 56); }
-
-static double admin_footer_h(void) { return clamp(screen_h * 0.028, 26, 40); }
+/* Высота ряда: одна кнопка чита. На 20% больше прежней. */
+static double admin_row_h(void) { return clamp(screen_h * 0.066, 36, 76); }
 
 /* Six cheats sit in three rows of two. */
 static double admin_grid_h(void) { return 3 * admin_row_h() + 2 * admin_gap(); }
 
-/* Players tab needs the nick field, the ban / unban buttons, two rows and the
- * footer under them. */
-static double admin_players_min_h(void) {
-    double fh = admin_players_field_h();
-    double rows = 2 * admin_player_row_h() + admin_gap();
-    return fh + admin_gap() + fh + admin_gap() + rows + admin_gap() + admin_footer_h();
-}
-
-/* Both tabs share one content height, so switching tabs never resizes the
- * panel; the cheat grid is centred in whatever room the Players tab asks for. */
-static double admin_content_h(void) {
-    double grid = admin_grid_h();
-    double players = admin_players_min_h();
-    return grid > players ? grid : players;
-}
+/* Вкладок больше нет: контент панели - это только сетка читов. */
+static double admin_content_h(void) { return admin_grid_h(); }
 
 static double admin_cheat_row_h(void) {
     double h = (admin_content_h() - 2 * admin_gap()) / 3;
@@ -77,10 +57,10 @@ static double admin_cheat_row_h(void) {
     return h > cap ? cap : h;
 }
 
-/* Header, tabs and the taller tab decide the height. */
+/* Высоту панели решают шапка и сетка читов - вкладок больше нет. */
 static double admin_panel_h(void) {
     double lim = screen_h - 32;
-    double h = admin_header_h() + admin_gap() + admin_tabs_h() + 2 * admin_gap() + admin_content_h() + admin_pad();
+    double h = admin_header_h() + 2 * admin_gap() + admin_content_h() + admin_pad();
     if (h > lim) {
         h = lim;
     }
@@ -97,32 +77,12 @@ static double admin_panel_x(void) { return (screen_w - admin_panel_w()) / 2; }
 
 static double admin_panel_y(void) { return (screen_h - admin_panel_h()) / 2; }
 
-static double admin_tabs_y(void) { return admin_panel_y() + admin_header_h() + admin_gap(); }
-
-static double admin_content_top(void) { return admin_tabs_y() + admin_tabs_h() + 2 * admin_gap(); }
+static double admin_content_top(void) { return admin_panel_y() + admin_header_h() + 2 * admin_gap(); }
 
 static double admin_content_bottom(void) { return admin_panel_y() + admin_panel_h() - admin_pad(); }
 
-/* The cheat grid is centred while the Players tab fills the same box. */
-static double admin_grid_top(void) { return admin_content_top() + (admin_content_h() - admin_grid_h()) / 2; }
-
-/* The Players tab: nick field, then the ban / unban row, then the list. */
-static double admin_players_field_y(void) { return admin_content_top(); }
-
-static double admin_players_act_y(void) { return admin_players_field_y() + admin_players_field_h() + admin_gap(); }
-
-static double admin_list_top(void) { return admin_players_act_y() + admin_players_field_h() + admin_gap(); }
-
-static double admin_list_bottom(void) { return admin_content_bottom() - admin_footer_h() - admin_gap(); }
-
-static double admin_players_per_page(void) {
-    double avail = admin_list_bottom() - admin_list_top();
-    double n = floor((avail + admin_gap()) / (admin_player_row_h() + admin_gap()));
-    if (n < 1) {
-        n = 1;
-    }
-    return n;
-}
+/* Сетка читов занимает весь контент панели. */
+static double admin_grid_top(void) { return admin_content_top(); }
 
 static double admin_ball_r(void) { return clamp(screen_h / 34.0, 15, 26); }
 
@@ -139,8 +99,6 @@ static double admin_on(void) { return 0x333333; }
 
 static double admin_off(void) { return 0x000000; }
 
-static double admin_dim_text(void) { return 0xB4B4B4; }
-
 /* One flat style for every button of the panel: same radius, same 2 px white
  * outline, fully opaque fills and white text in both states. Off and on differ
  * in nothing but the fill colour - black against grey - so a toggle or a tab
@@ -155,57 +113,6 @@ static void admin_btn(const char *label, double x, double y, double w, double h,
 
 /* The orb wears the short name of the panel. */
 static const char *admin_orb_label(void) { return "CCP"; }
-
-static const char *admin_tab_label(double t) {
-    if (t == 0) {
-        return tr_admin_cheats_tab();
-    }
-    return tr_admin_players_tab();
-}
-
-/* Players tab: the nick field talks to the engine keyboard directly. The nick
- * is copied into our own buffer, because the keyboard buffer is shared with
- * the chat and login fields and outlives the panel. */
-static char admin_nick_buf[64];
-
-static void admin_nick_copy(const char *src) {
-    int i = 0;
-    if (src == 0) {
-        src = "";
-    }
-    while (i < 63 && src[i] != 0) {
-        admin_nick_buf[i] = src[i];
-        i = i + 1;
-    }
-    admin_nick_buf[i] = 0;
-}
-
-static void admin_input_sync(void) {
-    if (admin_input_active == 1 && keyboard_visible() == 1) {
-        char text[64];
-        keyboard_get_text_to(text, sizeof(text));
-        admin_nick_copy(text);
-        admin_input_nick = admin_nick_buf;
-    }
-}
-
-static void admin_input_focus(void) {
-    admin_input_active = 1;
-    keyboard_clear();
-    if (str_len(admin_input_nick) > 0) {
-        keyboard_type(admin_input_nick);
-    }
-    keyboard_show();
-}
-
-static void admin_input_blur(void) {
-    if (admin_input_active == 0) {
-        return;
-    }
-    admin_input_sync();
-    admin_input_active = 0;
-    keyboard_hide();
-}
 
 static const char *admin_cheat_label(double idx) {
     if (language == 1) {

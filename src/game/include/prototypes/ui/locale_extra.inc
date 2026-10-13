@@ -1,8 +1,5 @@
 static const char *tr_top(void);
 static const char *tr_class_astra_rework(void);
-static const char *tr_admin_nick_hint(void);
-static const char *tr_admin_do_ban(void);
-static const char *tr_admin_do_unban(void);
 static const char *tr_admin_ban_protected(void);
 static const char *tr_skins_note_for(double cls);
 static const char *tr_bye_sorry(void);
@@ -10,9 +7,3 @@ static const char *tr_bye_cubes(void);
 static const char *tr_bye_nick_pre(void);
 static const char *tr_bye_nick_post(void);
 static const char *tr_admin_title(void);
-static const char *tr_admin_cheats_tab(void);
-static const char *tr_admin_players_tab(void);
-static const char *tr_admin_ban(void);
-static const char *tr_admin_unban(void);
-static const char *tr_admin_bans(void);
-static const char *tr_admin_no_players(void);

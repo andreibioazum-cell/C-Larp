@@ -115,7 +115,7 @@ static double menu_button_hit(double x, double y) {
         return 0;
     }
     if (game_state == ST_MODES) {
-        while (i <= 5) {
+        while (i <= 6) {
             if (hit_modes_row(x, y, i) == 1) return 1;
             i = i + 1;
         }

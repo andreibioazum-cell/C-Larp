@@ -183,15 +183,14 @@ static void draw_player_hitbox_layer(void) {
 }
 
 static void draw_guard(double x, double y, double angle, double on, double scale) {
+    (void)angle;
     if (on <= 0) {
         return;
     }
-    /* A small round buckler held in front of the fighter — nothing else. */
-    double r = 25 * cube_scale * scale;
-    double fx = x + cos(angle) * r * 1.25;
-    double fy = y + sin(angle) * r * 1.25;
-    circle(fx, fy, r * 0.62, 0xE02E6FBF);
-    circle(fx, fy, r * 0.34, 0xC04FC3F7);
+    /* Блок - просто голубой кружок на самом игроке, больше ничего. */
+    double r = 25 * cube_scale * scale * 1.75;
+    circle(x, y, r, 0x2E4FC3F7);
+    ring(x, y, r, clamp(r * 0.13, 3, 5), 0xCC4FC3F7);
 }
 
 static void draw_player_body_layer(void) {
@@ -233,11 +232,20 @@ static void draw_enemy_shadow(void) {
     double look = fighter_look_of(FLOOK_BOT);
     if (look == LOOK_NONE) {
         circle(enemy->x - shadow_off, enemy->y + shadow_off, ehw, (((unsigned)(int)shadow_alpha) << 24));
+        if (gfx_ultra == 1) {
+            circle(enemy->x - shadow_off, enemy->y + shadow_off, ehw * 1.4, (((unsigned)(int)(shadow_alpha * 0.4)) << 24));
+        }
         return;
     }
     tex_tint(enemy->x - ehw - shadow_off, enemy->y - ehw + shadow_off,
              look_tex(look, fighter_pose_of(FLOOK_BOT, enemy_punching_now())), sprite_a(enemy->angle), es,
              (((unsigned)(int)shadow_alpha) << 24));
+    if (gfx_ultra == 1) {
+        double bh = ehw * 1.4;
+        tex_tint(enemy->x - bh - shadow_off, enemy->y - bh + shadow_off,
+                 look_tex(look, fighter_pose_of(FLOOK_BOT, enemy_punching_now())), sprite_a(enemy->angle), es * 1.4,
+                 (((unsigned)(int)(shadow_alpha * 0.4)) << 24));
+    }
 }
 
 static void draw_enemy_hitbox(void) {
@@ -267,9 +275,10 @@ static void draw_enemy_body(void) {
 /* A combat pad answers a press the way a menu button does: it shrinks a
  * little and darkens, so a punch that goes off on the touch still reads as a
  * press and not as a misfire. */
-/* Радиус боевой кнопки: 55 было исходным, просили на 10% меньше. */
+/* Радиус боевой кнопки: исходный 55, по просьбе немного меньше и снова чуть
+ * больше - так палец попадает без промаха. */
 static double battle_pad_r(void) {
-    return 49.5;
+    return 53;
 }
 static void draw_pad(double cx, double cy, double r, uint32_t col, const char *label, double scale) {
     double p = button_press_k(cx - r, cy - r, r * 2, r * 2);
@@ -339,14 +348,54 @@ static void draw_result(const char *title) {
     ctext_scaled(tr_tap_to_return(), y + 188, 0xFFFFFF, 0.62);
 }
 
+/* Ультра: лёгкая цветокоррекция - прохлада сверху, тепло снизу. */
+static void draw_screen_grade(void) {
+    rect(0, 0, screen_w, screen_h * 0.62, 0x0C1B2E56);
+    rect(0, screen_h * 0.62, screen_w, screen_h * 0.38, 0x0C56341C);
+}
+
+/* Ультра: виньетка - затемнение к краям экрана кольцами. */
+static void draw_vignette(void) {
+    double cx = screen_w / 2;
+    double cy = screen_h / 2;
+    double rmax = sqrt(cx * cx + cy * cy);
+    double i = 0;
+    while (i < 9) {
+        double k = i / 8;
+        double a = 0.26 * k * k;
+        ring(cx, cy, rmax * (0.54 + 0.46 * k), rmax * 0.1, (((unsigned)(int)(a * 255)) << 24));
+        i = i + 1;
+    }
+}
+
+/* Полученный урон: экран слегка краснеет, не сильно. */
+static void draw_hurt_flash(void) {
+    if (gfx_ultra == 0 || player_hurt_a <= 0.01) {
+        return;
+    }
+    rect(0, 0, screen_w, screen_h, (((unsigned)(int)(0.22 * player_hurt_a * 255)) << 24) | 0xD81F1F);
+}
+
+/* Обработка кадра до интерфейса: только на ультра, на низкой её нет. */
+static void draw_screen_fx(void) {
+    if (gfx_ultra == 0) {
+        return;
+    }
+    draw_screen_grade();
+    draw_vignette();
+}
+
 static void draw_game(void) {
     resolve_fighter_looks();
     draw_arena_background();
     draw_field();
     draw_dust();
-    draw_player_shadow_layer();
-    draw_enemy_shadow();
-    draw_turret_shadows();
+    /* Тени рисуем только на ультра: на низкой графике их нет. */
+    if (gfx_ultra == 1) {
+        draw_player_shadow_layer();
+        draw_enemy_shadow();
+        draw_turret_shadows();
+    }
     draw_candies();
     draw_card_item();
     draw_player_hitbox_layer();
@@ -368,10 +417,15 @@ static void draw_game(void) {
     draw_status_aura(enemy->x, enemy->y, enemy->size, poison_rgb, poison_rim, poison_a);
     draw_status_aura(enemy->x, enemy->y, enemy->size, stun_rgb, stun_rim, stun_a);
     draw_snow();
+    /* Цветокоррекция и виньетка ложатся на бой, но не на интерфейс: полоски
+     * здоровья и кнопки остаются чистыми. */
+    draw_screen_fx();
     double w = screen_w / 4;
     hud_bar(20, 20, w, 28, player->hp, player->max_hp, 0x7ED321, 0);
     hud_bar(screen_w - w - 20, 20, w, 28, enemy->hp, enemy->max_hp, 0xE94560, 1);
     draw_controls();
+    /* Красный отлив при уроне - поверх всего, но очень слабый. */
+    draw_hurt_flash();
     if (finished == 1) {
         draw_result(tr_victory());
     } else if (finished == 2) {

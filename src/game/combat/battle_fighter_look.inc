@@ -57,10 +57,19 @@ static void draw_fighter_shadow(double x, double y, double ang, double look, dou
     double sprite_scale = cube_scale * player_scale;
     if (look == LOOK_NONE) {
         circle(x - shadow_off, y + shadow_off, half_px, (((unsigned)(int)shadow_alpha) << 24));
+        if (gfx_ultra == 1) {
+            circle(x - shadow_off, y + shadow_off, half_px * 1.4, (((unsigned)(int)(shadow_alpha * 0.4)) << 24));
+        }
         return;
     }
     tex_tint(x - half_px - shadow_off, y - half_px + shadow_off, look_tex(look, punching), sprite_a(ang), sprite_scale,
              (((unsigned)(int)shadow_alpha) << 24));
+    /* Ультра: широкое едва заметное пятно вокруг тени - край получается мягким. */
+    if (gfx_ultra == 1) {
+        double bh = half_px * 1.4;
+        tex_tint(x - bh - shadow_off, y - bh + shadow_off, look_tex(look, punching), sprite_a(ang), sprite_scale * 1.4,
+                 (((unsigned)(int)(shadow_alpha * 0.4)) << 24));
+    }
 }
 
 static void draw_fighter_body(double x, double y, double ang, double look, double punching) {

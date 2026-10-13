@@ -22,7 +22,9 @@ static double hit_menu_row(double px, double py, double i) {
 
 static double settings_stride(void) {
     double s = menu_stride();
-    double fit = (screen_h - 16) / SETTINGS_ROWS;
+    /* Список начинается с высоты кнопки «Играть», поэтому в расчёт идёт только
+     * место под ним - иначе на невысоком экране нижние пункты уезжают за край. */
+    double fit = (screen_h - 16 - menu_top()) / SETTINGS_ROWS;
     if (fit < s) {
         s = fit;
     }
@@ -41,9 +43,8 @@ static double settings_btn_h(void) {
 }
 
 static double settings_top(void) {
-    /* Список настроек идёт от начала экрана, а не висит по центру: так первый
-     * пункт сразу под рукой, а не на середине высоты. */
-    return 12;
+    /* Список настроек начинается с той же высоты, что и кнопка «Играть». */
+    return menu_top();
 }
 
 static double settings_row_y(double i) { return settings_top() + i * settings_stride(); }
@@ -270,6 +271,21 @@ static double modes_row(double i) { return modes_top() + i * menu_stride(); }
 
 static double hit_modes_row(double px, double py, double i) {
     return hit_rect_pad(px, py, menu_x(), modes_row(i), menu_btn_w(), btn_h);
+}
+
+/* Графика: две половинные кнопки в шестом ряду - низкая и ультра. */
+static double gfx_btn_w(void) { return (menu_btn_w() - 10) / 2; }
+
+static double gfx_low_x(void) { return menu_x(); }
+
+static double gfx_ultra_x(void) { return menu_x() + gfx_btn_w() + 10; }
+
+static double hit_gfx_low(double px, double py) {
+    return hit_rect_pad(px, py, gfx_low_x(), modes_row(6), gfx_btn_w(), btn_h);
+}
+
+static double hit_gfx_ultra(double px, double py) {
+    return hit_rect_pad(px, py, gfx_ultra_x(), modes_row(6), gfx_btn_w(), btn_h);
 }
 
 static double warn_btn_w(void) { return fit_w(560); }

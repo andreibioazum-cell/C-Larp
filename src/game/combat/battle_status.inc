@@ -46,6 +46,11 @@ static void tick_status_fades(void) {
     if (enemy_grab_quiet > 0) {
         estun = 0;
     }
+    /* Бесконечный стан из панели - не повод вешать на врага оранжевый кружок
+     * на весь бой: сам враг стоит, а подсветка только мешает. */
+    if (cheat_estun == 1) {
+        estun = 0;
+    }
     if (player_grab_quiet > 0) {
         pstun = 0;
     }
