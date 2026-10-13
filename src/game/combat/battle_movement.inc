@@ -54,6 +54,10 @@ static void move_player(void) {
     if (player_freeze > 0) {
         spd = spd * player_freeze_slow;
     }
+    if (player_block == 1) {
+        /* Holding the guard plants the feet: heavy movement, no dashing. */
+        spd = spd * block_speed_k;
+    }
     player->x = player->x + joy.dx * spd * dt;
     player->y = player->y + joy.dy * spd * dt;
     double jm = sqrt(joy.dx * joy.dx + joy.dy * joy.dy);
@@ -119,6 +123,10 @@ static void freeze_enemy(double t, double slow) {
 
 static void enemy_move(double vx, double vy) {
     double f = enemy_freeze_factor() * enemy->speed_var;
+    if (enemy_block_left > 0) {
+        /* A guarding fighter retreats slowly instead of circling at full speed. */
+        f = f * block_speed_k;
+    }
     enemy->mvx = vx * f;
     enemy->mvy = vy * f;
     enemy->svx = vx;

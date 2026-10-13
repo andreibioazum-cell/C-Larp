@@ -184,12 +184,26 @@ static void draw_player_hitbox_layer(void) {
     }
 }
 
+static void draw_guard(double x, double y, double angle, double on, double scale) {
+    if (on <= 0) {
+        return;
+    }
+    double r = 25 * cube_scale * scale;
+    double fx = x + cos(angle) * r * 1.5;
+    double fy = y + sin(angle) * r * 1.5;
+    double w = r * 2.1;
+    double h = r * 0.55;
+    ring(x, y, r * 1.55, 5, 0xC04FC3F7);
+    rect_rot(fx - w / 2, fy - h / 2, w, h, angle + pi / 2, 0xE02E6FBF);
+}
+
 static void draw_player_body_layer(void) {
     double punching = fighter_pose_of(FLOOK_ME, player_punching_now());
     double look = fighter_look_of(FLOOK_ME);
     draw_fighter_body(player->x, player->y, player->angle, look, punching);
     draw_fighter_tint(player->x, player->y, player->angle, look, punching, player_scale, astra_rw_tint_local());
     draw_fighter_hurt(player->x, player->y, player->angle, look, punching, player_scale, player_hurt_a);
+    draw_guard(player->x, player->y, player->angle, player_block, player_scale);
 }
 
 static double enemy_punching_now(void) {
@@ -250,6 +264,7 @@ static void draw_enemy_body(void) {
         tex(enemy->x - ehw, enemy->y - ehw, look_tex(look, punching), sprite_a(enemy->angle), es);
     }
     draw_fighter_hurt(enemy->x, enemy->y, enemy->angle, look, punching, enemy_scale, enemy_hurt_a);
+    draw_guard(enemy->x, enemy->y, enemy->angle, enemy_block_left > 0, enemy_scale);
 }
 
 static void draw_controls(void) {
@@ -258,6 +273,15 @@ static void draw_controls(void) {
     circle(atk_x, atk_y, 70, 0xE94560);
     ring(atk_x, atk_y, 70, 4, 0x000000);
     text_in_box(tr_punch(), atk_x - 70, atk_y - 70, 140, 140, 0xFFFFFF, 0.55);
+    if (game_state == ST_SOLO || game_state == ST_ONLINE) {
+        /* Guard button sits right above the ability button: hold it to block. */
+        circle(blk_x, blk_y, 60, player_block == 1 ? 0x2E6FBF : 0x3A5A8C);
+        ring(blk_x, blk_y, 60, 4, 0x000000);
+        if (player_block == 1) {
+            ring(blk_x, blk_y, 70, 5, 0xC04FC3F7);
+        }
+        text_in_box(tr_block(), blk_x - 60, blk_y - 60, 120, 120, 0xFFFFFF, 0.55);
+    }
     if (class_has_super(player_class) == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE)) {
         circle(atk2_x, atk2_y, 70, 0x5F10A0);
         ring(atk2_x, atk2_y, 70, 4, 0x000000);

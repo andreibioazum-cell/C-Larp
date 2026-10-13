@@ -86,11 +86,20 @@ static double enemy_apply_damage(double dmg) {
     if (enemy_revive_prot > 0) {
         return 0;
     }
+    /* A raised guard eats most of any ability, exactly like the player's. */
+    if (enemy_block_left > 0) {
+        dmg = dmg * block_guard;
+    }
     if (enemy_class == CLASS_EBUC) {
         dmg = enemy_shield_absorb(dmg);
     }
     if (dmg > 0) {
         enemy_hurt_a = 1;
+        /* Humans flinch into a guard after eating a hit — sometimes. */
+        if (enemy_block_left <= 0 && enemy_block_cd <= 0 && enemy->stun <= 0 && enemy->state == 0 &&
+            rand() % 100 < 18) {
+            enemy_block_left = 0.5 + (rand() % 100) / 100.0 * 0.4;
+        }
     }
     enemy->hp = enemy->hp - dmg;
     if (enemy->hp < 0) {
@@ -168,6 +177,7 @@ static void enemy_snow_explode(void) {
                 player_freeze_slow = super_freeze_slow;
             }
             take_damage(santa_super_damage);
+            super_hit_shake();
         }
     }
 }

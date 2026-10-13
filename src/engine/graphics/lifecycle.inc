@@ -133,6 +133,9 @@ static Texture *load_png(const char *req) {
             t->opaque = 0;
     }
     stbi_image_free(dec);
+    /* Textures decoded while the black-and-white filter is active enter the
+     * world desaturated, with their colors kept for the restore. */
+    texture_gray_apply(t);
     ds_vk_pending_texture(t);
     ds_log("texture loaded: %s (%dx%d)", n, t->w, t->h);
     return t;
@@ -201,6 +204,7 @@ void ds_release_assets(void) {
     while (t) {
         Texture *n = t->next;
         free(t->pixels);
+        free(t->gray_backup);
         free(t->name);
         free(t);
         t = n;

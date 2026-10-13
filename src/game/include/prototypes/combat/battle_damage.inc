@@ -1,3 +1,5 @@
+static void super_hit_shake(void);
+static void super_beat_shake(void);
 static double take_damage(double dmg);
 static void heal_after_attack(void);
 static void stun_enemy(double t);

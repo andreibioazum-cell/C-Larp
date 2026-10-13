@@ -79,6 +79,7 @@ static void tick_enemy_dash(void) {
             enemy_dash_hit = 1;
             take_damage(enemy_dash_damage);
             stun_player(azum_dash_stun);
+            super_hit_shake();
             ds_log("enemy dash hit player");
         }
     }
@@ -120,6 +121,7 @@ static void tick_dash_solo_hit(void) {
         stun_enemy(azum_dash_stun);
         ds_log("dash hit enemy, hp %g", enemy->hp);
         enemy_apply_damage(azum_dash_damage);
+        super_hit_shake();
     }
 }
 

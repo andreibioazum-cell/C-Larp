@@ -171,6 +171,13 @@ void ds_runtime_error(const char *format, ...) {
 void ds_log(const char *format, ...) {
     (void)format;
 }
+void ds_gfx_gray(double on) {
+    (void)on;
+}
+void ds_gfx_shake(double amp, double seconds) {
+    (void)amp;
+    (void)seconds;
+}
 double dist(double x, double y, double a, double b) {
     return hypot(x - a, y - b);
 }

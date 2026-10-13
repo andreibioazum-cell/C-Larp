@@ -281,12 +281,16 @@ static double astra_beat_solo_damage(double dmg) {
     return enemy_apply_damage(dmg);
 }
 
-static double astra_beat_solo(void) { return astra_beat_solo_damage(astra_beat_damage(enemy->max_hp)); }
+static double astra_beat_solo(void) {
+    super_beat_shake();
+    return astra_beat_solo_damage(astra_beat_damage(enemy->max_hp));
+}
 
 static double astra_final_solo(void) {
     if (game_state == ST_ONLINE) {
         return 0;
     }
+    super_hit_shake();
     if (astra_beat_solo_damage(astra_final_damage(enemy->max_hp)) == 1) {
         return 1;
     }

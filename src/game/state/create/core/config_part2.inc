@@ -6,6 +6,7 @@ music_volume = 50;
 winter_jingle_volume = 0.8;
 event_mode = 0;
 disco_t = 0;
+infect_t = -1;
 event_t = 0;
 event_flakes = 28;
 plates_size = 150;

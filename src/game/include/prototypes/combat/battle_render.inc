@@ -1,3 +1,4 @@
+static void draw_guard(double x, double y, double angle, double on, double scale);
 static void draw_candies(void);
 static void draw_status_aura(double x, double y, double size, double rgb, double rim, double a);
 static void draw_remote_snow(void);

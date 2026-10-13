@@ -43,7 +43,7 @@ static double ultimate_visual_busy(void) {
 }
 
 static void fire_punch(void) {
-    if (dash_active > 0 || player_stun > 0) {
+    if (dash_active > 0 || player_stun > 0 || player_block == 1) {
         return;
     }
     if (astra_locked() == 1 || player_grabbed() == 1) {
@@ -97,7 +97,7 @@ static void start_dash_now(void) {
 }
 
 static void fire_super(void) {
-    if (player_grabbed() == 1) {
+    if (player_grabbed() == 1 || player_block == 1) {
         queued_super = 0;
         return;
     }
@@ -227,6 +227,7 @@ static void update_gift(void) {
         if (circle_hits_enemy(boom_x, boom_y, super_radius) == 1 && enemy_revive_prot <= 0) {
             freeze_enemy(santa_freeze_time_for(player_level), super_freeze_slow);
             enemy_apply_damage(santa_super_damage);
+            super_hit_shake();
         }
     }
 }

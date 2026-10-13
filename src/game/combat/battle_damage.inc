@@ -1,3 +1,14 @@
+/* Called at every super impact so the camera rattles a little when a big
+ * ability lands — both sides of the fight shake the same shared view. */
+static void super_hit_shake(void) {
+    ds_gfx_shake(6, 0.18);
+}
+
+/* Grab beats land in a rhythm; each one gets a tiny tap instead of a jolt. */
+static void super_beat_shake(void) {
+    ds_gfx_shake(3, 0.1);
+}
+
 static double take_damage(double dmg) {
     /* God mode from the admin panel: the hit never lands at all. */
     if (admin_cheat_god() == 1) {
@@ -9,6 +20,10 @@ static double take_damage(double dmg) {
         player_was_hit = 1;
     }
     double real = dmg;
+    /* Held guard cuts every incoming ability: punches, supers, poison, grabs. */
+    if (player_block == 1) {
+        real = real * block_guard;
+    }
     if (player_class == CLASS_EBUC) {
         real = player_shield_absorb(real);
     }

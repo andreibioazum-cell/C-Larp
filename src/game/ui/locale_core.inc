@@ -40,6 +40,13 @@ static const char *tr_punch(void) {
     return "Punch";
 }
 
+static const char *tr_block(void) {
+    if (language == 1) {
+        return "Блок";
+    }
+    return "Block";
+}
+
 static const char *tr_tap_to_return(void) {
     if (language == 1) {
         return "Нажмите, чтобы выйти";

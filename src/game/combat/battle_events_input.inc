@@ -32,6 +32,7 @@ static void update_event(void) {
         disco_t = 0;
     }
     tick_plates_event();
+    update_infect();
 }
 
 static double banner_named_color(const char *name) {
@@ -74,14 +75,16 @@ static void update_banner(void) {
         return;
     }
     double ts = net_banner_ts();
-    if (ts > 0) {
-        if (banner_skip == 1) {
-            banner_seen_ts = ts;
-            banner_skip = 0;
-        } else if (ts != banner_seen_ts) {
-            banner_seen_ts = ts;
-            banner_t = banner_show_time;
-        }
+    if (ts <= 0) {
+        /* The author's countdown ended and the banner was cleared on the
+         * server: drop it here at the same moment, so it disappears for
+         * everyone at once — and late joiners never linger on a dead banner. */
+        banner_t = 0;
+        return;
+    }
+    if (ts != banner_seen_ts) {
+        banner_seen_ts = ts;
+        banner_t = banner_show_time;
     }
     if (banner_t > 0) {
         double before = banner_t;
@@ -138,6 +141,7 @@ static void draw_online(void) {
     resolve_fighter_looks();
     draw_arena_background();
     draw_disco();
+    draw_infect();
     draw_field();
     draw_event_plates();
     draw_event_candies();
@@ -316,6 +320,8 @@ static void touch_game(double x, double y, double action, double id) {
     if (action == 3) {
         aim_id = -1;
         super_id = -1;
+        blk_id = -1;
+        player_block = 0;
         back_arm_id = -1;
         drop_joy();
         return;
@@ -357,6 +363,22 @@ static void touch_game(double x, double y, double action, double id) {
             start_transition(0);
         }
         return;
+    }
+    /* The guard is a hold button checked before the ability button: while the
+     * finger is down the fighter blocks, on release the guard drops. */
+    if (game_state == ST_SOLO || game_state == ST_ONLINE) {
+        if (action == 0 && sqrt((x - blk_x) * (x - blk_x) + (y - blk_y) * (y - blk_y)) <= 80) {
+            blk_id = id;
+            player_block = 1;
+            return;
+        }
+        if (id == blk_id) {
+            if (action == 1 || action == 3) {
+                blk_id = -1;
+                player_block = 0;
+            }
+            return;
+        }
     }
     if (class_has_super(player_class) == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE)) {
         if (action == 0 && sqrt((x - atk2_x) * (x - atk2_x) + (y - atk2_y) * (y - atk2_y)) <= 96) {

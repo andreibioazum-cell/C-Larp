@@ -2,6 +2,7 @@ static void universe_collapse(double dmg) {
     if (finished != 0) {
         return;
     }
+    super_hit_shake();
     if (game_state != ST_ONLINE) {
         enemy_apply_damage(dmg);
     }
@@ -12,6 +13,7 @@ static void universe_collapse_remote(double dmg) {
     if (finished != 0) {
         return;
     }
+    super_hit_shake();
     take_damage(dmg);
 }
 
@@ -178,6 +180,7 @@ static double remote_dash_apply_hit(double slot, double leg) {
         if (revive_prot <= 0) {
             take_damage(azum_dash_damage);
             stun_player(azum_dash_stun);
+            super_hit_shake();
             ds_log("remote dash hit player");
             if (finished != 0) {
                 return 1;
