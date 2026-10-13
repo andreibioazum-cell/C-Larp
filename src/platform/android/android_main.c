@@ -378,6 +378,9 @@ void android_main(struct android_app *app) {
             continue;
         restart_game_if_due();
         uint64_t frame_start = monotonic_ns();
+        /* Пул строк живёт один кадр: чистим его до игровых хуков, чтобы за
+         * сеанс он не разрастался до нехватки памяти посреди боя. */
+        ds_string_pool_tick();
 
         if (prev_loop_ns)
             ds_graphics_report_frame_interval((double)(frame_start - prev_loop_ns) / 1e9);

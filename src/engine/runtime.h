@@ -38,6 +38,7 @@ void ds_clear_game_restart(void);
 char *ds_concat(const char *left, const char *right);
 char *ds_num_to_string(double number);
 void ds_string_pool_reset(void);
+void ds_string_pool_tick(void);
 int console_count(void);
 const char *console_line(int index);
 int console_type(int index);

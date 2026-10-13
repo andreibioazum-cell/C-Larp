@@ -51,6 +51,7 @@ jobs:
           python3 tools/check_game_file_size.py
           python3 tools/test_resources.py
           python3 tools/test_game_state.py
+          python3 tools/test_string_pool.py
           python3 tools/test_settings_storage.py
           python3 tools/test_cloud_progress.py
           python3 tools/test_promo.py

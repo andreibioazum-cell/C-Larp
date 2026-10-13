@@ -168,12 +168,18 @@ void keyboard_hide(void) {
         ANativeActivity_hideSoftInput(kb_activity, ANATIVEACTIVITY_HIDE_SOFT_INPUT_IMPLICIT_ONLY);
 }
 
+/* Поле чата, логин и промокод держат этот текст дольше кадра, поэтому отдаём
+ * его из своих слотов, а не из кадрового пула строк. */
+#define KB_TEXT_SLOTS 8
+static char kb_text_ret[KB_TEXT_SLOTS][KB_BUF];
+static int kb_text_ret_pos = 0;
 const char *keyboard_get_text(void) {
-    char copy[KB_BUF];
+    char *slot = kb_text_ret[kb_text_ret_pos];
+    kb_text_ret_pos = (kb_text_ret_pos + 1) % KB_TEXT_SLOTS;
     pthread_mutex_lock(&kb_mutex);
-    snprintf(copy, sizeof(copy), "%s", kb_text);
+    snprintf(slot, KB_BUF, "%s", kb_text);
     pthread_mutex_unlock(&kb_mutex);
-    return ds_track_string(ds_strdup(copy));
+    return slot;
 }
 
 const char *keyboard_get_raw(void) {

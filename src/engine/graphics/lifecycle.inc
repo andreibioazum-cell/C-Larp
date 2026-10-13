@@ -362,7 +362,10 @@ void text_scaled(const char *s, float x, float y, uint32_t c, float sc) {
 
     p->v.tt.s = strdup_safe(s);
     if (!p->v.tt.s) {
-        ds_runtime_error("out of memory copying renderer text");
+        /* Недописная надпись не стоит перезапуска игры: забираем команду
+         * обратно и рисуем кадр без неё. */
+        ds_log_err("renderer: no memory to copy text");
+        cmd_n = cmd_n - 1;
         return;
     }
     p->v.tt.x = x;
