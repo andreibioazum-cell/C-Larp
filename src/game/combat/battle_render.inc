@@ -196,6 +196,10 @@ static void draw_guard(double x, double y, double angle, double on, double scale
 static void draw_player_body_layer(void) {
     double punching = fighter_pose_of(FLOOK_ME, player_punching_now());
     double look = fighter_look_of(FLOOK_ME);
+    if (gfx_ultra == 1 && look != LOOK_NONE) {
+        draw_motion_ghosts(player->x, player->y, mb_dx, mb_dy, 25 * cube_scale * player_scale,
+                           cube_scale * player_scale, look_tex(look, punching), sprite_a(player->angle));
+    }
     draw_fighter_body(player->x, player->y, player->angle, look, punching);
     draw_fighter_tint(player->x, player->y, player->angle, look, punching, player_scale, astra_rw_tint_local());
     draw_fighter_hurt(player->x, player->y, player->angle, look, punching, player_scale, player_hurt_a);
@@ -230,22 +234,14 @@ static void draw_enemy_shadow(void) {
     double ehw = 25 * cube_scale * enemy_scale;
     double es = cube_scale * enemy_scale;
     double look = fighter_look_of(FLOOK_BOT);
+    double sx = enemy->x - shadow_off;
+    double sy = enemy->y + shadow_off;
     if (look == LOOK_NONE) {
-        circle(enemy->x - shadow_off, enemy->y + shadow_off, ehw, (((unsigned)(int)shadow_alpha) << 24));
-        if (gfx_ultra == 1) {
-            circle(enemy->x - shadow_off, enemy->y + shadow_off, ehw * 1.4, (((unsigned)(int)(shadow_alpha * 0.4)) << 24));
-        }
+        draw_shadow_blur_circle(sx, sy, ehw, shadow_alpha, ehw * 0.13);
         return;
     }
-    tex_tint(enemy->x - ehw - shadow_off, enemy->y - ehw + shadow_off,
-             look_tex(look, fighter_pose_of(FLOOK_BOT, enemy_punching_now())), sprite_a(enemy->angle), es,
-             (((unsigned)(int)shadow_alpha) << 24));
-    if (gfx_ultra == 1) {
-        double bh = ehw * 1.4;
-        tex_tint(enemy->x - bh - shadow_off, enemy->y - bh + shadow_off,
-                 look_tex(look, fighter_pose_of(FLOOK_BOT, enemy_punching_now())), sprite_a(enemy->angle), es * 1.4,
-                 (((unsigned)(int)(shadow_alpha * 0.4)) << 24));
-    }
+    draw_shadow_blur_tex(sx, sy, ehw, es, look_tex(look, fighter_pose_of(FLOOK_BOT, enemy_punching_now())),
+                         sprite_a(enemy->angle), shadow_alpha, ehw * 0.13);
 }
 
 static void draw_enemy_hitbox(void) {
@@ -263,6 +259,10 @@ static void draw_enemy_body(void) {
     double es = cube_scale * enemy_scale;
     double punching = fighter_pose_of(FLOOK_BOT, enemy_punching_now());
     double look = fighter_look_of(FLOOK_BOT);
+    if (gfx_ultra == 1 && look != LOOK_NONE) {
+        draw_motion_ghosts(enemy->x, enemy->y, mb_edx, mb_edy, ehw, es, look_tex(look, punching),
+                           sprite_a(enemy->angle));
+    }
     if (look == LOOK_NONE) {
         rect(enemy->x - ehw, enemy->y - ehw, 2 * ehw, 2 * ehw, fighter_fallback_rgb);
     } else {
@@ -348,45 +348,9 @@ static void draw_result(const char *title) {
     ctext_scaled(tr_tap_to_return(), y + 188, 0xFFFFFF, 0.62);
 }
 
-/* Ультра: лёгкая цветокоррекция - прохлада сверху, тепло снизу. */
-static void draw_screen_grade(void) {
-    rect(0, 0, screen_w, screen_h * 0.62, 0x0C1B2E56);
-    rect(0, screen_h * 0.62, screen_w, screen_h * 0.38, 0x0C56341C);
-}
-
-/* Ультра: виньетка - затемнение к краям экрана кольцами. */
-static void draw_vignette(void) {
-    double cx = screen_w / 2;
-    double cy = screen_h / 2;
-    double rmax = sqrt(cx * cx + cy * cy);
-    double i = 0;
-    while (i < 9) {
-        double k = i / 8;
-        double a = 0.26 * k * k;
-        ring(cx, cy, rmax * (0.54 + 0.46 * k), rmax * 0.1, (((unsigned)(int)(a * 255)) << 24));
-        i = i + 1;
-    }
-}
-
-/* Полученный урон: экран слегка краснеет, не сильно. */
-static void draw_hurt_flash(void) {
-    if (gfx_ultra == 0 || player_hurt_a <= 0.01) {
-        return;
-    }
-    rect(0, 0, screen_w, screen_h, (((unsigned)(int)(0.22 * player_hurt_a * 255)) << 24) | 0xD81F1F);
-}
-
-/* Обработка кадра до интерфейса: только на ультра, на низкой её нет. */
-static void draw_screen_fx(void) {
-    if (gfx_ultra == 0) {
-        return;
-    }
-    draw_screen_grade();
-    draw_vignette();
-}
-
 static void draw_game(void) {
     resolve_fighter_looks();
+    motion_blur_track();
     draw_arena_background();
     draw_field();
     draw_dust();

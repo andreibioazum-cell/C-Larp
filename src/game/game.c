@@ -57,6 +57,7 @@
 #include "combat/battle_hitboxes.inc"
 #include "combat/battle_hitbox_fades.inc"
 #include "combat/battle_fighter_look.inc"
+#include "combat/battle_screen_fx.inc"
 #include "combat/battle_render.inc"
 #include "combat/battle_event_plates.inc"
 #include "combat/battle_event_infect.inc"

@@ -38,6 +38,7 @@
 #include "include/prototypes/combat/battle_hitboxes.inc"
 #include "include/prototypes/combat/battle_hitbox_fades.inc"
 #include "include/prototypes/combat/battle_fighter_look.inc"
+#include "include/prototypes/combat/battle_screen_fx.inc"
 #include "include/prototypes/combat/battle_render.inc"
 #include "include/prototypes/combat/battle_event_plates.inc"
 #include "include/prototypes/combat/battle_event_infect.inc"

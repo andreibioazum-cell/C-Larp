@@ -131,6 +131,7 @@ static void settings_from_storage(void) {
     music_volume = net_load_music_volume();
     winter_theme = net_load_winter_theme();
     gfx_ultra = net_load_gfx_ultra();
+    ds_gfx_grade(gfx_ultra);
 }
 
 static void save_settings(void) {

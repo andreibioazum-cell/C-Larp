@@ -174,6 +174,9 @@ void ds_log(const char *format, ...) {
 void ds_gfx_gray(double on) {
     (void)on;
 }
+void ds_gfx_grade(double on) {
+    (void)on;
+}
 void ds_gfx_shake(double amp, double seconds) {
     (void)amp;
     (void)seconds;

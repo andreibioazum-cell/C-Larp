@@ -63,6 +63,16 @@ double poison_a;
 double player_stun;
 double pstun_a;
 double player_hurt_a;
+/* Смаз движения: насколько боец сместился за прошлый кадр. */
+double mb_px;
+double mb_py;
+double mb_ex;
+double mb_ey;
+double mb_dx;
+double mb_dy;
+double mb_edx;
+double mb_edy;
+double mb_ok;
 double player_was_hit;
 double player_block;
 double dmg_from_x;
