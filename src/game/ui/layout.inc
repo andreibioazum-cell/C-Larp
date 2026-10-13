@@ -41,11 +41,9 @@ static double settings_btn_h(void) {
 }
 
 static double settings_top(void) {
-    double top = screen_h / 2 - (settings_btn_h() + (SETTINGS_ROWS - 1) * settings_stride()) / 2;
-    if (top < 8) {
-        top = 8;
-    }
-    return top;
+    /* Список настроек идёт от начала экрана, а не висит по центру: так первый
+     * пункт сразу под рукой, а не на середине высоты. */
+    return 12;
 }
 
 static double settings_row_y(double i) { return settings_top() + i * settings_stride(); }

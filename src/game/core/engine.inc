@@ -4,6 +4,9 @@ static void start_transition(double target) {
     }
     classes_swipe_reset();
     t_target = target;
+    /* Кнопка нажимается и сжимается, а экран в этот же кадр уже начал гаснуть
+     * - так нажатия не видно. Сначала даём кнопке досжаться, потом гасим. */
+    t_hold = transition_hold;
     t_dir = 1;
 }
 
@@ -50,6 +53,13 @@ static double enter_screen(double state) {
 
 static void update_transition(void) {
     if (t_dir == 1) {
+        if (t_hold > 0) {
+            t_hold = t_hold - dt;
+            if (t_hold < 0) {
+                t_hold = 0;
+            }
+            return;
+        }
         t_fade = t_fade + dt / transition_duration;
         if (t_fade >= 1) {
             t_fade = 1;

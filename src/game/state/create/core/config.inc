@@ -16,7 +16,10 @@ language = 0;
 t_dir = 0;
 t_target = 0;
 t_fade = 0;
+t_hold = 0;
 transition_duration = 0.10;
+/* Пауза перед затуханием: кнопка успевает сжаться под пальцем. */
+transition_hold = 0.11;
 ui_purple = 0xFF5F10A0;
 bg_screen = 0x1A1A2E;
 card_bg = 0xFF2A2A40;

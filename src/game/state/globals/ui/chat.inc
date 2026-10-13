@@ -1,6 +1,7 @@
 double chat_open;
 double sticker_menu_open;
 const char *chat_input;
+char chat_input_buf[128];
 double STICKER_BTN;
 double STICKER_TILE;
 const char *STICKER_LIKE;

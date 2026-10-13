@@ -168,18 +168,17 @@ void keyboard_hide(void) {
         ANativeActivity_hideSoftInput(kb_activity, ANATIVEACTIVITY_HIDE_SOFT_INPUT_IMPLICIT_ONLY);
 }
 
-/* Поле чата, логин и промокод держат этот текст дольше кадра, поэтому отдаём
- * его из своих слотов, а не из кадрового пула строк. */
-#define KB_TEXT_SLOTS 8
-static char kb_text_ret[KB_TEXT_SLOTS][KB_BUF];
-static int kb_text_ret_pos = 0;
-const char *keyboard_get_text(void) {
-    char *slot = kb_text_ret[kb_text_ret_pos];
-    kb_text_ret_pos = (kb_text_ret_pos + 1) % KB_TEXT_SLOTS;
+/* Текст клавиатуры забирают в свой буфер: поле чата, логин, пароль и промокод
+ * хранят его дольше одного кадра и каждый - свой. Общего буфера на все поля
+ * здесь быть не может: пока печатаешь пароль, незаметно перетрётся и логин,
+ * и наоборот. */
+void keyboard_get_text_to(char *dst, size_t cap) {
+    if (!dst || cap == 0) {
+        return;
+    }
     pthread_mutex_lock(&kb_mutex);
-    snprintf(slot, KB_BUF, "%s", kb_text);
+    snprintf(dst, cap, "%s", kb_text);
     pthread_mutex_unlock(&kb_mutex);
-    return slot;
 }
 
 const char *keyboard_get_raw(void) {

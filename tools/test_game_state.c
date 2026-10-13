@@ -207,7 +207,10 @@ void keyboard_hide(void) { stub_kb_visible = 0; }
 void keyboard_clear(void) { stub_kb[0] = 0; }
 void keyboard_show(void) { stub_kb_visible = 1; }
 int keyboard_visible(void) { return stub_kb_visible; }
-const char *keyboard_get_text(void) { return stub_kb; }
+void keyboard_get_text_to(char *dst, size_t cap) {
+    if (dst && cap)
+        snprintf(dst, cap, "%s", stub_kb);
+}
 const char *keyboard_get_raw(void) { return stub_kb; }
 void keyboard_type(const char *text) { snprintf(stub_kb, sizeof(stub_kb), "%s", text ? text : ""); }
 void keyboard_backspace(void) {

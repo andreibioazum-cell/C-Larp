@@ -267,6 +267,10 @@ static void draw_enemy_body(void) {
 /* A combat pad answers a press the way a menu button does: it shrinks a
  * little and darkens, so a punch that goes off on the touch still reads as a
  * press and not as a misfire. */
+/* Радиус боевой кнопки: 55 было исходным, просили на 10% меньше. */
+static double battle_pad_r(void) {
+    return 49.5;
+}
 static void draw_pad(double cx, double cy, double r, uint32_t col, const char *label, double scale) {
     double p = button_press_k(cx - r, cy - r, r * 2, r * 2);
     double s = 1 - PRESS_SQUEEZE * p;
@@ -279,11 +283,12 @@ static void draw_pad(double cx, double cy, double r, uint32_t col, const char *l
 static void draw_controls(void) {
     ring(joy.x, joy.y, joy.r, 4, 0x000000);
     circle(joy.x + joy.ox, joy.y + joy.oy, 34, 0x000000);
-    /* All three combat buttons are one size: 55px radius with a 110px label. */
-    draw_pad(atk_x, atk_y, 55, 0xE94560, tr_punch(), 0.55);
+    /* Все три боевые кнопки одного размера: исходный радиус 55 минус 10%.
+     * Блок ничуть не меньше удара и супера. */
+    draw_pad(atk_x, atk_y, battle_pad_r(), 0xE94560, tr_punch(), 0.55);
     if (game_state == ST_SOLO || game_state == ST_ONLINE) {
-        /* Guard sits between the punch and ability buttons, a little left. */
-        draw_pad(blk_x, blk_y, 55, player_block == 1 ? 0x2E6FBF : 0x3A5A8C, tr_block(), 0.55);
+        /* Блок стоит между ударом и супером, левее их обоих. */
+        draw_pad(blk_x, blk_y, battle_pad_r(), player_block == 1 ? 0x2E6FBF : 0x3A5A8C, tr_block(), 0.55);
     }
     if (class_has_super(player_class) == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE)) {
         const char *sl = tr_super();
@@ -305,7 +310,7 @@ static void draw_controls(void) {
             sl = ds_concat(ds_num_to_string((double)(floor(left + 0.999))), "");
             sls = 0.95;
         }
-        draw_pad(atk2_x, atk2_y, 55, 0x5F10A0, sl, sls);
+        draw_pad(atk2_x, atk2_y, battle_pad_r(), 0x5F10A0, sl, sls);
     }
     draw_battle_back();
 }

@@ -78,7 +78,7 @@ void alpha_notice_show(double russian);
 void bye_notice_show(const char *text);
 void keyboard_show(void);
 void keyboard_hide(void);
-const char *keyboard_get_text(void);
+void keyboard_get_text_to(char *dst, size_t cap);
 const char *keyboard_get_raw(void);
 void keyboard_clear(void);
 int keyboard_visible(void);

@@ -48,9 +48,11 @@ static void login_sync_field(void) {
         return;
     }
     if (login_field == 1) {
-        login_nick = keyboard_get_text();
+        keyboard_get_text_to(login_nick_buf, sizeof(login_nick_buf));
+        login_nick = login_nick_buf;
     } else {
-        login_pass = keyboard_get_text();
+        keyboard_get_text_to(login_pass_buf, sizeof(login_pass_buf));
+        login_pass = login_pass_buf;
     }
 }
 

@@ -173,7 +173,8 @@ static double promo_code_valid(const char *s) {
 
 static void promo_submit(void) {
     if (promo_focus == 1) {
-        promo_input = keyboard_get_text();
+        keyboard_get_text_to(promo_input_buf, sizeof(promo_input_buf));
+        promo_input = promo_input_buf;
     }
     const char *code = str_upper(str_trim(promo_input));
     if (str_len(code) == 0) {
@@ -211,7 +212,8 @@ static void update_promo(void) {
         return;
     }
     if (keyboard_visible() == 1) {
-        promo_input = keyboard_get_text();
+        keyboard_get_text_to(promo_input_buf, sizeof(promo_input_buf));
+        promo_input = promo_input_buf;
     }
     if (keyboard_enter_pressed() == 1) {
         promo_submit();

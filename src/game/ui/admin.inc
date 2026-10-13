@@ -182,7 +182,9 @@ static void admin_nick_copy(const char *src) {
 
 static void admin_input_sync(void) {
     if (admin_input_active == 1 && keyboard_visible() == 1) {
-        admin_nick_copy(keyboard_get_text());
+        char text[64];
+        keyboard_get_text_to(text, sizeof(text));
+        admin_nick_copy(text);
         admin_input_nick = admin_nick_buf;
     }
 }
