@@ -188,13 +188,12 @@ static void draw_guard(double x, double y, double angle, double on, double scale
     if (on <= 0) {
         return;
     }
+    /* A small round buckler held in front of the fighter — nothing else. */
     double r = 25 * cube_scale * scale;
-    double fx = x + cos(angle) * r * 1.5;
-    double fy = y + sin(angle) * r * 1.5;
-    double w = r * 2.1;
-    double h = r * 0.55;
-    ring(x, y, r * 1.55, 5, 0xC04FC3F7);
-    rect_rot(fx - w / 2, fy - h / 2, w, h, angle + pi / 2, 0xE02E6FBF);
+    double fx = x + cos(angle) * r * 1.25;
+    double fy = y + sin(angle) * r * 1.25;
+    circle(fx, fy, r * 0.62, 0xE02E6FBF);
+    circle(fx, fy, r * 0.34, 0xC04FC3F7);
 }
 
 static void draw_player_body_layer(void) {
@@ -270,21 +269,19 @@ static void draw_enemy_body(void) {
 static void draw_controls(void) {
     ring(joy.x, joy.y, joy.r, 4, 0x000000);
     circle(joy.x + joy.ox, joy.y + joy.oy, 34, 0x000000);
-    circle(atk_x, atk_y, 70, 0xE94560);
-    ring(atk_x, atk_y, 70, 4, 0x000000);
-    text_in_box(tr_punch(), atk_x - 70, atk_y - 70, 140, 140, 0xFFFFFF, 0.55);
+    /* All three combat buttons are one size: 55px radius with a 110px label. */
+    circle(atk_x, atk_y, 55, 0xE94560);
+    ring(atk_x, atk_y, 55, 4, 0x000000);
+    text_in_box(tr_punch(), atk_x - 55, atk_y - 55, 110, 110, 0xFFFFFF, 0.55);
     if (game_state == ST_SOLO || game_state == ST_ONLINE) {
-        /* Guard button sits right above the ability button: hold it to block. */
-        circle(blk_x, blk_y, 60, player_block == 1 ? 0x2E6FBF : 0x3A5A8C);
-        ring(blk_x, blk_y, 60, 4, 0x000000);
-        if (player_block == 1) {
-            ring(blk_x, blk_y, 70, 5, 0xC04FC3F7);
-        }
-        text_in_box(tr_block(), blk_x - 60, blk_y - 60, 120, 120, 0xFFFFFF, 0.55);
+        /* Guard sits between the punch and ability buttons, a little left. */
+        circle(blk_x, blk_y, 55, player_block == 1 ? 0x2E6FBF : 0x3A5A8C);
+        ring(blk_x, blk_y, 55, 4, 0x000000);
+        text_in_box(tr_block(), blk_x - 55, blk_y - 55, 110, 110, 0xFFFFFF, 0.55);
     }
     if (class_has_super(player_class) == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE)) {
-        circle(atk2_x, atk2_y, 70, 0x5F10A0);
-        ring(atk2_x, atk2_y, 70, 4, 0x000000);
+        circle(atk2_x, atk2_y, 55, 0x5F10A0);
+        ring(atk2_x, atk2_y, 55, 4, 0x000000);
         const char *sl = tr_super();
         if (player_class == CLASS_EBUC) {
             sl = tr_super_ebuc();
@@ -304,7 +301,7 @@ static void draw_controls(void) {
             sl = ds_concat(ds_num_to_string((double)(floor(left + 0.999))), "");
             sls = 0.95;
         }
-        text_in_box(sl, atk2_x - 70, atk2_y - 70, 140, 140, 0xFFFFFF, sls);
+        text_in_box(sl, atk2_x - 55, atk2_y - 55, 110, 110, 0xFFFFFF, sls);
     }
     draw_battle_back();
 }

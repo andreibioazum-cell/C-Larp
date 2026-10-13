@@ -401,7 +401,7 @@ static void logic_touch(double x, double y, double action, double id) {
          * rows behind it never fire. */
         press_x = tap_x;
         press_y = tap_y;
-        double dialog_skip = game_state == ST_LOBBY && new_theme == 1 && cube_npc_dialogue_active == 1;
+        double dialog_skip = game_state == ST_LOBBY && cube_npc_dialogue_active == 1;
         if (menu_button_hit(tap_x, tap_y) == 1 && dialog_skip == 0) {
             play_button_click();
         }

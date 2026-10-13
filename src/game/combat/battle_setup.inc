@@ -183,8 +183,8 @@ static void reset_battle(void) {
     atk_y = screen_h - 150;
     atk2_x = screen_w - 140;
     atk2_y = screen_h - 310;
-    blk_x = screen_w - 140;
-    blk_y = screen_h - 470;
+    blk_x = screen_w - 215;
+    blk_y = screen_h - 230;
     drop_joy();
     arr_clear(remotes);
     arr_clear(remote_punches);

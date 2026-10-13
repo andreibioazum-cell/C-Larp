@@ -168,11 +168,7 @@ static void button(const char *label, double x, double y, double w, double h) {
     double bw = w * s;
     double bh = h * s;
     double col = shade(ui_purple, 1 - 0.25 * p);
-    if (new_theme == 1) {
-        cb_button_gradient(bx, by, bw, bh, btn_radius, col);
-    } else {
-        roundrect(bx, by, bw, bh, btn_radius, col);
-    }
+    cb_button_gradient(bx, by, bw, bh, btn_radius, col);
     text_in_box(label, bx, by, bw, bh, shade(text_color, 1 - 0.25 * p), s);
 }
 
@@ -184,11 +180,7 @@ static void button_scaled(const char *label, double x, double y, double w, doubl
     double bw = w * s;
     double bh = h * s;
     double col = shade(ui_purple, 1 - 0.25 * p);
-    if (new_theme == 1) {
-        cb_button_gradient(bx, by, bw, bh, btn_radius, col);
-    } else {
-        roundrect(bx, by, bw, bh, btn_radius, col);
-    }
+    cb_button_gradient(bx, by, bw, bh, btn_radius, col);
     text_in_box(label, bx, by, bw, bh, shade(text_color, 1 - 0.25 * p), scale * s);
 }
 
@@ -213,15 +205,10 @@ static void outline_arc(double cx, double cy, double rr, double t, uint32_t c, d
 }
 
 static void apply_theme(void) {
-    if (new_theme == 1) {
-        ui_purple = 0xFF5F10A0;
-        bg_screen = 0x1A1A2E;
-        transition_duration = 0.10;
-    } else {
-        ui_purple = 0xFFD4508A;
-        bg_screen = 0xFF3A1530;
-        transition_duration = 0.10;
-    }
+    /* The old pink theme is gone; these are the only look now. */
+    ui_purple = 0xFF5F10A0;
+    bg_screen = 0x1A1A2E;
+    transition_duration = 0.10;
 }
 
 static void draw_back(void) {
@@ -239,18 +226,14 @@ static void draw_battle_back(void) { button(tr_back(), battle_back_x(), battle_b
 static double battle_back_hit(double x, double y) { return hit_rect_pad(x, y, battle_back_x(), battle_back_y(), btn_w, btn_h); }
 
 static void screen_fill(void) {
-    if (new_theme == 0) {
-        rect(0, 0, screen_w, screen_h, bg_screen);
-    } else {
-        double top = bg_screen;
-        double bottom = bg_gradient_bottom;
-        if (newyear_active() == 1) {
-            top = newyear_bg_top;
-            bottom = newyear_bg_bottom;
-        }
-        rect(0, 0, screen_w, screen_h, top);
-        draw_bottom_gradient(top, bottom);
+    double top = bg_screen;
+    double bottom = bg_gradient_bottom;
+    if (newyear_active() == 1) {
+        top = newyear_bg_top;
+        bottom = newyear_bg_bottom;
     }
+    rect(0, 0, screen_w, screen_h, top);
+    draw_bottom_gradient(top, bottom);
     /* Winter snow is part of the backdrop: every menu screen paints its
      * background here first, so flakes fall across the whole width - buttons
      * included - yet never on top of a button or the dialogue. */

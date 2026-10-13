@@ -98,8 +98,8 @@ static double update_remote_grab(double slot) {
         remote_grab_set(slot, GRAB_HITS, remote_grab_get(slot, GRAB_HITS) + 1);
         pgrab_hits = remote_grab_get(slot, GRAB_HITS);
         remote_grab_swing(slot);
-        super_beat_shake();
-        if (take_damage(astra_beat_damage(player->max_hp)) == 1) {
+        if (take_damage_at(astra_beat_damage(player->max_hp), arr_get(remotes, slot * remote_fields + 1),
+                          arr_get(remotes, slot * remote_fields + 2)) == 1) {
             remote_grab_stop(slot);
             return 1;
         }
@@ -113,8 +113,8 @@ static double update_remote_grab(double slot) {
         /* remote_grab_stop() clears the grab immediately, so explicitly pulse
          * the final damage zone and let the normal fade-out render it. */
         arr_set(rgrab_box_a, slot, 1);
-        super_hit_shake();
-        double dead = take_damage(astra_final_damage(player->max_hp));
+        double dead = take_damage_at(astra_final_damage(player->max_hp), arr_get(remotes, slot * remote_fields + 1),
+                                     arr_get(remotes, slot * remote_fields + 2));
         remote_grab_stop(slot);
         if (dead == 1) {
             return 1;

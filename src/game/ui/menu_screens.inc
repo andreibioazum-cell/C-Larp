@@ -47,9 +47,7 @@ static void draw_lobby(void) {
     draw_menu_button(4, tr_achievements());
     draw_lobby_nick();
     draw_lobby_money();
-    if (new_theme == 1) {
-        draw_lobby_npc_cube();
-    }
+    draw_lobby_npc_cube();
     if (str_len(banned_msg) > 0) {
         ctext(banned_msg, lobby_msg_y(), text_color);
     }
@@ -62,14 +60,7 @@ static void draw_modes(void) {
     button(tr_online(), menu_x(), modes_row(2), menu_btn_w(), btn_h);
     button(tr_top(), menu_x(), modes_row(3), menu_btn_w(), btn_h);
     button(tr_promo(), menu_x(), modes_row(4), menu_btn_w(), btn_h);
-    if (new_theme == 1) {
-        button_scaled(tr_winter_toggle(), menu_x(), modes_row(5), menu_btn_w(), btn_h, 0.8);
-    }
-}
-
-static const char *theme_label(void) {
-    if (new_theme == 1) return "Тема: Новая";
-    return "Тема: Старая";
+    button_scaled(tr_winter_toggle(), menu_x(), modes_row(5), menu_btn_w(), btn_h, 0.8);
 }
 
 static void draw_settings(void) {
@@ -79,8 +70,7 @@ static void draw_settings(void) {
     button("Русский", menu_x(), settings_row_y(2), menu_btn_w(), settings_btn_h());
     button(tr_hitboxes_toggle(), menu_x(), settings_row_y(3), menu_btn_w(), settings_btn_h());
     button(tr_music_state(), menu_x(), settings_row_y(4), menu_btn_w(), settings_btn_h());
-    button(theme_label(), menu_x(), settings_row_y(5), menu_btn_w(), settings_btn_h());
-    button_scaled(tr_privacy(), menu_x(), settings_row_y(6), menu_btn_w(), settings_btn_h(), 0.8);
+    button_scaled(tr_privacy(), menu_x(), settings_row_y(5), menu_btn_w(), settings_btn_h(), 0.8);
 }
 
 static void draw_privacy(void) {

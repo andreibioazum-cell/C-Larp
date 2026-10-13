@@ -226,8 +226,7 @@ static void update_gift(void) {
     if (game_state != ST_ONLINE) {
         if (circle_hits_enemy(boom_x, boom_y, super_radius) == 1 && enemy_revive_prot <= 0) {
             freeze_enemy(santa_freeze_time_for(player_level), super_freeze_slow);
-            enemy_apply_damage(santa_super_damage);
-            super_hit_shake();
+            enemy_apply_damage_at(santa_super_damage, boom_x, boom_y);
         }
     }
 }

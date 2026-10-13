@@ -364,10 +364,13 @@ static void touch_game(double x, double y, double action, double id) {
         }
         return;
     }
-    /* The guard is a hold button checked before the ability button: while the
-     * finger is down the fighter blocks, on release the guard drops. */
+    /* The three combat buttons sit close together, so the nearest one wins the
+     * press. The guard is a hold button: fingers-down blocks, release drops. */
     if (game_state == ST_SOLO || game_state == ST_ONLINE) {
-        if (action == 0 && sqrt((x - blk_x) * (x - blk_x) + (y - blk_y) * (y - blk_y)) <= 80) {
+        double dp = dist(x, y, atk_x, atk_y);
+        double dsu = class_has_super(player_class) == 1 ? dist(x, y, atk2_x, atk2_y) : 1e9;
+        double db = dist(x, y, blk_x, blk_y);
+        if (action == 0 && db <= 96 && db <= dp && db <= dsu) {
             blk_id = id;
             player_block = 1;
             return;
@@ -379,21 +382,23 @@ static void touch_game(double x, double y, double action, double id) {
             }
             return;
         }
-    }
-    if (class_has_super(player_class) == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE)) {
-        if (action == 0 && sqrt((x - atk2_x) * (x - atk2_x) + (y - atk2_y) * (y - atk2_y)) <= 96) {
-            super_id = id;
+        if (class_has_super(player_class) == 1) {
+            if (action == 0 && dsu <= 96 && dsu <= dp) {
+                super_id = id;
+                return;
+            }
+        }
+        if (action == 0 && dp <= 96) {
+            aim_id = id;
             return;
         }
+    }
+    if (class_has_super(player_class) == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE)) {
         if (action == 1 && id == super_id) {
             super_id = -1;
             fire_super();
             return;
         }
-    }
-    if (action == 0 && sqrt((x - atk_x) * (x - atk_x) + (y - atk_y) * (y - atk_y)) <= 96) {
-        aim_id = id;
-        return;
     }
     if (action == 1 && id == aim_id) {
         aim_id = -1;

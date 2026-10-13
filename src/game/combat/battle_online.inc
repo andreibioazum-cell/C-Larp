@@ -112,7 +112,8 @@ static void update_remote_punches(void) {
                     double rlevel = net_player_level(s);
                     if (target == 0) {
                         if (revive_prot <= 0) {
-                            take_damage(rdmg);
+                            take_damage_at(rdmg, arr_get(remotes, s * remote_fields + 1),
+                                           arr_get(remotes, s * remote_fields + 2));
                             if (rcls == CLASS_SANTA) {
                                 if (player_poison <= 0) {
                                     player_poison_tick = santa_poison_tick_interval;

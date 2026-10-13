@@ -1,5 +1,5 @@
 static void universe_collapse(double dmg);
-static void universe_collapse_remote(double dmg);
+static void universe_collapse_remote(double dmg, double sx, double sy);
 static void tick_universe(void);
 static void update_remote_station(void);
 static void update_remote_universe(void);

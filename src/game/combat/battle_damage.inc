@@ -1,17 +1,34 @@
-/* Called at every super impact so the camera rattles a little when a big
- * ability lands — both sides of the fight shake the same shared view. */
-static void super_hit_shake(void) {
-    ds_gfx_shake(6, 0.18);
+/* The screen shakes on every damage event that lands, not on ability casts:
+ * punches, supers, poison ticks — if health drops, the camera taps. */
+static void damage_taken_shake(double dmg) {
+    double amp = 3 + dmg * 1.2;
+    if (amp > 7) {
+        amp = 7;
+    }
+    ds_gfx_shake(amp, 0.12);
 }
 
-/* Grab beats land in a rhythm; each one gets a tiny tap instead of a jolt. */
-static void super_beat_shake(void) {
-    ds_gfx_shake(3, 0.1);
+/* Does the raised shield cover this hit? Only strikes from the front do;
+ * sources behind the fighter punch through the guard at full force. */
+static double block_covers(void) {
+    if (dmg_from_k == 0) {
+        return 1;
+    }
+    double a = atan2(dmg_from_y - player->y, dmg_from_x - player->x);
+    double da = a - player->angle;
+    while (da > pi) {
+        da = da - 2 * pi;
+    }
+    while (da < 0 - pi) {
+        da = da + 2 * pi;
+    }
+    return fabs(da) <= block_front_angle;
 }
 
 static double take_damage(double dmg) {
     /* God mode from the admin panel: the hit never lands at all. */
     if (admin_cheat_god() == 1) {
+        dmg_from_k = 0;
         return 0;
     }
     /* Track the hit before Ebuc's turrets absorb it: shielded damage still
@@ -20,10 +37,11 @@ static double take_damage(double dmg) {
         player_was_hit = 1;
     }
     double real = dmg;
-    /* Held guard cuts every incoming ability: punches, supers, poison, grabs. */
-    if (player_block == 1) {
+    /* Held guard cuts every ability that reaches it from the front. */
+    if (player_block == 1 && block_covers() == 1) {
         real = real * block_guard;
     }
+    dmg_from_k = 0;
     if (player_class == CLASS_EBUC) {
         real = player_shield_absorb(real);
     }
@@ -32,6 +50,7 @@ static double take_damage(double dmg) {
     }
     if (real > 0) {
         player_hurt_a = 1;
+        damage_taken_shake(real);
     }
     player->hp = clamp(player->hp - real, 0, player->max_hp);
     if (player->hp <= 0) {
@@ -42,6 +61,15 @@ static double take_damage(double dmg) {
         }
     }
     return 0;
+}
+
+/* Same as take_damage but remembers where the strike came from, so the shield
+ * can tell a frontal hit from a backstab. */
+static double take_damage_at(double dmg, double sx, double sy) {
+    dmg_from_x = sx;
+    dmg_from_y = sy;
+    dmg_from_k = 1;
+    return take_damage(dmg);
 }
 
 static void heal_after_attack(void) {

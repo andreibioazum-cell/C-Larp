@@ -77,24 +77,44 @@ static void enemy_pick_random_class(void) {
     ds_log("enemy class %g hp %g", enemy_class, enemy->max_hp);
 }
 
+/* The enemy's guard is directional too: only frontal strikes hit the shield. */
+static double enemy_block_covers(void) {
+    if (dmg_from_k == 0) {
+        return 1;
+    }
+    double a = atan2(dmg_from_y - enemy->y, dmg_from_x - enemy->x);
+    double da = a - enemy->angle;
+    while (da > pi) {
+        da = da - 2 * pi;
+    }
+    while (da < 0 - pi) {
+        da = da + 2 * pi;
+    }
+    return fabs(da) <= block_front_angle;
+}
+
 static double enemy_apply_damage(double dmg) {
     if (finished != 0) {
+        dmg_from_k = 0;
         return 1;
     }
     /* Damage x5 from the admin panel multiplies everything the enemy takes. */
     dmg = dmg * admin_cheat_damage_mult();
     if (enemy_revive_prot > 0) {
+        dmg_from_k = 0;
         return 0;
     }
-    /* A raised guard eats most of any ability, exactly like the player's. */
-    if (enemy_block_left > 0) {
+    /* A raised guard eats part of any frontal ability, like the player's. */
+    if (enemy_block_left > 0 && enemy_block_covers() == 1) {
         dmg = dmg * block_guard;
     }
+    dmg_from_k = 0;
     if (enemy_class == CLASS_EBUC) {
         dmg = enemy_shield_absorb(dmg);
     }
     if (dmg > 0) {
         enemy_hurt_a = 1;
+        damage_taken_shake(dmg);
         /* Humans flinch into a guard after eating a hit — sometimes. */
         if (enemy_block_left <= 0 && enemy_block_cd <= 0 && enemy->stun <= 0 && enemy->state == 0 &&
             rand() % 100 < 18) {
@@ -113,6 +133,13 @@ static double enemy_apply_damage(double dmg) {
         return 1;
     }
     return 0;
+}
+
+static double enemy_apply_damage_at(double dmg, double sx, double sy) {
+    dmg_from_x = sx;
+    dmg_from_y = sy;
+    dmg_from_k = 1;
+    return enemy_apply_damage(dmg);
 }
 
 static double enemy_try_revive(void) {
@@ -176,8 +203,7 @@ static void enemy_snow_explode(void) {
                 player_freeze = santa_freeze_time_for(enemy_level);
                 player_freeze_slow = super_freeze_slow;
             }
-            take_damage(santa_super_damage);
-            super_hit_shake();
+            take_damage_at(santa_super_damage, enemy_boom_x, enemy_boom_y);
         }
     }
 }
