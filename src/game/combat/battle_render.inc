@@ -237,11 +237,11 @@ static void draw_enemy_shadow(void) {
     double sx = enemy->x - shadow_off;
     double sy = enemy->y + shadow_off;
     if (look == LOOK_NONE) {
-        draw_shadow_blur_circle(sx, sy, ehw, shadow_alpha, ehw * 0.13);
+        draw_shadow_blur_circle(sx, sy, ehw, shadow_alpha * 1.7, ehw * 0.07);
         return;
     }
     draw_shadow_blur_tex(sx, sy, ehw, es, look_tex(look, fighter_pose_of(FLOOK_BOT, enemy_punching_now())),
-                         sprite_a(enemy->angle), shadow_alpha, ehw * 0.13);
+                         sprite_a(enemy->angle), shadow_alpha * 1.7, ehw * 0.07);
 }
 
 static void draw_enemy_hitbox(void) {
@@ -275,10 +275,10 @@ static void draw_enemy_body(void) {
 /* A combat pad answers a press the way a menu button does: it shrinks a
  * little and darkens, so a punch that goes off on the touch still reads as a
  * press and not as a misfire. */
-/* Радиус боевой кнопки: исходный 55, по просьбе немного меньше и снова чуть
- * больше - так палец попадает без промаха. */
+/* Радиус боевой кнопки: исходный 55, по просьбе сделан заметно больше - палец
+ * должен попадать без промаха. */
 static double battle_pad_r(void) {
-    return 53;
+    return 60;
 }
 static void draw_pad(double cx, double cy, double r, uint32_t col, const char *label, double scale) {
     double p = button_press_k(cx - r, cy - r, r * 2, r * 2);
@@ -292,8 +292,8 @@ static void draw_pad(double cx, double cy, double r, uint32_t col, const char *l
 static void draw_controls(void) {
     ring(joy.x, joy.y, joy.r, 4, 0x000000);
     circle(joy.x + joy.ox, joy.y + joy.oy, 34, 0x000000);
-    /* Все три боевые кнопки одного размера: исходный радиус 55 минус 10%.
-     * Блок ничуть не меньше удара и супера. */
+    /* Все три боевые кнопки одного размера и заметно крупнее прежнего:
+     * блок ничуть не меньше удара и супера. */
     draw_pad(atk_x, atk_y, battle_pad_r(), 0xE94560, tr_punch(), 0.55);
     if (game_state == ST_SOLO || game_state == ST_ONLINE) {
         /* Блок стоит между ударом и супером, левее их обоих. */

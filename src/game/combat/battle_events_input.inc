@@ -139,6 +139,7 @@ static void draw_online(void) {
         return;
     }
     resolve_fighter_looks();
+    motion_blur_track();
     draw_arena_background();
     draw_disco();
     draw_infect();
@@ -235,9 +236,11 @@ static void draw_online(void) {
     draw_status_aura(player->x, player->y, player->size, poison_rgb, poison_rim, ppoison_a);
     draw_status_aura(player->x, player->y, player->size, stun_rgb, stun_rim, pstun_a);
     draw_snow();
+    draw_screen_fx();
     double w = screen_w / 3;
     hud_bar(20, 20, w, 28, player->hp, player->max_hp, 0x7ED321, 0);
     draw_controls();
+    draw_hurt_flash();
     draw_chat();
     draw_plates_hud();
     if (finished == 2) {

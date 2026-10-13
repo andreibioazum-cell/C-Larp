@@ -155,11 +155,11 @@ static void draw_fighter_shadow(double x, double y, double ang, double look, dou
     double sx = x - shadow_off;
     double sy = y + shadow_off;
     if (look == LOOK_NONE) {
-        draw_shadow_blur_circle(sx, sy, half_px, shadow_alpha, half_px * 0.13);
+        draw_shadow_blur_circle(sx, sy, half_px, shadow_alpha * 1.7, half_px * 0.07);
         return;
     }
-    draw_shadow_blur_tex(sx, sy, half_px, sprite_scale, look_tex(look, punching), sprite_a(ang), shadow_alpha,
-                         half_px * 0.13);
+    draw_shadow_blur_tex(sx, sy, half_px, sprite_scale, look_tex(look, punching), sprite_a(ang), shadow_alpha * 1.7,
+                         half_px * 0.07);
 }
 
 static void draw_fighter_body(double x, double y, double ang, double look, double punching) {

@@ -278,19 +278,13 @@ static void touch_modes(double x, double y) {
         return;
     }
     if (hit_gfx_low(x, y) == 1) {
-        if (gfx_ultra != 0) {
-            gfx_ultra = 0;
-            ds_gfx_grade(0);
-            save_settings();
-        }
+        gfx_ultra = 0;
+        save_settings();
         return;
     }
     if (hit_gfx_ultra(x, y) == 1) {
-        if (gfx_ultra != 1) {
-            gfx_ultra = 1;
-            ds_gfx_grade(1);
-            save_settings();
-        }
+        gfx_ultra = 1;
+        save_settings();
     }
 }
 

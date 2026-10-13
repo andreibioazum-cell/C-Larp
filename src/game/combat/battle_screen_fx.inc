@@ -4,11 +4,14 @@
 /* Ультра: виньетка затемняет именно края экрана - восемь полос по периметру,
  * каждая ближе к центру светлее. Прямоугольник по форме экрана, а не круг. */
 static void draw_vignette(void) {
-    int steps = 8;
-    double sx = screen_w * 0.07 / steps;
-    double sy = screen_h * 0.07 / steps;
-    double tw = sx * 1.7;
-    double th = sy * 1.7;
+    /* Много узких полос вместо восьми широких: соседние отличаются на 4-5
+     * единиц прозрачности, поэтому ступенек не видно - только плавный уход
+     * в темноту у краёв. */
+    int steps = 28;
+    double sx = screen_w * 0.075 / steps;
+    double sy = screen_h * 0.075 / steps;
+    double tw = sx * 1.6;
+    double th = sy * 1.6;
     int i = 0;
     while (i < steps) {
         double k = (steps - 1 - i) / (double)(steps - 1);

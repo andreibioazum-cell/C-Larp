@@ -178,12 +178,14 @@ static void reset_battle(void) {
     joy.x = 130;
     joy.y = screen_h - 150;
     joy.r = 70;
-    atk_x = screen_w - 140;
-    atk_y = screen_h - 150;
-    atk2_x = screen_w - 140;
-    atk2_y = screen_h - 310;
-    blk_x = screen_w - 215;
-    blk_y = screen_h - 230;
+    /* Кнопки крупные, поэтому разнесены шире: между центрами больше двух
+     * радиусов, иначе круги залезают друг на друга. */
+    atk_x = screen_w - 132;
+    atk_y = screen_h - 138;
+    atk2_x = screen_w - 132;
+    atk2_y = screen_h - 330;
+    blk_x = screen_w - 258;
+    blk_y = screen_h - 234;
     drop_joy();
     arr_clear(remotes);
     arr_clear(remote_punches);
