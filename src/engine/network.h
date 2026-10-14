@@ -196,6 +196,14 @@ void net_save_new_theme(double on);
 
 void settings_mark_legal(void);
 double settings_legal_ts(void);
+/* Согласие на обработку персональных данных (152-ФЗ): version 0 — отзыв. */
+void settings_set_pd_consent(double version);
+double settings_pd_consent_version(void);
+void net_pd_consent_upload(void);
+/* Удалить аккаунт, облачный профиль и данные на устройстве. Статус:
+ * 0 — ничего, 1 — идёт, 2 — удалено, 3 — ошибка (результат отдаётся один раз). */
+void net_delete_account(void);
+double net_delete_account_status(void);
 
 double net_banned(void);
 double net_is_banned(const char *nick);

@@ -11,6 +11,12 @@ static const char *login_error_text(void) {
     if (login_status == 7) {
         return tr_bad_pass();
     }
+    if (login_status == 8) {
+        return tr_consent_needed();
+    }
+    if (login_status == 9) {
+        return tr_bad_nick_rules();
+    }
     return "";
 }
 
@@ -40,6 +46,7 @@ static void draw_login(void) {
     if (str_len(err) > 0) {
         ctext(err, login_msg_y(), text_color);
     }
+    draw_login_consent();
     draw_back();
 }
 
@@ -79,6 +86,9 @@ static void login_open(void) {
     login_status = 0;
     login_nick = "";
     login_pass = "";
+    /* Галочка не стоит заранее (152-ФЗ, ст. 9): она отмечена, только если
+     * игрок уже дал согласие на действующую редакцию документов. */
+    login_consent = consent_ok();
     keyboard_clear();
     keyboard_hide();
 }
@@ -95,6 +105,16 @@ static void login_do(void) {
         keyboard_hide();
         return;
     }
+    if (nick_blocked(login_nick) == 1) {
+        login_status = 9;
+        keyboard_hide();
+        return;
+    }
+    if (login_consent != 1) {
+        login_status = 8;
+        keyboard_hide();
+        return;
+    }
     double res = net_auth(FIREBASE, login_nick, login_pass);
     if (res != 2) {
         login_status = res;
@@ -103,6 +123,7 @@ static void login_do(void) {
     login_status = 0;
     keyboard_hide();
     keyboard_clear();
+    consent_give();
     progress_from_storage();
     settings_from_storage();
     start_transition(login_after);
@@ -118,68 +139,6 @@ static void update_login(void) {
         } else {
             login_do();
         }
-    }
-}
-
-static double warn_rgb(double rgb) {
-    return (1 + floor(warn_a * 254)) * 0x1000000 + rgb;
-}
-
-static void draw_warning(void) {
-    rect(0, 0, screen_w, screen_h, warn_rgb(0));
-    uint32_t body = warn_rgb(text_color);
-    double y = screen_h / 2 - 196;
-    ctext_scaled(tr_warn_title_en(), y, body, 1.15);
-    ctext_scaled(tr_warn_en1(), y + 48, body, 0.52);
-    ctext_scaled(tr_warn_en2(), y + 76, body, 0.52);
-    ctext_scaled(tr_warn_en3(), y + 104, body, 0.52);
-    ctext_scaled(tr_warn_en4(), y + 132, body, 0.52);
-    ctext_scaled(tr_warn_title_ru(), y + 186, body, 1.15);
-    ctext_scaled(tr_warn_ru1(), y + 234, body, 0.52);
-    ctext_scaled(tr_warn_ru2(), y + 262, body, 0.52);
-    ctext_scaled(tr_warn_ru3(), y + 290, body, 0.52);
-    ctext_scaled(tr_warn_ru4(), y + 318, body, 0.52);
-    const char *label = tr_legal_accept();
-    if (warn_ready < 1) {
-        label =
-            ds_concat(ds_concat(ds_concat(label, " ("), ds_num_to_string((double)((warn_wait - floor(warn_t))))), ")");
-    }
-    double scale = fit_text_scale(label, warn_btn_w() - 24, 0.8);
-    double bw = warn_btn_w();
-    double bx = center_x(bw);
-    double by = warn_btn_y();
-    /* The consent button answers the touch like every other button. The
-     * screen under the warning is drawn first, so it is told to keep its
-     * hands off this touch (press_overlay) and only this button claims it. */
-    press_overlay = 1;
-    double p = button_press_k(bx, by, bw, btn_h);
-    press_overlay = 0;
-    double s = 1 - PRESS_SQUEEZE * p;
-    double k = 1 - PRESS_SHADE * p;
-    double sx = squeeze_x(bx, bw, s);
-    double sy = squeeze_y(by, by, btn_h, s);
-    roundrect(sx, sy, bw * s, btn_h * s, btn_radius, warn_rgb(0));
-    roundrect_outline(sx, sy, bw * s, btn_h * s, btn_radius, warn_frame_th, warn_rgb(shade(0xFFFFFF, k)));
-    text_in_box(label, sx, sy, bw * s, btn_h * s, warn_rgb(shade(0xFFFFFF, k)), scale * s);
-}
-
-static void legal_accept(void) {
-    if (warn_ready < 1 || warn_closing == 1) {
-        return;
-    }
-    warn_close_t = 0;
-    warn_closing = 1;
-    settings_mark_legal();
-}
-
-static void touch_warn(double x, double y, double action) {
-    /* The consent button acts on the press, like every other button. */
-    if (action != 0) {
-        return;
-    }
-    if (hit_warn_btn(x, y) == 1) {
-        play_button_click();
-        legal_accept();
     }
 }
 
@@ -204,6 +163,11 @@ static void open_online(void) {
     if (net_login_status() != 2) {
         login_after = ST_ONLINE;
         start_transition(ST_LOGIN);
+        return;
+    }
+    /* Онлайн-бой и чат - обработка данных: без согласия туда не пускаем. */
+    if (consent_ok() == 0) {
+        docs_show(LEGAL_PAGE_CONSENT, 1);
         return;
     }
     if (net_is_banned(net_login_nick()) == 1) {
@@ -320,7 +284,7 @@ static void touch_settings(double x, double y) {
         return;
     }
     if (hit_settings_row(x, y, 6) == 1) {
-        start_transition(ST_PRIVACY);
+        docs_show(0, 0);
         return;
     }
 }
@@ -394,6 +358,18 @@ static void touch_login(double x, double y, double action) {
     if (hit_login_btn(x, y) == 1) {
         login_do();
         keyboard_hide();
+        return;
+    }
+    if (hit_login_more(x, y) == 1) {
+        login_sync_field();
+        docs_show(LEGAL_PAGE_CONSENT - 2, 0);
+        return;
+    }
+    if (hit_login_consent(x, y) == 1) {
+        login_consent = 1 - login_consent;
+        if (login_status == 8) {
+            login_status = 0;
+        }
         return;
     }
     login_sync_field();

@@ -47,6 +47,8 @@ static void draw_lobby(void) {
     draw_menu_button(4, tr_achievements());
     draw_lobby_nick();
     draw_lobby_money();
+    /* Знак информационной продукции (436-ФЗ) виден в главном меню всегда. */
+    draw_age_mark(screen_w - screen_margin - 80, back_y, 80, text_color);
     if (new_theme == 1) {
         draw_lobby_npc_cube(); /* the NPC cube belongs to the new theme */
     }
@@ -74,28 +76,8 @@ static void draw_settings(void) {
     button(tr_hitboxes_toggle(), menu_x(), settings_row_y(3), menu_btn_w(), settings_btn_h());
     button(tr_music_state(), menu_x(), settings_row_y(4), menu_btn_w(), settings_btn_h());
     button(tr_theme_label(), menu_x(), settings_row_y(5), menu_btn_w(), settings_btn_h());
-    button_scaled(tr_privacy(), menu_x(), settings_row_y(6), menu_btn_w(), settings_btn_h(), 0.8);
-}
-
-static void draw_privacy(void) {
-    screen_fill();
-    draw_back();
-    double top = screen_h / 2 - 160;
-    if (top < 96) {
-        top = 96;
-    }
-    ctext_scaled(tr_privacy_title(), top, text_color, 0.9);
-    double y = top + 54;
-    ctext_scaled(tr_privacy_line1(), y, text_color, 0.5);
-    ctext_scaled(tr_privacy_line2(), y + 26, text_color, 0.5);
-    ctext_scaled(tr_privacy_line3(), y + 52, text_color, 0.5);
-    ctext_scaled(tr_privacy_line4(), y + 78, text_color, 0.5);
-    ctext_scaled(tr_privacy_line5(), y + 104, text_color, 0.5);
-    ctext_scaled(tr_privacy_line6(), y + 130, text_color, 0.5);
-    ctext_scaled(tr_privacy_line7(), y + 156, text_color, 0.5);
-    ctext_scaled(tr_privacy_line8(), y + 182, text_color, 0.5);
-    ctext_scaled(tr_privacy_line9(), y + 208, text_color, 0.5);
-    ctext_scaled(tr_privacy_line10(), y + 234, text_color, 0.5);
+    button_scaled(tr_legal(), menu_x(), settings_row_y(6), menu_btn_w(), settings_btn_h(),
+                  fit_text_scale(tr_legal(), menu_btn_w() - 24, 0.8));
 }
 
 static void draw_card_look(double look, double x, double y, double scale) {

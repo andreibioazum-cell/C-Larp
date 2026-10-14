@@ -21,7 +21,9 @@
         android:label="Cubic Battle 4"
         android:icon="@mipmap/ic_launcher"
         android:hasCode="true"
-        android:extractNativeLibs="true">
+        android:extractNativeLibs="true"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="false">
         <activity
             android:name="com.cb4.GameActivity"
             android:configChanges="orientation|keyboard|keyboardHidden|screenSize|smallestScreenSize|screenLayout|navigation|uiMode|density|fontScale|layoutDirection|locale"

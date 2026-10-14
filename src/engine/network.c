@@ -15,6 +15,7 @@
 #include "engine/network/net_auth_flow.inc"
 #include "engine/network/moderation.inc"
 #include "engine/network/ban_list.inc"
+#include "engine/network/account_delete.inc"
 #include "engine/network/room_control.inc"
 #include "engine/network/leaderboard.inc"
 #include "engine/network/room_sync.inc"

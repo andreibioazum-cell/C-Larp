@@ -152,6 +152,37 @@ static int run_legal_read(const char *dir) {
     return 0;
 }
 
+static int run_fresh(const char *dir) {
+    net_set_data_path(dir);
+    assert(net_load_language() == 1); /* a new install speaks Russian (168-FZ) */
+    assert(settings_pd_consent_version() == 0); /* no consent until the player ticks the box */
+    puts("native fresh: Russian by default, no data consent until it is given");
+    return 0;
+}
+
+static int run_consent(const char *dir) {
+    net_set_data_path(dir);
+    settings_set_pd_consent(1);
+    assert(settings_pd_consent_version() == 1);
+    puts("native consent: personal data consent stored with its version and time");
+    return 0;
+}
+
+static int run_delete(const char *dir) {
+    int spins = 0;
+    double st;
+    net_set_data_path(dir);
+    assert(settings_pd_consent_version() == 1);
+    net_delete_account();
+    while ((st = net_delete_account_status()) == 1 && spins++ < 500)
+        sleep_ms(10);
+    assert(st == 2);
+    assert(settings_pd_consent_version() == 0);
+    assert(net_load_language() == 0); /* the player's own settings stay */
+    puts("native delete: account files wiped, consent withdrawn, settings kept");
+    return 0;
+}
+
 int main(int argc, char **argv) {
     if (argc < 3) { fprintf(stderr, "usage: test <write|read|cloud> <dir>\n"); return 2; }
     if (strcmp(argv[1], "write") == 0) return run_write(argv[2]);
@@ -160,6 +191,9 @@ int main(int argc, char **argv) {
     if (strcmp(argv[1], "legacy") == 0) return run_legacy(argv[2]);
     if (strcmp(argv[1], "legal") == 0) return run_legal(argv[2]);
     if (strcmp(argv[1], "legal-read") == 0) return run_legal_read(argv[2]);
+    if (strcmp(argv[1], "fresh") == 0) return run_fresh(argv[2]);
+    if (strcmp(argv[1], "consent") == 0) return run_consent(argv[2]);
+    if (strcmp(argv[1], "delete") == 0) return run_delete(argv[2]);
     fprintf(stderr, "unknown mode '%s'\n", argv[1]);
     return 2;
 }
@@ -219,6 +253,24 @@ def main():
         stamped = (legal / "settings.dat").read_text(encoding="utf-8")
         assert "legal " in stamped, stamped
         subprocess.run([*run, "legal-read", str(legal)], check=True)
+
+        fresh_install = temp / "fresh-install"
+        fresh_install.mkdir()
+        subprocess.run([*run, "fresh", str(fresh_install)], check=True)
+
+        account = temp / "account-device"
+        account.mkdir()
+        (account / "settings.dat").write_text("lang 0\n", encoding="utf-8")
+        subprocess.run([*run, "consent", str(account)], check=True)
+        consented = (account / "settings.dat").read_text(encoding="utf-8")
+        assert "pdv 1" in consented and "pdc 0" not in consented, consented
+        for name in ("auth.dat", "progress.dat", "achievements.dat", "promo.dat", "progress.dirty"):
+            (account / name).write_text("1\n", encoding="utf-8")
+        subprocess.run([*run, "delete", str(account)], check=True)
+        for name in ("auth.dat", "progress.dat", "achievements.dat", "promo.dat", "progress.dirty"):
+            assert not (account / name).exists(), name
+        withdrawn = (account / "settings.dat").read_text(encoding="utf-8")
+        assert "pdv 0" in withdrawn and "pdc 0" in withdrawn and "lang 0" in withdrawn, withdrawn
     return 0
 
 if __name__ == "__main__":

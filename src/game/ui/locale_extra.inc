@@ -7,7 +7,7 @@ static const char *tr_top(void) {
 
 static const char *tr_class_astra_rework(void) {
     if (language == 1) {
-        return "Астра (Rework)";
+        return "Астра (переработка)";
     }
     return "Astra (Rework)";
 }

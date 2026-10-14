@@ -289,10 +289,23 @@ static double hit_promo_corner(double px, double py) {
     return hit_button(px, py, promo_corner_x(), promo_corner_y(), promo_corner_w(), btn_h);
 }
 
-static double warn_btn_w(void) { return fit_w(560); }
+/* Под предупреждением два действия: «Документы» слева, согласие справа. */
+static double warn_row_w(void) { return fit_w(920); }
 
-static double warn_btn_y(void) { return screen_h / 2 + 160; }
+static double warn_docs_w(void) { return clamp(warn_row_w() * 0.34, 150, 300); }
+
+static double warn_docs_x(void) { return center_x(warn_row_w()); }
+
+static double warn_btn_w(void) { return warn_row_w() - warn_docs_w() - 24; }
+
+static double warn_btn_x(void) { return warn_docs_x() + warn_docs_w() + 24; }
+
+static double warn_btn_y(void) { return screen_h / 2 + 176; }
 
 static double hit_warn_btn(double px, double py) {
-    return hit_button(px, py, center_x(warn_btn_w()), warn_btn_y(), warn_btn_w(), btn_h);
+    return hit_button(px, py, warn_btn_x(), warn_btn_y(), warn_btn_w(), btn_h);
+}
+
+static double hit_warn_docs(double px, double py) {
+    return hit_button(px, py, warn_docs_x(), warn_btn_y(), warn_docs_w(), btn_h);
 }

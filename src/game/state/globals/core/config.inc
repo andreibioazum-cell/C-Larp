@@ -10,7 +10,6 @@ double ST_LEADERBOARD;
 double ST_ACHIEVEMENTS;
 double ST_SKINS;
 double ST_PROMO;
-double ST_PRIVACY;
 double game_state;
 double language;
 double t_dir;

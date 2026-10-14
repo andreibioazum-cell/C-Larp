@@ -153,6 +153,7 @@ static void update_music(void) {
 
 static void logic_update(void) {
     update_warning();
+    docs_tick();
     update_studio();
     update_alpha_notice();
     update_transition();
@@ -210,8 +211,6 @@ static void draw_screen(void) {
         draw_achievements();
     } else if (game_state == ST_PROMO) {
         draw_promo();
-    } else if (game_state == ST_PRIVACY) {
-        draw_privacy();
     } else {
         draw_online();
     }
@@ -240,6 +239,11 @@ static void logic_draw(void) {
     /* Snow above the studio splash, but never above the curtain or the
      * epilepsy warning. */
     draw_newyear_over_notices();
+    /* The documents window covers everything but the admin orb: it opens
+     * over the epilepsy warning and over the login screen alike. */
+    if (docs_open == 1) {
+        draw_docs();
+    }
     draw_achievement_toast();
     /* Last of all: the admin orb and its panel are never covered, not by the
      * transition curtain, not by the epilepsy warning or the splash. */
@@ -283,6 +287,10 @@ static double logic_back(void) {
         admin_panel_close();
         return 1;
     }
+    if (docs_open == 1) {
+        docs_close();
+        return 1;
+    }
     if (warn_open == 1) {
         return 0;
     }
@@ -309,10 +317,6 @@ static double logic_back(void) {
     }
     if (game_state == ST_LEADERBOARD || game_state == ST_PROMO) {
         start_transition(ST_MODES);
-        return 1;
-    }
-    if (game_state == ST_PRIVACY) {
-        start_transition(ST_SETTINGS);
         return 1;
     }
     if (game_state == ST_LOGIN) {
@@ -377,8 +381,12 @@ static void logic_touch(double x, double y, double action, double id) {
         classes_swipe_reset();
         return;
     }
-    if (game_state != ST_CLASSES || warn_open == 1 || studio_open == 1) {
+    if (game_state != ST_CLASSES || docs_open == 1 || warn_open == 1 || studio_open == 1) {
         classes_swipe_reset();
+    }
+    if (docs_open == 1) {
+        touch_docs(x, y, action);
+        return;
     }
     if (warn_open == 1) {
         touch_warn(x, y, action);

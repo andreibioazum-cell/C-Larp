@@ -1,4 +1,15 @@
-static void bubble_set(double s, const char *m) {
+/* Пузырь держит свою копию текста: строка из сети или из пула кадра живёт
+ * меньше, чем пузырь висит над игроком. Копия сразу чистится фильтром чата. */
+static char bubble_buf[4][CF_OUT_MAX];
+
+static void bubble_set(double s, const char *raw) {
+    int slot = (int)s;
+    const char *m;
+    if (slot < 0 || slot > 3) {
+        return;
+    }
+    chat_clean_into(bubble_buf[slot], sizeof(bubble_buf[slot]), raw);
+    m = bubble_buf[slot];
     if (s == 0) {
         bubble_msg0 = m;
         bubble_t0 = chat_bubble_time;

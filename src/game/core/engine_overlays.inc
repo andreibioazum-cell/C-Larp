@@ -146,7 +146,7 @@ static void draw_fps_meter(void) {
     if (fps_shown <= 0) {
         return;
     }
-    const char *label = ds_concat(ds_num_to_string(fps_shown), " FPS");
+    const char *label = ds_concat(ds_num_to_string(fps_shown), language == 1 ? " кадр/с" : " FPS");
     double tw = text_ink_width(label) * FPS_SCALE;
     double th = text_ink_height(label) * FPS_SCALE;
     double tt = text_ink_top(label) * FPS_SCALE;

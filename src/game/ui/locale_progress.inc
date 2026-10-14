@@ -96,7 +96,7 @@ static const char *tr_class_level_effect(double cls, double n) {
     }
     if (cls == 1 && n == 3) {
         if (language == 1) {
-            return "Атака лечит +0.1 HP";
+            return "Атака лечит +0,1 здоровья";
         }
         return "Attack heals +0.1 HP";
     }
@@ -120,19 +120,19 @@ static const char *tr_class_level_effect(double cls, double n) {
     }
     if (cls == 3 && n == 1) {
         if (language == 1) {
-            return "Турель +2 HP";
+            return "Турель +2 к здоровью";
         }
         return "Turret +2 HP";
     }
     if (cls == 3 && n == 2) {
         if (language == 1) {
-            return "Спавн турели лечит +0.5 HP";
+            return "Установка турели лечит +0,5 здоровья";
         }
         return "Placing a turret heals +0.5 HP";
     }
     if (cls == 3 && n == 3) {
         if (language == 1) {
-            return "Луч турели лечит +0.1 HP/сек";
+            return "Луч турели лечит +0,1 здоровья в секунду";
         }
         return "Turret beam heals +0.1 HP/sec";
     }
@@ -167,7 +167,7 @@ static const char *tr_class_level_effect(double cls, double n) {
         return "Speed +2%";
     }
     if (language == 1) {
-        return "Атака лечит +0.05 HP";
+        return "Атака лечит +0,05 здоровья";
     }
     return "Attack heals +0.05 HP";
 }

@@ -619,6 +619,31 @@ void net_save_winter_theme(double on) { (void)on; }
 double net_load_new_theme(void) { return 1; }
 void net_save_new_theme(double on) { (void)on; }
 void settings_mark_legal(void) {}
+/* Согласие на обработку ПД и удаление аккаунта: по умолчанию согласие дано,
+ * чтобы старые проверки лобби не упирались в окно вопроса. */
+static double stub_pd_ver = LEGAL_DOCS_VERSION;
+static int stub_pd_uploads;
+static int stub_delete_calls;
+static double stub_delete_status;
+static int stub_logout_calls;
+void settings_set_pd_consent(double version) { stub_pd_ver = version; }
+double settings_pd_consent_version(void) { return stub_pd_ver; }
+void net_pd_consent_upload(void) { stub_pd_uploads++; }
+void net_delete_account(void) {
+    stub_delete_calls++;
+    stub_delete_status = 1;
+}
+double net_delete_account_status(void) {
+    double v = stub_delete_status;
+    if (v == 2 || v == 3) {
+        stub_delete_status = 0;
+    }
+    return v;
+}
+void net_logout(void) {
+    stub_logout_calls++;
+    stub_login_status = 0;
+}
 double net_is_banned(const char *nick) {
     (void)nick;
     return 0;
@@ -680,6 +705,150 @@ const char *str_upper(const char *s) {
     return "";
 }
 
+static void assert_clean(const char *in, const char *want) {
+    char out[CF_OUT_MAX];
+    chat_clean_into(out, sizeof(out), in);
+    if (strcmp(out, want) != 0) {
+        fprintf(stderr, "chat filter: '%s' -> '%s', want '%s'\n", in, out, want);
+        assert(0);
+    }
+}
+
+/* Правовая часть: фильтр чата, согласие при входе, вопрос в лобби, окно
+ * документов поверх предупреждения и удаление аккаунта. */
+static void test_legal(void) {
+    double saved_lang = language;
+    double saved_w = screen_w, saved_h = screen_h;
+    screen_w = 1280;
+    screen_h = 720;
+    language = 1;
+
+    /* Мат, его латинские и «зашумлённые» записи и ссылки - звёздочки. */
+    assert_clean("привет хуй", "привет ***");
+    assert_clean("Пиздец!", "***");
+    assert_clean("cyka blyat", "*** ***");
+    assert_clean("huy", "***");
+    assert_clean("х.у.й", "***");
+    assert_clean("xyй", "***");
+    assert_clean("заебал уже", "*** уже");
+    assert_clean("fuck you", "*** you");
+    assert_clean("заходи на site.ru", "заходи на ***");
+    assert_clean("https://x.com/a", "***");
+    assert_clean("t.me/chan", "***");
+    /* Обычные слова, похожие на запрещённые, не трогаем. */
+    assert_clean("себе хлеб небо тебе веб вебинар психуй застрахуй", "себе хлеб небо тебе веб вебинар психуй застрахуй");
+    assert_clean("спидран мандарин сукно употреблять упорный оскорблять", "спидран мандарин сукно употреблять упорный оскорблять");
+    assert_clean("ebuC web ebay hello pizza 12:00 1.5", "ebuC web ebay hello pizza 12:00 1.5");
+    assert_clean("ebat", "***");
+    assert(nick_blocked("huy228") == 1);
+    assert(nick_blocked("Dimasi4ek229") == 0);
+    assert(nick_blocked("ebuc_fan") == 0);
+    assert(nick_blocked("tester") == 0);
+
+    /* Вход: без галочки согласия нельзя, галочка заранее не стоит. */
+    stub_pd_ver = 0;
+    stub_login_status = 0;
+    game_state = ST_LOGIN;
+    t_dir = 0;
+    warn_open = 0;
+    studio_open = 0;
+    login_open();
+    assert(login_consent == 0);
+    login_nick = "tester";
+    login_pass = "secret1";
+    login_do();
+    assert(login_status == 8 && str_eq(login_error_text(), tr_consent_needed()) == 1);
+    login_nick = "huy";
+    login_do();
+    assert(login_status == 9);
+    login_nick = "tester";
+    login_status = 8;
+    logic_touch(login_consent_x() + 10, login_consent_y() + 10, 0, 40);
+    press_new = 0;
+    assert(login_consent == 1 && login_status == 0);
+    int uploads = stub_pd_uploads;
+    login_do();
+    assert(login_status == 0 && stub_pd_ver == LEGAL_DOCS_VERSION && stub_pd_uploads == uploads + 1);
+    t_dir = 0;
+    t_target = 0;
+    /* Ссылка под галочкой открывает документы, ник при этом не теряется. */
+    logic_touch(center_x(login_more_w()) + login_more_w() / 2, login_more_y() + btn_h * 0.4, 0, 41);
+    press_new = 0;
+    assert(docs_open == 1 && docs_page == LEGAL_PAGE_CONSENT - 2 && str_eq(login_nick, "tester") == 1);
+    docs_close();
+    login_open();
+    assert(login_consent == 1);
+
+    /* Вошедшего до появления согласия спрашивают в лобби, один раз. */
+    stub_pd_ver = 0;
+    stub_login_status = 2;
+    game_state = ST_LOBBY;
+    docs_asked = 0;
+    docs_tick();
+    assert(docs_open == 1 && docs_ask == 1 && docs_page == LEGAL_PAGE_CONSENT);
+    logic_touch(docs_mid_x() + docs_mid_w() / 2, docs_row_y() + btn_h / 2, 0, 42);
+    press_new = 0;
+    assert(docs_open == 0 && stub_pd_ver == LEGAL_DOCS_VERSION);
+    docs_tick();
+    assert(docs_open == 0);
+    /* Отказ: игрок выходит из аккаунта. */
+    stub_pd_ver = 0;
+    docs_show(LEGAL_PAGE_CONSENT, 1);
+    logic_touch(docs_mid_x() + docs_mid_w() / 2, docs_refuse_y() + btn_h / 2, 0, 43);
+    press_new = 0;
+    assert(docs_open == 0 && stub_logout_calls == 1 && stub_login_status == 0);
+    /* Онлайн без согласия не открывается - вместо него вопрос. */
+    stub_login_status = 2;
+    open_online();
+    assert(docs_open == 1 && docs_ask == 1 && t_dir == 0);
+    docs_close();
+    stub_pd_ver = LEGAL_DOCS_VERSION;
+
+    /* Листание и удаление аккаунта: второе нажатие подтверждает. */
+    docs_show(0, 0);
+    assert(hit_docs_prev(docs_prev_x() + docs_nav_w() / 2, docs_row_y() + btn_h / 2) == 0);
+    logic_touch(docs_next_x() + docs_nav_w() / 2, docs_row_y() + btn_h / 2, 0, 44);
+    press_new = 0;
+    assert(docs_page == 1);
+    docs_show(LEGAL_PAGE_RIGHTS, 0);
+    assert(hit_docs_next(docs_next_x() + docs_nav_w() / 2, docs_row_y() + btn_h / 2) == 0);
+    logic_touch(docs_mid_x() + docs_mid_w() / 2, docs_row_y() + btn_h / 2, 0, 45);
+    press_new = 0;
+    assert(docs_del_arm > 0 && stub_delete_calls == 0);
+    logic_touch(docs_mid_x() + docs_mid_w() / 2, docs_row_y() + btn_h / 2, 0, 46);
+    press_new = 0;
+    assert(stub_delete_calls == 1 && docs_del_busy == 1);
+    stub_delete_status = 2;
+    docs_tick();
+    assert(docs_del_busy == 0 && str_eq(docs_msg, tr_delete_done()) == 1);
+    docs_close();
+    /* Без входа кнопки удаления нет. */
+    stub_login_status = 0;
+    docs_show(LEGAL_PAGE_RIGHTS, 0);
+    assert(docs_has_mid() == 0);
+    docs_close();
+
+    /* Предупреждение при запуске: «Документы» открывают окно поверх него. */
+    warn_open = 1;
+    warn_closing = 0;
+    logic_touch(warn_docs_x() + warn_docs_w() / 2, warn_btn_y() + btn_h / 2, 0, 47);
+    press_new = 0;
+    assert(docs_open == 1 && warn_open == 1);
+    assert(logic_back() == 1 && docs_open == 0);
+    warn_open = 0;
+
+    /* Русский режим без латиницы там, где есть перевод. */
+    language = 1;
+    assert(strchr(tr_class_ordinary_desc(), 'I') == NULL);
+    assert(strstr(tr_achievement_last_hp_desc(), "HP") == NULL);
+
+    game_state = ST_LOBBY;
+    language = saved_lang;
+    screen_w = saved_w;
+    screen_h = saved_h;
+    puts("legal: chat filter, sign-in consent, lobby consent ask, documents window, account deletion");
+}
+
 int main(void) {
     state_create();
     state_ready = 1;
@@ -688,6 +857,10 @@ int main(void) {
     assert(player->hp == 20 && enemy->hp == 20);
     assert(class_level_tbl && remote_punches && plates_candies && flake_cache);
 
+    /* A new install speaks Russian (168-FZ); English is the player's choice. */
+    assert(language == 1);
+    assert(strcmp(tr_play(), "Играть") == 0);
+    language = 0;
     assert(strcmp(tr_play(), "Play") == 0);
     language = 1;
     assert(strcmp(tr_play(), "Играть") == 0);
@@ -2049,11 +2222,10 @@ int main(void) {
         logic_touch(menu_x() + menu_btn_w() / 2, settings_row_y(5) + settings_btn_h() / 2, 0, 21);
         assert(new_theme == 1 && ui_purple == 0xFF5F10A0);
         press_new = 0;
-        /* Privacy moved one row down. */
+        /* Row 6 opens the legal documents window over the settings. */
         logic_touch(menu_x() + menu_btn_w() / 2, settings_row_y(6) + settings_btn_h() / 2, 0, 22);
-        assert(t_dir == 1 && t_target == ST_PRIVACY);
-        t_dir = 0;
-        t_target = 0;
+        assert(t_dir == 0 && docs_open == 1 && docs_page == 0 && docs_ask == 0);
+        assert(logic_back() == 1 && docs_open == 0 && game_state == ST_SETTINGS);
         press_new = 0;
 
         /* The promo code sits in the bottom-right corner of the modes screen
@@ -2083,6 +2255,8 @@ int main(void) {
         screen_h = saved_mh;
         game_state = ST_LOBBY;
     }
+
+    test_legal();
 
     state_destroy();
     state_ready = 0;

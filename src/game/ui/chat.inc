@@ -59,30 +59,30 @@ static double admin_handle(const char *msg) {
         double cur = net_event();
         if (cur == 0) {
             net_event_set(1);
-            net_chat_send(ds_concat(ds_concat("DISCO EVENT by ", by), "!"));
+            net_chat_send(ds_concat(ds_concat("ДИСКО-СОБЫТИЕ от ", by), "!"));
             ds_log("admin: event 0 -> disco ON");
         } else {
             net_event_set(0);
-            net_chat_send(ds_concat("EVENT OFF by ", by));
+            net_chat_send(ds_concat("СОБЫТИЕ ВЫКЛЮЧИЛ ", by));
             ds_log("admin: event 0 -> OFF");
         }
         return 1;
     }
     if (str_eq(msg, "event 1") == 1) {
         net_event_set(1);
-        net_chat_send(ds_concat(ds_concat("DISCO EVENT by ", by), "!"));
+        net_chat_send(ds_concat(ds_concat("ДИСКО-СОБЫТИЕ от ", by), "!"));
         ds_log("admin: event 1 disco");
         return 1;
     }
     if (str_eq(msg, "event 2") == 1 || str_eq(msg, "event 3") == 1) {
         net_event_set(2);
-        net_chat_send(ds_concat("PLATES EVENT by ", by));
+        net_chat_send(ds_concat("СОБЫТИЕ «ПЛИТЫ» от ", by));
         ds_log("admin: event 2 plates");
         return 1;
     }
     if (str_eq(msg, "event 4") == 1) {
         net_event_set(4);
-        net_chat_send(ds_concat(ds_concat("INFECTION EVENT by ", by), "!"));
+        net_chat_send(ds_concat(ds_concat("СОБЫТИЕ «ЗАРАЖЕНИЕ» от ", by), "!"));
         ds_log("admin: event 4 infection");
         return 1;
     }
@@ -95,7 +95,7 @@ static double admin_handle(const char *msg) {
                 return 1;
             }
             net_ban_set(t1, 1);
-            net_chat_send(ds_concat(ds_concat(t1, " BANNED by "), by));
+            net_chat_send(ds_concat(ds_concat(t1, " ЗАБЛОКИРОВАН, админ "), by));
             ds_log("admin ban %s", t1);
             return 1;
         }
@@ -104,7 +104,7 @@ static double admin_handle(const char *msg) {
         const char *t2 = net_chat_unban_target(msg);
         if (str_len(t2) > 0) {
             net_ban_set(t2, 0);
-            net_chat_send(ds_concat(ds_concat(t2, " UNBANNED by "), by));
+            net_chat_send(ds_concat(ds_concat(t2, " РАЗБЛОКИРОВАН, админ "), by));
             ds_log("admin unban %s", t2);
             return 1;
         }
@@ -149,7 +149,8 @@ static void chat_send(void) {
             return;
         }
     }
-    net_chat_send(chat_input);
+    /* Мат, ругань и ссылки уходят в чат звёздочками (игра 12+). */
+    net_chat_send(chat_clean(chat_input));
     ds_log("chat: %s", chat_input);
     chat_input = "";
     keyboard_clear();
@@ -316,7 +317,7 @@ static void draw_chat(void) {
                 if (str_len(st) > 0) {
                     tex(lx + 8, yy + (line_h - 24) / 2, st, 0, 0.24);
                 } else {
-                    draw_nick_msg(uid, ds_concat(": ", net_chat_text(idx)), lx, yy, text_color, 0.5);
+                    draw_nick_msg(uid, ds_concat(": ", chat_clean(net_chat_text(idx))), lx, yy, text_color, 0.5);
                 }
                 yy = yy + line_h;
                 idx = idx + 1;

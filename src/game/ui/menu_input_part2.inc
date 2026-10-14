@@ -160,14 +160,15 @@ static double menu_button_hit(double x, double y) {
         return 0;
     }
     if (game_state == ST_LOGIN) {
-        return hit_login_btn(x, y) == 1 || back_hit(x, y) == 1;
+        return hit_login_btn(x, y) == 1 || back_hit(x, y) == 1 || hit_login_more(x, y) == 1 ||
+               hit_login_consent(x, y) == 1;
     }
     if (game_state == ST_PROMO) {
         double w = fit_w(560);
         double fx = center_x(w);
         return back_hit(x, y) == 1 || hit_button(x, y, fx, promo_btn_y(), w, btn_h) == 1;
     }
-    if (game_state == ST_ACHIEVEMENTS || game_state == ST_LEADERBOARD || game_state == ST_PRIVACY) {
+    if (game_state == ST_ACHIEVEMENTS || game_state == ST_LEADERBOARD) {
         return back_hit(x, y);
     }
     return 0;
@@ -211,11 +212,5 @@ static void touch_menu(double x, double y, double action, double id) {
     }
     if (game_state == ST_PROMO) {
         touch_promo(x, y, action);
-        return;
-    }
-    if (game_state == ST_PRIVACY) {
-        if (back_hit(x, y) == 1) {
-            start_transition(ST_SETTINGS);
-        }
     }
 }
