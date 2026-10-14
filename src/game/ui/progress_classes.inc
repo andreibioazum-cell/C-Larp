@@ -295,11 +295,13 @@ static double classes_page_items(void) {
 static void classes_page_prev(void) {
     classes_page = classes_page - 1;
     classes_page_clamp();
+    ui_nav_gen = ui_nav_gen + 1;
 }
 
 static void classes_page_next(void) {
     classes_page = classes_page + 1;
     classes_page_clamp();
+    ui_nav_gen = ui_nav_gen + 1;
 }
 
 static const char *classes_page_label(void) {

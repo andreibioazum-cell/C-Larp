@@ -16,7 +16,9 @@ double language;
 double t_dir;
 double t_target;
 double t_fade;
+double t_hold;
 double transition_duration;
+double transition_hold;
 double ui_purple;
 double bg_screen;
 double card_bg;
@@ -159,6 +161,8 @@ double snow_tex_ok;
 double snow_t;
 double candy_tex_ok;
 double winter_theme;
+/* Графика: 0 - низкая, 1 - ультра (тени, цветокоррекция, виньетка). */
+double gfx_ultra;
 double show_hitboxes;
 double hitbox_rgb;
 double hitbox_zone_alpha;
@@ -401,6 +405,8 @@ double login_field_gap;
 double login_btn_gap;
 const char *login_nick;
 const char *login_pass;
+char login_nick_buf[128];
+char login_pass_buf[128];
 const char *LOBBY_MUSIC;
 const char *BUTTON_CLICK_SOUND;
 double button_click_ok;
@@ -408,9 +414,14 @@ double press_down;
 double press_x;
 double press_y;
 double press_k;
-double tap_armed;
-double tap_x;
-double tap_y;
+double press_phase;
+double press_new;
+/* Счётчик переходов: растёт при каждой смене экрана (запуск перехода,
+ * сама подмена состояния, принудительное возвращение) и при смене
+ * страницы в списке. Нажатие запоминает его, поэтому пульс нажатия не
+ * перескакивает на другой экран, где кнопка оказалась в тех же
+ * координатах. */
+double ui_nav_gen;
 const char *CUBE_NPC_TEX;
 double cube_npc_tex_ok;
 double cube_npc_bob_t;

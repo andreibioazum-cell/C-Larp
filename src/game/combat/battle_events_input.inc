@@ -139,6 +139,7 @@ static void draw_online(void) {
         return;
     }
     resolve_fighter_looks();
+    motion_blur_track();
     draw_arena_background();
     draw_disco();
     draw_infect();
@@ -235,9 +236,11 @@ static void draw_online(void) {
     draw_status_aura(player->x, player->y, player->size, poison_rgb, poison_rim, ppoison_a);
     draw_status_aura(player->x, player->y, player->size, stun_rgb, stun_rim, pstun_a);
     draw_snow();
+    draw_screen_fx();
     double w = screen_w / 3;
     hud_bar(20, 20, w, 28, player->hp, player->max_hp, 0x7ED321, 0);
     draw_controls();
+    draw_hurt_flash();
     draw_chat();
     draw_plates_hud();
     if (finished == 2) {
@@ -298,12 +301,6 @@ static void joy_touch(double x, double y, double action, double id) {
     }
 }
 
-/* The in-battle back button is release-only like the menu buttons: the press
- * is feedback, the exit fires when the finger lifts on the same spot. */
-static double back_arm_id = -1;
-static double back_arm_x;
-static double back_arm_y;
-
 static void touch_game(double x, double y, double action, double id) {
     if (card_open != 0) {
         if (action == 0) {
@@ -318,19 +315,14 @@ static void touch_game(double x, double y, double action, double id) {
         return;
     }
     if (action == 3) {
-        aim_id = -1;
-        super_id = -1;
         blk_id = -1;
         player_block = 0;
-        back_arm_id = -1;
         drop_joy();
         return;
     }
     if (game_state == ST_ONLINE) {
         if (touch_chat(x, y, action) == 1) {
             if (chat_open == 1) {
-                aim_id = -1;
-                super_id = -1;
                 drop_joy();
             }
             return;
@@ -339,33 +331,17 @@ static void touch_game(double x, double y, double action, double id) {
             return;
         }
     }
+    /* The in-battle back button acts on the press, like the menu buttons: the
+     * touch itself leaves the fight, there is nothing to hold or aim. */
     if (action == 0 && battle_back_hit(x, y) == 1) {
-        back_arm_id = id;
-        back_arm_x = x;
-        back_arm_y = y;
-        return;
-    }
-    if (id == back_arm_id) {
-        if (action == 0 || action == 3) {
-            /* The pointer id was reused or cancelled: the old press is dead. */
-            back_arm_id = -1;
-            return;
-        }
-        if (action == 2) {
-            if (dist(x, y, back_arm_x, back_arm_y) > clamp(screen_w * 0.04, 32, 72)) {
-                back_arm_id = -1;
-            }
-            return;
-        }
-        back_arm_id = -1;
-        if (dist(x, y, back_arm_x, back_arm_y) <= clamp(screen_w * 0.04, 32, 72)) {
-            play_button_click();
-            start_transition(0);
-        }
+        start_transition(0);
         return;
     }
     /* The three combat buttons sit close together, so the nearest one wins the
-     * press. The guard is a hold button: fingers-down blocks, release drops. */
+     * press. Punch and super go off the moment the finger lands - a hit that
+     * waits for the release is a hit that feels late - while the block pad
+     * stays a hold (finger down guards, finger up drops) and the stick keeps
+     * following the finger. */
     if (game_state == ST_SOLO || game_state == ST_ONLINE) {
         double dp = dist(x, y, atk_x, atk_y);
         double dsu = class_has_super(player_class) == 1 ? dist(x, y, atk2_x, atk2_y) : 1e9;
@@ -384,28 +360,18 @@ static void touch_game(double x, double y, double action, double id) {
         }
         if (class_has_super(player_class) == 1) {
             if (action == 0 && dsu <= 96 && dsu <= dp) {
-                super_id = id;
+                if (game_state == ST_SOLO || online_ready == 1) {
+                    fire_super();
+                }
                 return;
             }
         }
         if (action == 0 && dp <= 96) {
-            aim_id = id;
+            if (game_state == ST_SOLO || online_ready == 1) {
+                fire_punch();
+            }
             return;
         }
-    }
-    if (class_has_super(player_class) == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE)) {
-        if (action == 1 && id == super_id) {
-            super_id = -1;
-            fire_super();
-            return;
-        }
-    }
-    if (action == 1 && id == aim_id) {
-        aim_id = -1;
-        if (game_state == ST_SOLO || online_ready == 1) {
-            fire_punch();
-        }
-        return;
     }
     joy_touch(x, y, action, id);
 }

@@ -52,15 +52,114 @@ static GAME_MAYBE_UNUSED double fighter_sprite_visible(double cls, double punchi
     return 1;
 }
 
+/* Один отступ размытия. Прозрачность 0 в движке означает «совсем
+ * непрозрачный», поэтому пустые отступы просто не рисуем. */
+static void shadow_tap_circle(double x, double y, double r, double a) {
+    unsigned ai = (unsigned)(int)(a + 0.5);
+    if (ai < 1) {
+        return;
+    }
+    circle(x, y, r, ((uint32_t)ai) << 24);
+}
+
+static void shadow_tap_tex(double x, double y, double half_px, double scale, const char *name, double ang, double a) {
+    unsigned ai = (unsigned)(int)(a + 0.5);
+    if (ai < 1) {
+        return;
+    }
+    tex_tint(x - half_px, y - half_px, name, ang, scale, ((uint32_t)ai) << 24);
+}
+
+/* Настоящее размытие тени - свёртка силуэта: центр, кольцо из шести отступов
+ * поближе и кольцо из шести подальше. Каждый отступ берёт свою долю общей
+ * плотности, поэтому край тени мягкий по-настоящему, а не выглядит вторым
+ * увеличенным пятном. */
+static void draw_shadow_blur_circle(double cx, double cy, double r, double alpha, double blur) {
+    const double kw[3] = {0.25, 0.09, 0.06};
+    const double kr[3] = {0.0, 0.55, 1.0};
+    int ring = 0;
+    while (ring < 3) {
+        double a = alpha * kw[ring];
+        double rr = blur * kr[ring];
+        if (ring == 0) {
+            shadow_tap_circle(cx, cy, r, a);
+        } else {
+            double i = 0;
+            while (i < 6) {
+                double t = i * pi / 3;
+                shadow_tap_circle(cx + cos(t) * rr, cy + sin(t) * rr, r, a);
+                i = i + 1;
+            }
+        }
+        ring = ring + 1;
+    }
+}
+
+static void draw_shadow_blur_tex(double cx, double cy, double half_px, double scale, const char *name, double ang,
+                                 double alpha, double blur) {
+    const double kw[3] = {0.25, 0.09, 0.06};
+    const double kr[3] = {0.0, 0.55, 1.0};
+    int ring = 0;
+    while (ring < 3) {
+        double a = alpha * kw[ring];
+        double rr = blur * kr[ring];
+        if (ring == 0) {
+            shadow_tap_tex(cx, cy, half_px, scale, name, ang, a);
+        } else {
+            double i = 0;
+            while (i < 6) {
+                double t = i * pi / 3;
+                shadow_tap_tex(cx + cos(t) * rr, cy + sin(t) * rr, half_px, scale, name, ang, a);
+                i = i + 1;
+            }
+        }
+        ring = ring + 1;
+    }
+}
+
+/* Смаз движения: на скорости за бойцом остаются полупрозрачные копии его же
+ * спрайта по пути, по которому он только что прошёл. Это размытие самого
+ * движения, а не всего кадра. */
+static void draw_motion_ghosts(double x, double y, double dx, double dy, double half_px, double scale,
+                               const char *name, double ang) {
+    double len = sqrt(dx * dx + dy * dy);
+    double lim = half_px * 1.1;
+    if (len < 2) {
+        return;
+    }
+    if (len > lim) {
+        dx = dx / len * lim;
+        dy = dy / len * lim;
+        len = lim;
+    }
+    /* Корень из скорости: обычная ходьба уже заметна, рывок - сильный шлейф. */
+    double a = 0.40 * sqrt(len / lim);
+    if (a < 0.02) {
+        return;
+    }
+    int i = 1;
+    while (i <= 4) {
+        double t = i / 5.0;
+        double ga = a * (1 - t);
+        unsigned ai = (unsigned)(int)(ga * 255.0 + 0.5);
+        if (ai >= 1) {
+            tex_tint(x - dx * t - half_px, y - dy * t - half_px, name, ang, scale, ((uint32_t)ai) << 24);
+        }
+        i = i + 1;
+    }
+}
+
 static void draw_fighter_shadow(double x, double y, double ang, double look, double punching) {
     double half_px = 25 * cube_scale * player_scale;
     double sprite_scale = cube_scale * player_scale;
+    double sx = x - shadow_off;
+    double sy = y + shadow_off;
     if (look == LOOK_NONE) {
-        circle(x - shadow_off, y + shadow_off, half_px, (((unsigned)(int)shadow_alpha) << 24));
+        draw_shadow_blur_circle(sx, sy, half_px, shadow_alpha * 2.5, half_px * 0.07);
         return;
     }
-    tex_tint(x - half_px - shadow_off, y - half_px + shadow_off, look_tex(look, punching), sprite_a(ang), sprite_scale,
-             (((unsigned)(int)shadow_alpha) << 24));
+    draw_shadow_blur_tex(sx, sy, half_px, sprite_scale, look_tex(look, punching), sprite_a(ang), shadow_alpha * 2.5,
+                         half_px * 0.07);
 }
 
 static void draw_fighter_body(double x, double y, double ang, double look, double punching) {

@@ -27,7 +27,8 @@ static double chat_visible_limit(void) {
 }
 
 static void chat_sync_input(void) {
-    chat_input = keyboard_get_text();
+    keyboard_get_text_to(chat_input_buf, sizeof(chat_input_buf));
+    chat_input = chat_input_buf;
 }
 
 static double is_admin(void) {

@@ -1,12 +1,9 @@
 /* Admin panel input and chrome: hit-testing, the touch handler, the "CCP" orb,
- * the panel frame, the two tabs and the cheats grid. Every button here (tabs,
- * cheat switches, list chips, footer) is drawn by admin_btn() from admin.inc,
- * so they all share one flat black-and-white look. The continuous cheat tick
- * lives at the bottom of this file, the Players tab in admin_part3.inc. */
+ * the panel frame and the cheats grid. Every button here is drawn by
+ * admin_btn() from admin.inc, so they all share one flat black-and-white look.
+ * Вкладок в панели больше нет - только сетка читов. */
 
-/* Closing the panel always drops the nick field and the engine keyboard. */
 static void admin_panel_close(void) {
-    admin_input_blur();
     admin_panel_open = 0;
 }
 
@@ -15,8 +12,6 @@ static void admin_panel_press(double x, double y) {
     double py = admin_panel_y();
     double pw = admin_panel_w();
     double hh = admin_header_h();
-    double tabs_y = admin_tabs_y();
-    double tabs_h = admin_tabs_h();
     double cxx = px + pw - hh * 0.55;
     double dx = x - cxx;
     double dy = y - (py + hh / 2);
@@ -27,24 +22,6 @@ static void admin_panel_press(double x, double y) {
     }
     if (hit_rect(x, y, px, py, pw, admin_panel_h()) == 0) {
         admin_panel_close();
-        return;
-    }
-    double tw = (pw - 2 * admin_pad() - admin_gap()) / 2;
-    double t = 0;
-    while (t < 2) {
-        if (hit_rect(x, y, px + admin_pad() + t * (tw + admin_gap()), tabs_y, tw, tabs_h) == 1) {
-            if (admin_tab != t) {
-                admin_input_blur();
-                admin_tab = t;
-                admin_page = 0;
-                play_button_click();
-            }
-            return;
-        }
-        t = t + 1;
-    }
-    if (admin_tab == 1) {
-        admin_players_press(x, y);
         return;
     }
     double bw = (pw - 2 * admin_pad() - admin_gap()) / 2;
@@ -91,7 +68,6 @@ static double admin_touch(double x, double y, double action, double id) {
             double dy = y - admin_ball_py;
             if (action == 1 && sqrt(dx * dx + dy * dy) <= 13) {
                 admin_panel_open = 1;
-                admin_page = 0;
                 play_button_click();
             }
         }
@@ -150,21 +126,12 @@ static void admin_draw_cheats(void) {
     }
 }
 
-/* Footer helpers of the Players tab: the same flat button as everything else,
- * an inactive page still looks identical and simply does nothing. */
-static void admin_draw_small_btn(const char *label, double x, double y, double w, double h, double enabled) {
-    (void)enabled;
-    admin_btn(label, x, y, w, h, 0, fit_text_scale(label, w - 14, h / 62.0));
-}
-
 static void admin_draw_panel(void) {
     double px = admin_panel_x();
     double py = admin_panel_y();
     double pw = admin_panel_w();
     double ph = admin_panel_h();
     double hh = admin_header_h();
-    double tabs_y = admin_tabs_y();
-    double tabs_h = admin_tabs_h();
     const char *title = tr_admin_title();
     double title_w = pw - hh * 1.9 - 16;
     /* The full-screen scrim is the only translucent thing in the panel; every
@@ -183,19 +150,6 @@ static void admin_draw_panel(void) {
     circle(cxx, py + hh / 2, cr, admin_off());
     ring(cxx, py + hh / 2, cr, clamp(cr * 0.14, 2, 3), admin_frame());
     text_in_box("X", cxx - cr, py + hh / 2 - cr, cr * 2, cr * 2, admin_frame(), cr / 30.0);
-    /* Tabs. */
-    double tw = (pw - 2 * admin_pad() - admin_gap()) / 2;
-    double t = 0;
-    while (t < 2) {
-        const char *tl = admin_tab_label(t);
-        admin_btn(tl, px + admin_pad() + t * (tw + admin_gap()), tabs_y, tw, tabs_h, admin_tab == t,
-                  fit_text_scale(tl, tw - 16, tabs_h / 57.0));
-        t = t + 1;
-    }
-    if (admin_tab == 1) {
-        admin_draw_players();
-        return;
-    }
     admin_draw_cheats();
 }
 
@@ -217,12 +171,6 @@ static void admin_draw(void) {
  * and the zeroed cooldowns survive every re-application the fight makes. */
 static void admin_tick(void) {
     admin_ball_t = admin_ball_t + dt;
-    if (admin_panel_open == 0) {
-        /* The panel can also be closed from the back key or a battle: the nick
-         * field must not keep the keyboard up behind it. */
-        admin_input_blur();
-    }
-    admin_input_sync();
     if (is_admin() == 0 || admin_in_battle() == 0 || finished != 0) {
         return;
     }
@@ -242,5 +190,8 @@ static void admin_tick(void) {
         if (enemy->stun < 0.25) {
             enemy->stun = 0.25;
         }
+        /* Этот стан приходит из панели, поэтому кружка за ним нет - даже если
+         * чит выключили, а стан от него ещё не истёк. */
+        cheat_estun_mark = 1;
     }
 }

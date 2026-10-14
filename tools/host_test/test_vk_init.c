@@ -1301,7 +1301,7 @@ static void *test_thread(void *arg) {
 
     g_res.scale0 = ds_graphics_pixel_scale();
 
-    for (int i = 0; i < GFX_WARMUP_FRAMES + 10; i++) ds_graphics_report_frame_interval(0.0167);
+    for (int i = 0; i < 100; i++) ds_graphics_report_frame_interval(0.0167);
 
     for (int i = 0; i < 40; i++) ds_graphics_report_frame_interval(0.150);
     g_res.scale_hitch = ds_graphics_pixel_scale();
@@ -1318,7 +1318,7 @@ static void *test_thread(void *arg) {
     g_res.blit2_dst_w = g_blit_dst_w;
     g_res.blit2_dst_h = g_blit_dst_h;
 
-    for (int i = 0; i < 3000 && !gfx_probe_finer; i++) ds_graphics_report_frame_interval(0.0167);
+    for (int i = 0; i < 3000; i++) ds_graphics_report_frame_interval(0.0167);
     g_res.scale_probe = ds_graphics_pixel_scale();
     if (!ds_graphics_begin_frame(&b))
         return 0;
@@ -1339,16 +1339,10 @@ static void *test_thread(void *arg) {
 
     gfx_autoscale_new_window();
     g_res.scale_new_window = ds_graphics_pixel_scale();
-    g_res.pin_new_window = gfx_finer_off || gfx_probe_fails;
-    gfx_auto_scale = 5;
-    gfx_finer_off = 1;
-    gfx_probe_fails = 2;
+    g_res.pin_new_window = 0;
     gfx_autoscale_reset();
     g_res.scale_reset = ds_graphics_pixel_scale();
-    g_res.pin_reset = gfx_finer_off || gfx_probe_fails;
-
-    gfx_auto_scale = 3;
-    gfx_finer_off = 1;
+    g_res.pin_reset = 0;
 
     g_res.creates_before_storm = g_swapchain_creates;
     g_present_suboptimal_always = 1;
@@ -1563,64 +1557,63 @@ int main(void) {
     }
     if (!g_res.frame4_ok) {
         fail = 1;
-        printf("FAIL: begin_frame of the autoscaled frame returned 0\n");
+        printf("FAIL: begin_frame of the frame after the slow frames returned 0\n");
     }
     if (g_res.scale0 != 1) {
         fail = 1;
-        printf("FAIL: initial autoscale is %d, expected 1\n", g_res.scale0);
+        printf("FAIL: initial internal resolution is 1/%d, expected 1/1\n", g_res.scale0);
     }
     if (g_res.scale_hitch != 1) {
         fail = 1;
-        printf("FAIL: loading hitches coarsened the autoscale to %d, expected 1\n", g_res.scale_hitch);
+        printf("FAIL: loading hitches coarsened the resolution to 1/%d, expected 1/1\n", g_res.scale_hitch);
     }
-    if (g_res.scale_miss != 3) {
+    if (g_res.scale_miss != 1) {
         fail = 1;
-        printf("FAIL: after two runs of vsync misses the autoscale is %d, expected 3 (one step per run)\n",
-               g_res.scale_miss);
+        printf("FAIL: after two runs of vsync misses the resolution is 1/%d, expected 1/1\n", g_res.scale_miss);
     }
     if (g_res.scale_new_window != 1 || g_res.pin_new_window) {
         fail = 1;
-        printf("FAIL: a new window kept the autoscale at %d (pin %d), expected 1:1 and no pin\n",
-               g_res.scale_new_window, g_res.pin_new_window);
+        printf("FAIL: a new window renders at 1/%d (pin %d), expected 1/1 and no pin\n", g_res.scale_new_window,
+               g_res.pin_new_window);
     }
     if (g_res.scale_reset != 1 || g_res.pin_reset) {
         fail = 1;
-        printf("FAIL: the shutdown reset kept the autoscale at %d (pin %d), expected 1:1 and no pin\n",
-               g_res.scale_reset, g_res.pin_reset);
+        printf("FAIL: the shutdown reset renders at 1/%d (pin %d), expected 1/1 and no pin\n", g_res.scale_reset,
+               g_res.pin_reset);
     }
-    if (g_res.off2_w != 240 || g_res.off2_h != 426) {
+    if (g_res.off2_w != 720 || g_res.off2_h != 1280) {
         fail = 1;
-        printf("FAIL: autoscale offscreen %ux%u, expected 240x426 (a third of the 720x1280 window)\n", g_res.off2_w,
+        printf("FAIL: offscreen after slow frames is %ux%u, expected the full 720x1280 window\n", g_res.off2_w,
                g_res.off2_h);
     }
-    if (g_res.blit2_src_w != 240 || g_res.blit2_src_h != 426 || g_res.blit2_dst_w != 720 || g_res.blit2_dst_h != 1280) {
+    if (g_res.blit2_src_w != 720 || g_res.blit2_src_h != 1280 || g_res.blit2_dst_w != 720 || g_res.blit2_dst_h != 1280) {
         fail = 1;
-        printf("FAIL: autoscale blit %dx%d -> %dx%d, expected 240x426 -> 720x1280\n", g_res.blit2_src_w,
+        printf("FAIL: blit after slow frames is %dx%d -> %dx%d, expected 720x1280 -> 720x1280\n", g_res.blit2_src_w,
                g_res.blit2_src_h, g_res.blit2_dst_w, g_res.blit2_dst_h);
     }
-    if (g_res.scale_probe != 2) {
+    if (g_res.scale_probe != 1) {
         fail = 1;
-        printf("FAIL: after a clean window the autoscale is %d, expected 2 (one step back)\n", g_res.scale_probe);
+        printf("FAIL: after a long clean window the resolution is 1/%d, expected 1/1\n", g_res.scale_probe);
     }
-    if (g_res.probe_off_w != 360 || g_res.probe_off_h != 640) {
+    if (g_res.probe_off_w != 720 || g_res.probe_off_h != 1280) {
         fail = 1;
-        printf("FAIL: probe offscreen %ux%u, expected 360x640 (half the window)\n", g_res.probe_off_w,
+        printf("FAIL: probe offscreen %ux%u, expected the full 720x1280 window\n", g_res.probe_off_w,
                g_res.probe_off_h);
     }
-    if (g_res.probe_blit_src_w != 360 || g_res.probe_blit_src_h != 640 || g_res.probe_blit_dst_w != 720 ||
+    if (g_res.probe_blit_src_w != 720 || g_res.probe_blit_src_h != 1280 || g_res.probe_blit_dst_w != 720 ||
         g_res.probe_blit_dst_h != 1280) {
         fail = 1;
-        printf("FAIL: probe blit %dx%d -> %dx%d, expected 360x640 -> 720x1280\n", g_res.probe_blit_src_w,
+        printf("FAIL: probe blit %dx%d -> %dx%d, expected 720x1280 -> 720x1280\n", g_res.probe_blit_src_w,
                g_res.probe_blit_src_h, g_res.probe_blit_dst_w, g_res.probe_blit_dst_h);
     }
-    if (g_res.scale_rollback != 3) {
+    if (g_res.scale_rollback != 1) {
         fail = 1;
-        printf("FAIL: after a miss on the finer probe the autoscale is %d, expected 3 (probe rolled back)\n",
-               g_res.scale_rollback);
+        printf("FAIL: after more misses the resolution is 1/%d, expected 1/1\n", g_res.scale_rollback);
     }
-    if (g_res.scale_still != 3) {
+    if (g_res.scale_still != 1) {
         fail = 1;
-        printf("FAIL: after the rollback the scale moved again (%d), expected it to stay at 3\n", g_res.scale_still);
+        printf("FAIL: after the rollback the resolution moved again (1/%d), expected it to stay at 1/1\n",
+               g_res.scale_still);
     }
     if (g_blits < 3) {
         fail = 1;
@@ -1758,10 +1751,10 @@ int main(void) {
         printf("FAIL: the strict driver caught an invalid create-info: %s\n", g_violation_msg);
     }
     if (!fail) {
-        printf("PASS: init, frames and autoscale (hitches do not count, vsync misses coarsen one "
-               "step at a time to 1/3, the finer probe goes to 1/2, a miss on the probe rolls back "
-               "and holds, a new window and a shutdown start sharp again) plus a swapchain format "
-               "change; frame steps: SUBOPTIMAL with an unchanged surface does not rebuild the "
+        printf("PASS: init, frames and resolution: the game always renders at the panel's own size "
+               "(hitches, vsync misses, probes, a new window and a shutdown all stay at 1/1) plus a "
+               "swapchain format change; frame steps: SUBOPTIMAL with an unchanged surface does not "
+               "rebuild the "
                "swapchain, the present mode goes MAILBOX -> FIFO_RELAXED -> FIFO, and the platform "
                "is asked for 60 fps once per window; pNext and flags are clean, %d pipelines "
                "created\n",

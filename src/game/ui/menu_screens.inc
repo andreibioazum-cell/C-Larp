@@ -61,6 +61,21 @@ static void draw_modes(void) {
     button(tr_top(), menu_x(), modes_row(3), menu_btn_w(), btn_h);
     button(tr_promo(), menu_x(), modes_row(4), menu_btn_w(), btn_h);
     button_scaled(tr_winter_toggle(), menu_x(), modes_row(5), menu_btn_w(), btn_h, 0.8);
+    draw_gfx_row();
+}
+
+/* Две кнопки графики в одном ряду; выбранная обведена по контуру. */
+static void draw_gfx_row(void) {
+    double w = gfx_btn_w();
+    double y = modes_row(6);
+    double lw = fit_text_scale(tr_gfx_low(), w - 16, 1);
+    double uw = fit_text_scale(tr_gfx_ultra(), w - 16, 1);
+    button_scaled(tr_gfx_low(), gfx_low_x(), y, w, btn_h, lw);
+    button_scaled(tr_gfx_ultra(), gfx_ultra_x(), y, w, btn_h, uw);
+    double gx = gfx_ultra == 1 ? gfx_ultra_x() : gfx_low_x();
+    double p = button_press_k(gx, y, w, btn_h);
+    double s = 1 - PRESS_SQUEEZE * p;
+    roundrect_outline(squeeze_x(gx, w, s), squeeze_y(y, y, btn_h, s), w * s, btn_h * s, btn_radius, 3, text_color);
 }
 
 static void draw_settings(void) {
@@ -120,27 +135,40 @@ static void draw_class_render(double cls, double skin, double x, double y, doubl
     draw_card_look(card_look(cls, skin), x, y, target_px / 50);
 }
 
+/* The shop card is one control: wherever the finger lands - on the art, on
+ * the name or on the price pill - the whole card squeezes and darkens as a
+ * piece. It is the card that is pressed, not the pill inside it, and the pill
+ * keeps its old job of showing the price or the pick label. */
 static void draw_class_card(double vi) {
     double cls = visible_class_at(vi);
     double x = classes_card_x(vi);
     double w = classes_card_w();
+    double top = classes_top();
     double selected = 0;
     if (player_class == cls && class_owned_of(cls) == 1) {
         selected = 1;
     }
-    card(x, classes_top(), w, class_card_h, selected);
-    double sprite = class_render_px();
-    double sx = x + (w - sprite) / 2;
+    double p = button_press_k(x, top, w, class_card_h);
+    double s = 1 - PRESS_SQUEEZE * p;
+    double bx = squeeze_x(x, w, s);
+    double bw = w * s;
+    uint32_t tc = shade(text_color, 1 - PRESS_SHADE * p);
+    card_state(bx, squeeze_y(top, top, class_card_h, s), bw, class_card_h * s, selected, 0, 1 - PRESS_SHADE * p);
+    double sprite = class_render_px() * s;
+    double sx = bx + (bw - sprite) / 2;
     /* The shop card always shows the class's base look, regardless of which
      * skin is currently equipped - picking a skin in the Skins screen should
      * not change what the character looks like in the class list. */
-    draw_class_render(cls, SKIN_NORMAL, sx, class_sprite_y(), sprite);
-    centered_text(class_name_of(cls), x, w, class_title_y(), text_color, class_title_scale());
+    draw_class_render(cls, SKIN_NORMAL, sx, squeeze_y(class_sprite_y(), top, class_card_h, s), sprite);
+    centered_text(class_name_of(cls), bx, bw, squeeze_y(class_title_y(), top, class_card_h, s), tc,
+                  class_title_scale() * s);
     const char *motto = class_desc_of(cls);
-    centered_text(motto, x, w, class_desc_y(), text_color, fit_text_scale(motto, w - 16, 0.5));
-    centered_text(ds_concat(ds_concat(tr_level(), " "), ds_num_to_string((double)(class_level_of(cls)))), x, w,
-                  class_level_y(), text_color, 0.45);
-    button_scaled(class_pick_label(cls), x + class_pick_inset(), class_pick_y(), class_pick_w(), class_pick_h, 0.55);
+    centered_text(motto, bx, bw, squeeze_y(class_desc_y(), top, class_card_h, s), tc,
+                  fit_text_scale(motto, w - 16, 0.5) * s);
+    centered_text(ds_concat(ds_concat(tr_level(), " "), ds_num_to_string((double)(class_level_of(cls)))), bx, bw,
+                  squeeze_y(class_level_y(), top, class_card_h, s), tc, 0.45 * s);
+    button_scaled(class_pick_label(cls), bx + class_pick_inset() * s,
+                  squeeze_y(class_pick_y(), top, class_card_h, s), class_pick_w() * s, class_pick_h * s, 0.55 * s);
 }
 
 /* Five steady, filled five-point stars replace the raw HP / power numbers.
@@ -208,10 +236,17 @@ static void draw_level_row(double n) {
     if (player_level == n && n <= levels_unlocked) {
         selected = 1;
     }
-    card(x, y, w, level_row_h, selected);
-    centered_text(ds_concat(ds_concat(tr_level(), " "), ds_num_to_string((double)(n))), x, w, y + 10, text_color, 0.62);
-    centered_text(tr_class_level_effect(player_class, n), x, w, y + 34, text_color, 0.46);
-    centered_text(level_status_of(player_class, n), x, w, y + 52, text_color, 0.42);
+    /* A level row is picked like a button, so it answers the touch like one. */
+    double p = button_press_k(x, y, w, level_row_h);
+    double s = 1 - PRESS_SQUEEZE * p;
+    double bx = squeeze_x(x, w, s);
+    double bw = w * s;
+    uint32_t tc = shade(text_color, 1 - PRESS_SHADE * p);
+    card_state(bx, squeeze_y(y, y, level_row_h, s), bw, level_row_h * s, selected, 0, 1 - PRESS_SHADE * p);
+    centered_text(ds_concat(ds_concat(tr_level(), " "), ds_num_to_string((double)(n))), bx, bw,
+                  squeeze_y(y + 10, y, level_row_h, s), tc, 0.62 * s);
+    centered_text(tr_class_level_effect(player_class, n), bx, bw, squeeze_y(y + 34, y, level_row_h, s), tc, 0.46 * s);
+    centered_text(level_status_of(player_class, n), bx, bw, squeeze_y(y + 52, y, level_row_h, s), tc, 0.42 * s);
 }
 
 static void draw_levels(void) {
@@ -229,16 +264,22 @@ static void draw_levels(void) {
 static void draw_skin_card(double skin) {
     double x = skins_card_x(skin);
     double w = skin_card_w;
+    double top = skins_top();
     double locked = 1 - skin_unlocked(skin);
     double selected = 0;
     if (current_skin() == skin) {
         selected = 1;
     }
-    card_state(x, skins_top(), w, skin_card_h, selected, locked);
-    double sprite = 50 * skin_preview_scale();
-    double sx = x + (w - sprite) / 2;
-    draw_class_render(player_class, skin, sx, skin_preview_y(), sprite);
-    uint32_t c = panel_text(locked);
+    /* A skin card is picked like a button, so it answers the touch like one. */
+    double p = button_press_k(x, top, w, skin_card_h);
+    double s = 1 - PRESS_SQUEEZE * p;
+    double bx = squeeze_x(x, w, s);
+    double bw = w * s;
+    card_state(bx, squeeze_y(top, top, skin_card_h, s), bw, skin_card_h * s, selected, locked, 1 - PRESS_SHADE * p);
+    double sprite = 50 * skin_preview_scale() * s;
+    double sx = bx + (bw - sprite) / 2;
+    draw_class_render(player_class, skin, sx, squeeze_y(skin_preview_y(), top, skin_card_h, s), sprite);
+    uint32_t c = shade(panel_text(locked), 1 - PRESS_SHADE * p);
     const char *status = skin_hint_for(player_class);
     if (locked == 0) {
         status = tr_class_pick();
@@ -246,8 +287,8 @@ static void draw_skin_card(double skin) {
             status = tr_class_selected();
         }
     }
-    centered_text(skin_name_of(skin), x, w, skin_name_y(), c, 0.8);
-    centered_text(status, x, w, skin_status_y(), c, 0.45);
+    centered_text(skin_name_of(skin), bx, bw, squeeze_y(skin_name_y(), top, skin_card_h, s), c, 0.8 * s);
+    centered_text(status, bx, bw, squeeze_y(skin_status_y(), top, skin_card_h, s), c, 0.45 * s);
 }
 
 static void draw_skins(void) {

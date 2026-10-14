@@ -48,9 +48,11 @@ static void login_sync_field(void) {
         return;
     }
     if (login_field == 1) {
-        login_nick = keyboard_get_text();
+        keyboard_get_text_to(login_nick_buf, sizeof(login_nick_buf));
+        login_nick = login_nick_buf;
     } else {
-        login_pass = keyboard_get_text();
+        keyboard_get_text_to(login_pass_buf, sizeof(login_pass_buf));
+        login_pass = login_pass_buf;
     }
 }
 
@@ -161,8 +163,11 @@ static void legal_accept(void) {
 }
 
 static void touch_warn(double x, double y, double action) {
-    /* The consent button acts on release like every other button. */
-    if (tap_event(x, y, action) == 1 && hit_warn_btn(tap_x, tap_y) == 1) {
+    /* The consent button acts on the press, like every other button. */
+    if (action != 0) {
+        return;
+    }
+    if (hit_warn_btn(x, y) == 1) {
         play_button_click();
         legal_accept();
     }
@@ -270,6 +275,16 @@ static void touch_modes(double x, double y) {
     }
     if (hit_modes_row(x, y, 4) == 1) {
         start_transition(ST_PROMO);
+        return;
+    }
+    if (hit_gfx_low(x, y) == 1) {
+        gfx_ultra = 0;
+        save_settings();
+        return;
+    }
+    if (hit_gfx_ultra(x, y) == 1) {
+        gfx_ultra = 1;
+        save_settings();
     }
 }
 

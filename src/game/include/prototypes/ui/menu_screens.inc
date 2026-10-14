@@ -1,4 +1,5 @@
 static void draw_menu_button(double row, const char *label);
+static void draw_gfx_row(void);
 static void draw_lobby_nick(void);
 static void draw_lobby_money(void);
 static void draw_lobby(void);

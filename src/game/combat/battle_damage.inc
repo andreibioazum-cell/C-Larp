@@ -88,6 +88,9 @@ static void stun_enemy(double t) {
     if (t > enemy->stun) {
         enemy->stun = t;
     }
+    /* Настоящий стан игрой: метка админского стана больше не нужна, кружок
+     * снова показывает боевой стан. */
+    cheat_estun_mark = 0;
     if (enemy->state >= 1 && enemy->state <= 3) {
         enemy->state = 0;
         enemy->state_time = 0;

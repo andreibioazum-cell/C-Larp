@@ -38,6 +38,7 @@ void ds_clear_game_restart(void);
 char *ds_concat(const char *left, const char *right);
 char *ds_num_to_string(double number);
 void ds_string_pool_reset(void);
+void ds_string_pool_tick(void);
 int console_count(void);
 const char *console_line(int index);
 int console_type(int index);
@@ -77,7 +78,7 @@ void alpha_notice_show(double russian);
 void bye_notice_show(const char *text);
 void keyboard_show(void);
 void keyboard_hide(void);
-const char *keyboard_get_text(void);
+void keyboard_get_text_to(char *dst, size_t cap);
 const char *keyboard_get_raw(void);
 void keyboard_clear(void);
 int keyboard_visible(void);
@@ -110,6 +111,7 @@ void tex_round(float x, float y, const char *name, float scale, float radius);
 /* Grayscale filter for the whole frame (1 = black and white, 0 = normal) and
  * a small decaying screen shake (amplitude in pixels, duration in seconds). */
 void ds_gfx_gray(double on);
+void ds_gfx_grade(double on);
 void ds_gfx_shake(double amp, double seconds);
 
 int snd_load(const char *name);

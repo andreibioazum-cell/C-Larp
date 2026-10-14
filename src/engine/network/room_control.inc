@@ -107,12 +107,22 @@ static void event_write_async(const char *url, const char *body) {
     free(j);
 }
 
+/* The event poller runs every EVENT_TICK and would happily put the old value
+ * back while this client's own write is still in flight, so a freshly
+ * switched event blinked off again for a moment (or, with a slow write,
+ * looked like it never happened). The local value wins for a short hold. */
+#define EVENT_LOCAL_HOLD_MS 3000
+static long long event_local_until_ms;
+
 void net_event_set(double mode) {
     int m = (int)mode;
     if (m < 0)
         m = 0;
-    if (m > 3)
-        m = 3;
+    /* 4 is the infection event: it used to be clamped down to 3 here, and 3
+     * has no handler on the game side, so "event 4" looked like it did
+     * nothing at all while the chat still announced it. */
+    if (m > 4)
+        m = 4;
     if (!net.base[0])
         return;
     char url[URL], body[32];
@@ -121,6 +131,7 @@ void net_event_set(double mode) {
     event_write_async(url, body);
     lock();
     net.event = m;
+    event_local_until_ms = now_ms() + EVENT_LOCAL_HOLD_MS;
     unlock();
     LOG("event set %d", m);
 }

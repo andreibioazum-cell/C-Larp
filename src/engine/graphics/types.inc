@@ -122,8 +122,38 @@ typedef struct {
 /* Black-and-white filter and screen shake state shared by the command color
  * packer, the geometry layer and the frame loop (one translation unit). */
 static int gfx_gray_on;
+static int gfx_grade_on;
 static float gfx_shake_dx, gfx_shake_dy;
 static float gfx_shake_amp, gfx_shake_left, gfx_shake_dur;
+
+/* Настоящая цветокоррекция, а не цветная плёнка поверх кадра: тени уходят в
+ * холодный оттенок, света - в тёплый, сверху немного контраста и
+ * насыщенности. Считается для каждого цвета, который идёт в рендер. */
+static void grade_channels(uint32_t *pr, uint32_t *pg, uint32_t *pb) {
+    double r = *pr / 255.0, g = *pg / 255.0, b = *pb / 255.0;
+    double y = 0.299 * r + 0.587 * g + 0.114 * b;
+    double sh = (1 - y) * (1 - y);
+    double hi = y * y;
+    r = r - 0.012 * sh + 0.085 * hi;
+    g = g + 0.004 * sh + 0.022 * hi;
+    b = b + 0.055 * sh - 0.038 * hi;
+    r = (r - 0.5) * 1.16 + 0.5;
+    g = (g - 0.5) * 1.16 + 0.5;
+    b = (b - 0.5) * 1.16 + 0.5;
+    double y2 = 0.299 * r + 0.587 * g + 0.114 * b;
+    r = y2 + (r - y2) * 1.25;
+    g = y2 + (g - y2) * 1.25;
+    b = y2 + (b - y2) * 1.25;
+    if (r < 0) r = 0;
+    if (g < 0) g = 0;
+    if (b < 0) b = 0;
+    if (r > 1) r = 1;
+    if (g > 1) g = 1;
+    if (b > 1) b = 1;
+    *pr = (uint32_t)(r * 255.0 + 0.5);
+    *pg = (uint32_t)(g * 255.0 + 0.5);
+    *pb = (uint32_t)(b * 255.0 + 0.5);
+}
 
 static uint32_t pack_c(uint32_t c) {
     uint32_t a = (c >> 24) & 0xff, r = (c >> 16) & 0xff, g = (c >> 8) & 0xff, b = c & 0xff;
@@ -133,6 +163,8 @@ static uint32_t pack_c(uint32_t c) {
         /* Classic luma weights; keeps the same perceived brightness. */
         uint32_t y = (299 * r + 587 * g + 114 * b) / 1000;
         r = g = b = y;
+    } else if (gfx_grade_on) {
+        grade_channels(&r, &g, &b);
     }
     return r | (g << 8) | (b << 16) | (a << 24);
 }

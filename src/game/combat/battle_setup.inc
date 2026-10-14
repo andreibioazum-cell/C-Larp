@@ -42,7 +42,6 @@ static void reset_battle(void) {
     punch->hit = 0;
     punch_left = 0;
     punch_cd = 0;
-    aim_id = -1;
     aim_a = 0;
     santa_follow = 0;
     azum_revived = 0;
@@ -64,7 +63,6 @@ static void reset_battle(void) {
     super_cd = 0;
     queued_punch = 0;
     queued_super = 0;
-    super_id = -1;
     boom_t = 0;
     boom_x = 0;
     boom_y = 0;
@@ -77,6 +75,7 @@ static void reset_battle(void) {
     pstun_a = 0;
     player_hurt_a = 0;
     player_was_hit = 0;
+    mb_ok = 0;
     enemy_hurt_a = 0;
     player_poison = 0;
     player_poison_tick = 0;
@@ -179,12 +178,14 @@ static void reset_battle(void) {
     joy.x = 130;
     joy.y = screen_h - 150;
     joy.r = 70;
-    atk_x = screen_w - 140;
-    atk_y = screen_h - 150;
-    atk2_x = screen_w - 140;
-    atk2_y = screen_h - 310;
-    blk_x = screen_w - 215;
-    blk_y = screen_h - 230;
+    /* Кнопки крупные, поэтому разнесены шире: между центрами больше двух
+     * радиусов, иначе круги залезают друг на друга. */
+    atk_x = screen_w - 132;
+    atk_y = screen_h - 138;
+    atk2_x = screen_w - 132;
+    atk2_y = screen_h - 330;
+    blk_x = screen_w - 258;
+    blk_y = screen_h - 234;
     drop_joy();
     arr_clear(remotes);
     arr_clear(remote_punches);

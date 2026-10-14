@@ -69,8 +69,6 @@ static void draw_remote_snow(void) {
 
 static void finish_game(double result) {
     finished = result;
-    aim_id = -1;
-    super_id = -1;
     punch->active = 0;
     punch->hit = 0;
     punch_left = 0;
@@ -123,9 +121,10 @@ static void finish_game(double result) {
     }
 }
 
-/* End-of-battle pay-out. A win played with any cheat switched on pays no Cups
- * and hands out no win achievements, even if the cheat was switched back off
- * right away; the loss penalty stays what it always was. */
+/* Выплата за бой. Если в этом бою хотя бы раз включался чит из админки, бой
+ * ничего не меняет в кошельке: ни победа не даёт кубки (и достижения за
+ * победу), ни поражение их не отнимает. Чит мог быть выключен сразу после
+ * включения - метка всё равно остаётся до конца боя. */
 static void award_battle_result(double result) {
     if (result == 1) {
         if (admin_cups_allowed() == 0) {
@@ -144,6 +143,10 @@ static void award_battle_result(double result) {
             grant_achievement(ACH_LAST_HP);
         }
         ds_log("win +%g cups +%g candies", cup_win, candy_win);
+        return;
+    }
+    if (admin_cups_allowed() == 0) {
+        ds_log("lose: no cups taken away, a cheat was used in this battle");
         return;
     }
     cups = cups - cup_lose;
@@ -185,20 +188,23 @@ static void draw_player_hitbox_layer(void) {
 }
 
 static void draw_guard(double x, double y, double angle, double on, double scale) {
+    (void)angle;
     if (on <= 0) {
         return;
     }
-    /* A small round buckler held in front of the fighter — nothing else. */
-    double r = 25 * cube_scale * scale;
-    double fx = x + cos(angle) * r * 1.25;
-    double fy = y + sin(angle) * r * 1.25;
-    circle(fx, fy, r * 0.62, 0xE02E6FBF);
-    circle(fx, fy, r * 0.34, 0xC04FC3F7);
+    /* Блок - просто голубой кружок на самом игроке, больше ничего. */
+    double r = 25 * cube_scale * scale * 1.75;
+    circle(x, y, r, 0x2E4FC3F7);
+    ring(x, y, r, clamp(r * 0.13, 3, 5), 0xCC4FC3F7);
 }
 
 static void draw_player_body_layer(void) {
     double punching = fighter_pose_of(FLOOK_ME, player_punching_now());
     double look = fighter_look_of(FLOOK_ME);
+    if (gfx_ultra == 1 && look != LOOK_NONE) {
+        draw_motion_ghosts(player->x, player->y, mb_dx, mb_dy, 25 * cube_scale * player_scale,
+                           cube_scale * player_scale, look_tex(look, punching), sprite_a(player->angle));
+    }
     draw_fighter_body(player->x, player->y, player->angle, look, punching);
     draw_fighter_tint(player->x, player->y, player->angle, look, punching, player_scale, astra_rw_tint_local());
     draw_fighter_hurt(player->x, player->y, player->angle, look, punching, player_scale, player_hurt_a);
@@ -233,13 +239,14 @@ static void draw_enemy_shadow(void) {
     double ehw = 25 * cube_scale * enemy_scale;
     double es = cube_scale * enemy_scale;
     double look = fighter_look_of(FLOOK_BOT);
+    double sx = enemy->x - shadow_off;
+    double sy = enemy->y + shadow_off;
     if (look == LOOK_NONE) {
-        circle(enemy->x - shadow_off, enemy->y + shadow_off, ehw, (((unsigned)(int)shadow_alpha) << 24));
+        draw_shadow_blur_circle(sx, sy, ehw, shadow_alpha * 2.5, ehw * 0.07);
         return;
     }
-    tex_tint(enemy->x - ehw - shadow_off, enemy->y - ehw + shadow_off,
-             look_tex(look, fighter_pose_of(FLOOK_BOT, enemy_punching_now())), sprite_a(enemy->angle), es,
-             (((unsigned)(int)shadow_alpha) << 24));
+    draw_shadow_blur_tex(sx, sy, ehw, es, look_tex(look, fighter_pose_of(FLOOK_BOT, enemy_punching_now())),
+                         sprite_a(enemy->angle), shadow_alpha * 2.5, ehw * 0.07);
 }
 
 static void draw_enemy_hitbox(void) {
@@ -257,6 +264,10 @@ static void draw_enemy_body(void) {
     double es = cube_scale * enemy_scale;
     double punching = fighter_pose_of(FLOOK_BOT, enemy_punching_now());
     double look = fighter_look_of(FLOOK_BOT);
+    if (gfx_ultra == 1 && look != LOOK_NONE) {
+        draw_motion_ghosts(enemy->x, enemy->y, mb_edx, mb_edy, ehw, es, look_tex(look, punching),
+                           sprite_a(enemy->angle));
+    }
     if (look == LOOK_NONE) {
         rect(enemy->x - ehw, enemy->y - ehw, 2 * ehw, 2 * ehw, fighter_fallback_rgb);
     } else {
@@ -266,22 +277,34 @@ static void draw_enemy_body(void) {
     draw_guard(enemy->x, enemy->y, enemy->angle, enemy_block_left > 0, enemy_scale);
 }
 
+/* A combat pad answers a press the way a menu button does: it shrinks a
+ * little and darkens, so a punch that goes off on the touch still reads as a
+ * press and not as a misfire. */
+/* Радиус боевой кнопки: исходный 55, по просьбе сделан заметно больше - палец
+ * должен попадать без промаха. */
+static double battle_pad_r(void) {
+    return 60;
+}
+static void draw_pad(double cx, double cy, double r, uint32_t col, const char *label, double scale) {
+    double p = button_press_k(cx - r, cy - r, r * 2, r * 2);
+    double s = 1 - PRESS_SQUEEZE * p;
+    double rr = r * s;
+    circle(cx, cy, rr, shade(col, 1 - PRESS_SHADE * p));
+    ring(cx, cy, rr, 4, 0x000000);
+    text_in_box(label, cx - rr, cy - rr, rr * 2, rr * 2, 0xFFFFFF, scale * s);
+}
+
 static void draw_controls(void) {
     ring(joy.x, joy.y, joy.r, 4, 0x000000);
     circle(joy.x + joy.ox, joy.y + joy.oy, 34, 0x000000);
-    /* All three combat buttons are one size: 55px radius with a 110px label. */
-    circle(atk_x, atk_y, 55, 0xE94560);
-    ring(atk_x, atk_y, 55, 4, 0x000000);
-    text_in_box(tr_punch(), atk_x - 55, atk_y - 55, 110, 110, 0xFFFFFF, 0.55);
+    /* Все три боевые кнопки одного размера и заметно крупнее прежнего:
+     * блок ничуть не меньше удара и супера. */
+    draw_pad(atk_x, atk_y, battle_pad_r(), 0xE94560, tr_punch(), 0.55);
     if (game_state == ST_SOLO || game_state == ST_ONLINE) {
-        /* Guard sits between the punch and ability buttons, a little left. */
-        circle(blk_x, blk_y, 55, player_block == 1 ? 0x2E6FBF : 0x3A5A8C);
-        ring(blk_x, blk_y, 55, 4, 0x000000);
-        text_in_box(tr_block(), blk_x - 55, blk_y - 55, 110, 110, 0xFFFFFF, 0.55);
+        /* Блок стоит между ударом и супером, левее их обоих. */
+        draw_pad(blk_x, blk_y, battle_pad_r(), player_block == 1 ? 0x2E6FBF : 0x3A5A8C, tr_block(), 0.55);
     }
     if (class_has_super(player_class) == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE)) {
-        circle(atk2_x, atk2_y, 55, 0x5F10A0);
-        ring(atk2_x, atk2_y, 55, 4, 0x000000);
         const char *sl = tr_super();
         if (player_class == CLASS_EBUC) {
             sl = tr_super_ebuc();
@@ -301,7 +324,7 @@ static void draw_controls(void) {
             sl = ds_concat(ds_num_to_string((double)(floor(left + 0.999))), "");
             sls = 0.95;
         }
-        text_in_box(sl, atk2_x - 55, atk2_y - 55, 110, 110, 0xFFFFFF, sls);
+        draw_pad(atk2_x, atk2_y, battle_pad_r(), 0x5F10A0, sl, sls);
     }
     draw_battle_back();
 }
@@ -332,12 +355,16 @@ static void draw_result(const char *title) {
 
 static void draw_game(void) {
     resolve_fighter_looks();
+    motion_blur_track();
     draw_arena_background();
     draw_field();
     draw_dust();
-    draw_player_shadow_layer();
-    draw_enemy_shadow();
-    draw_turret_shadows();
+    /* Тени рисуем только на ультра: на низкой графике их нет. */
+    if (gfx_ultra == 1) {
+        draw_player_shadow_layer();
+        draw_enemy_shadow();
+        draw_turret_shadows();
+    }
     draw_candies();
     draw_card_item();
     draw_player_hitbox_layer();
@@ -359,10 +386,15 @@ static void draw_game(void) {
     draw_status_aura(enemy->x, enemy->y, enemy->size, poison_rgb, poison_rim, poison_a);
     draw_status_aura(enemy->x, enemy->y, enemy->size, stun_rgb, stun_rim, stun_a);
     draw_snow();
+    /* Цветокоррекция и виньетка ложатся на бой, но не на интерфейс: полоски
+     * здоровья и кнопки остаются чистыми. */
+    draw_screen_fx();
     double w = screen_w / 4;
     hud_bar(20, 20, w, 28, player->hp, player->max_hp, 0x7ED321, 0);
     hud_bar(screen_w - w - 20, 20, w, 28, enemy->hp, enemy->max_hp, 0xE94560, 1);
     draw_controls();
+    /* Красный отлив при уроне - поверх всего, но очень слабый. */
+    draw_hurt_flash();
     if (finished == 1) {
         draw_result(tr_victory());
     } else if (finished == 2) {

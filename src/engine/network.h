@@ -210,6 +210,8 @@ double net_load_music_volume(void);
 void net_save_music_volume(double volume);
 double net_load_winter_theme(void);
 void net_save_winter_theme(double on);
+double net_load_gfx_ultra(void);
+void net_save_gfx_ultra(double on);
 
 void settings_mark_legal(void);
 double settings_legal_ts(void);

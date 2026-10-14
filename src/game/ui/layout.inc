@@ -22,7 +22,9 @@ static double hit_menu_row(double px, double py, double i) {
 
 static double settings_stride(void) {
     double s = menu_stride();
-    double fit = (screen_h - 16) / SETTINGS_ROWS;
+    /* Список начинается с высоты кнопки «Играть», поэтому в расчёт идёт только
+     * место под ним - иначе на невысоком экране нижние пункты уезжают за край. */
+    double fit = (screen_h - 16 - menu_top()) / SETTINGS_ROWS;
     if (fit < s) {
         s = fit;
     }
@@ -41,11 +43,8 @@ static double settings_btn_h(void) {
 }
 
 static double settings_top(void) {
-    double top = screen_h / 2 - (settings_btn_h() + (SETTINGS_ROWS - 1) * settings_stride()) / 2;
-    if (top < 8) {
-        top = 8;
-    }
-    return top;
+    /* Список настроек начинается с той же высоты, что и кнопка «Играть». */
+    return menu_top();
 }
 
 static double settings_row_y(double i) { return settings_top() + i * settings_stride(); }
@@ -120,6 +119,15 @@ static double class_pick_y(void) { return classes_top() + class_card_h - class_p
 
 static double hit_class_card(double px, double py, double vi) {
     return hit_rect(px, py, classes_card_x(vi), classes_top(), classes_card_w(), class_card_h);
+}
+
+/* The price / pick pill drawn at the bottom of a shop card. It is part of the
+ * card, but it is a button in its own right: pressing it buys or picks on the
+ * touch itself, while the rest of the card waits for the finger to lift so a
+ * swipe can still page the list. */
+static double hit_class_pill(double px, double py, double vi) {
+    return hit_rect_pad(px, py, classes_card_x(vi) + class_pick_inset(), class_pick_y(), class_pick_w(),
+                        class_pick_h);
 }
 
 static double classes_nav_w(void) { return 36; }
@@ -263,6 +271,21 @@ static double modes_row(double i) { return modes_top() + i * menu_stride(); }
 
 static double hit_modes_row(double px, double py, double i) {
     return hit_rect_pad(px, py, menu_x(), modes_row(i), menu_btn_w(), btn_h);
+}
+
+/* Графика: две половинные кнопки в шестом ряду - низкая и ультра. */
+static double gfx_btn_w(void) { return (menu_btn_w() - 10) / 2; }
+
+static double gfx_low_x(void) { return menu_x(); }
+
+static double gfx_ultra_x(void) { return menu_x() + gfx_btn_w() + 10; }
+
+static double hit_gfx_low(double px, double py) {
+    return hit_rect_pad(px, py, gfx_low_x(), modes_row(6), gfx_btn_w(), btn_h);
+}
+
+static double hit_gfx_ultra(double px, double py) {
+    return hit_rect_pad(px, py, gfx_ultra_x(), modes_row(6), gfx_btn_w(), btn_h);
 }
 
 static double warn_btn_w(void) { return fit_w(560); }

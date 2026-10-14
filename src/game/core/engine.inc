@@ -4,7 +4,11 @@ static void start_transition(double target) {
     }
     classes_swipe_reset();
     t_target = target;
+    /* Кнопка нажимается и сжимается, а экран в этот же кадр уже начал гаснуть
+     * - так нажатия не видно. Сначала даём кнопке досжаться, потом гасим. */
+    t_hold = transition_hold;
     t_dir = 1;
+    ui_nav_gen = ui_nav_gen + 1;
 }
 
 static void leave_screen(double state) {
@@ -39,6 +43,7 @@ static double enter_screen(double state) {
         if (net_is_banned(net_login_nick()) == 1) {
             banned_msg = tr_banned();
             game_state = ST_LOBBY;
+            ui_nav_gen = ui_nav_gen + 1;
             t_dir = -1;
             t_fade = 1;
             return 0;
@@ -50,6 +55,13 @@ static double enter_screen(double state) {
 
 static void update_transition(void) {
     if (t_dir == 1) {
+        if (t_hold > 0) {
+            t_hold = t_hold - dt;
+            if (t_hold < 0) {
+                t_hold = 0;
+            }
+            return;
+        }
         t_fade = t_fade + dt / transition_duration;
         if (t_fade >= 1) {
             t_fade = 1;
@@ -60,6 +72,7 @@ static void update_transition(void) {
     if (t_dir == 2) {
         leave_screen(game_state);
         game_state = t_target;
+        ui_nav_gen = ui_nav_gen + 1;
         if (enter_screen(t_target) == 1) {
             t_dir = -1;
         }
@@ -172,6 +185,9 @@ static void logic_update(void) {
     }
     update_newyear();
     update_weather();
+    /* Цветокоррекция работает только в бою: лобби, меню и магазин остаются с
+     * настоящими цветами. Переключаем её здесь, до отрисовки кадра. */
+    ds_gfx_grade(gfx_ultra == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE));
 }
 
 static void draw_screen(void) {
@@ -231,6 +247,10 @@ static void logic_draw(void) {
     /* Last of all: the admin orb and its panel are never covered, not by the
      * transition curtain, not by the epilepsy warning or the splash. */
     admin_draw();
+    /* The press pulse was offered to every control drawn this frame; a touch
+     * that landed where there is no control must not wait for a later frame
+     * and squeeze something there. */
+    press_new = 0;
 }
 
 /* Saying goodbye when the game is left: half of the exits stay silent, the rest
@@ -317,43 +337,25 @@ static double logic_back(void) {
     return 0;
 }
 
-/* Tap arming for release-only controls: a press arms the tap, a drag past
- * finger jitter cancels it, and a completed tap reports 1 so the caller can
- * fire the control at the tap origin. */
-static double tap_event(double x, double y, double action) {
-    if (action == 0) {
-        tap_armed = 1;
-        tap_x = x;
-        tap_y = y;
-        return 0;
-    }
-    if (action == 2) {
-        /* A drag beyond finger jitter cancels the tap. */
-        if (tap_armed == 1 && dist(x, y, tap_x, tap_y) > clamp(screen_w * 0.04, 32, 72)) {
-            tap_armed = 0;
-        }
-        return 0;
-    }
-    if (action == 1 && tap_armed == 1) {
-        tap_armed = 0;
-        return 1;
-    }
-    tap_armed = 0;
-    return 0;
-}
-
 static void logic_touch(double x, double y, double action, double id) {
-    /* Track the held pointer for button press feedback before anything can
-     * consume or reject the event: 0 = down, 1 = up, 2 = move, 3 = cancel. */
+    /* Track the touching pointer before anything can consume or reject the
+     * event: 0 = down, 1 = up, 2 = move, 3 = cancel. A down also arms the
+     * press pulse (press_new): the next control drawn under it takes the
+     * squeeze, so a button always shows its feedback on the touch itself. */
     if (action == 0) {
         press_down = 1;
         press_x = x;
         press_y = y;
+        press_new = 1;
     } else if (action == 2) {
         press_x = x;
         press_y = y;
     } else if (action == 1 || action == 3) {
         press_down = 0;
+        if (action == 3) {
+            /* The gesture was taken away: no press feedback for it. */
+            press_new = 0;
+        }
     }
     /* The admin orb and its panel sit above every screen - including the
      * transition curtain and the epilepsy warning - and consume their own
@@ -375,16 +377,15 @@ static void logic_touch(double x, double y, double action, double id) {
     if (studio_open == 1) {
         return;
     }
-    /* Battles keep raw touches - the joysticks and attack pads must react
-     * while held - and the shop keeps its own down/move/up machine so swipes
-     * can page cards; their buttons wait for release too. Everything else is
-     * tap-only UI: a press is just feedback, the action fires on release and
-     * cancels when the finger slides away, so holding a button never repeats
-     * or fires early. */
+    /* Battles keep raw touches - the joysticks and the block pad must react
+     * while held - and the shop keeps its own down/move/up machine so a swipe
+     * can page cards. Everywhere else a press is the whole gesture: the click,
+     * the squeeze and the action all happen on touch down, and the control
+     * springs back on its own, so nothing has to be held or released gently. */
     if (game_state == ST_SOLO || game_state == ST_ONLINE) {
-        /* The in-battle back button acts on release like every other button;
-         * the results tap and the chat controls keep their instant feedback. */
-        if (action == 0 && battle_back_hit(x, y) == 0 && menu_button_hit(x, y) == 1) {
+        /* The in-battle back button, the results tap and the chat controls
+         * all give their feedback on the touch. */
+        if (action == 0 && menu_button_hit(x, y) == 1) {
             play_button_click();
         }
         touch_game(x, y, action, id);
@@ -394,21 +395,18 @@ static void logic_touch(double x, double y, double action, double id) {
         touch_classes(x, y, action, id);
         return;
     }
-    if (tap_event(x, y, action) == 1) {
-        /* Fire the button that was pressed (the tap origin, still within
-         * slop of the release), and let its squeeze spring back there too.
-         * An open dialogue consumes the tap as its skip action, so the menu
-         * rows behind it never fire. */
-        press_x = tap_x;
-        press_y = tap_y;
-        double dialog_skip = game_state == ST_LOBBY && cube_npc_dialogue_active == 1;
-        if (menu_button_hit(tap_x, tap_y) == 1 && dialog_skip == 0) {
-            play_button_click();
-        }
-        if (game_state == ST_LOBBY) {
-            touch_lobby(tap_x, tap_y, 0);
-        } else {
-            touch_menu(tap_x, tap_y, 0, id);
-        }
+    if (action != 0) {
+        return;
+    }
+    /* An open dialogue consumes the press as its skip action, so the menu
+     * rows behind it never fire. */
+    double dialog_skip = game_state == ST_LOBBY && cube_npc_dialogue_active == 1;
+    if (menu_button_hit(x, y) == 1 && dialog_skip == 0) {
+        play_button_click();
+    }
+    if (game_state == ST_LOBBY) {
+        touch_lobby(x, y, 0);
+    } else {
+        touch_menu(x, y, 0, id);
     }
 }

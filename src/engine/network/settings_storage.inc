@@ -3,7 +3,7 @@
 typedef struct {
     DSMutex lock;
     int loaded, has_file;
-    int language, hitboxes, musicvol, winter;
+    int language, hitboxes, musicvol, winter, gfx;
     int legal;
 } Settings;
 static Settings st = {.lock = DS_MUTEX_INIT};
@@ -19,7 +19,7 @@ static void settings_read(void) {
     char path[320], line[128];
     FILE *f;
     int language = 0, hitboxes = 1, musicvol = 70, has_file = 0;
-    int winter = 1, legal = 0;
+    int winter = 1, legal = 0, gfx = 1;
     st_lock();
     if (st.loaded) {
         st_unlock();
@@ -48,6 +48,10 @@ static void settings_read(void) {
                 winter = value;
                 continue;
             }
+            if (sscanf(line, "gfx %d", &value) == 1) {
+                gfx = value;
+                continue;
+            }
             if (sscanf(line, "legal %d", &value) == 1) {
                 legal = value;
                 continue;
@@ -60,6 +64,7 @@ static void settings_read(void) {
     st.hitboxes = hitboxes ? 1 : 0;
     st.musicvol = musicvol < 0 ? 0 : (musicvol > 100 ? 100 : musicvol);
     st.winter = winter ? 1 : 0;
+    st.gfx = gfx ? 1 : 0;
     st.legal = legal;
     st.has_file = has_file;
     st.loaded = 1;
@@ -71,8 +76,8 @@ static void settings_write(void) {
     settings_read();
     data_file_path(path, sizeof(path), SETTINGS_FILE);
     st_lock();
-    snprintf(text, sizeof(text), "lang %d\nhitboxes %d\nmusicvol %d\nwinter %d\nlegal %d\n", st.language,
-             st.hitboxes, st.musicvol, st.winter, st.legal);
+    snprintf(text, sizeof(text), "lang %d\nhitboxes %d\nmusicvol %d\nwinter %d\ngfx %d\nlegal %d\n", st.language,
+             st.hitboxes, st.musicvol, st.winter, st.gfx, st.legal);
     st.has_file = 1;
     st_unlock();
     file_write_atomic(path, text);
@@ -162,6 +167,24 @@ void net_save_winter_theme(double on) {
     st_unlock();
     settings_write();
     settings_push_to_cloud();
+}
+
+double net_load_gfx_ultra(void) {
+    double v;
+    settings_read();
+    st_lock();
+    v = (double)st.gfx;
+    st_unlock();
+    return v;
+}
+
+void net_save_gfx_ultra(double on) {
+    settings_read();
+    st_lock();
+    st.gfx = on ? 1 : 0;
+    st.loaded = 1;
+    st_unlock();
+    settings_write();
 }
 
 void net_save_settings(double language, double hitboxes) {

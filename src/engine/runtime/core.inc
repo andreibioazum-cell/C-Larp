@@ -91,8 +91,12 @@ typedef struct DSStringNode DSStringNode;
 struct DSStringNode {
     DSStringNode *next;
     char *string;
+    unsigned long gen;
 };
 static DSStringNode *ds_strings = NULL;
+/* Номер текущего кадра: по нему строки, которые уже отрисованы, находятся и
+ * освобождаются. */
+static unsigned long ds_string_gen = 0;
 static void platform_log(int is_error, const char *format, va_list args) {
     __android_log_vprint(is_error ? ANDROID_LOG_ERROR : ANDROID_LOG_INFO, "CubicBattle", format, args);
 }
@@ -162,6 +166,10 @@ int ds_call_protected(DSProtectedFunction function, void *userdata, const char *
     ds_error_handler_active = 1;
     jumped = setjmp(ds_error_jump);
     if (jumped == 0) {
+        /* Каждый хук начинается с чистого листа: ошибка, поднятая где-то вне
+         * него (например в фоновом потоке), не должна ронять здоровый кадр и
+         * отправлять игрока из боя в лобби. */
+        ds_clear_runtime_error();
         function(userdata);
         ds_error_handler_active = 0;
         return !ds_has_error;
@@ -200,21 +208,45 @@ static char *ds_strdup(const char *s) {
         memcpy(c, s, n);
     return c;
 }
+/* Пустая строка на случай, когда под строку не нашлось памяти: одна
+ * недописная цифра в HUD не имеет права обрушить весь бой. */
+static char ds_empty_string[1] = {0};
 static char *ds_track_string(char *s) {
+    DSStringNode *node;
     if (!s) {
-        ds_runtime_error("out of memory string");
-        return NULL;
+        ds_console_log(1, "runtime: no memory for a string");
+        return ds_empty_string;
     }
-    DSStringNode *node = (DSStringNode *)malloc(sizeof(*node));
+    node = (DSStringNode *)malloc(sizeof(*node));
     if (!node) {
+        ds_console_log(1, "runtime: no memory to track a string");
         free(s);
-        ds_runtime_error("out of memory tracking");
-        return NULL;
+        return ds_empty_string;
     }
     node->string = s;
+    node->gen = ds_string_gen;
     node->next = ds_strings;
     ds_strings = node;
     return s;
+}
+/* Вызывается раз в кадр, до игровых хуков. Все строки, построенные за кадр,
+ * нужны только внутри него: текст копируется в буфер команд, а сетевые вызовы
+ * забирают своё сразу. Историю держим в один кадр, чтобы ничего не повисло, и
+ * освобождаем всё, что старше, - иначе пул растёт весь сеанс и под бой память
+ * кончается, из-за чего игра перезапускается и выбрасывает в лобби. */
+void ds_string_pool_tick(void) {
+    DSStringNode **link = &ds_strings;
+    ds_string_gen = ds_string_gen + 1;
+    while (*link) {
+        DSStringNode *node = *link;
+        if (node->gen + 2 <= ds_string_gen) {
+            *link = node->next;
+            free(node->string);
+            free(node);
+        } else {
+            link = &node->next;
+        }
+    }
 }
 char *ds_num_to_string(double number) {
     char buf[96];
