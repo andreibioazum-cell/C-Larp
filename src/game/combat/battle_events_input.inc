@@ -241,6 +241,7 @@ static void draw_online(void) {
     hud_bar(20, 20, w, 28, player->hp, player->max_hp, 0x7ED321, 0);
     draw_controls();
     draw_hurt_flash();
+    draw_fps_meter();
     draw_chat();
     draw_plates_hud();
     if (finished == 2) {

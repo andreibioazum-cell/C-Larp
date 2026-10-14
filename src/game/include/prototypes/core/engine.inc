@@ -18,3 +18,5 @@ static void logic_draw(void);
 static void bye_notice_roll(void);
 static double logic_back(void);
 static void logic_touch(double x, double y, double action, double id);
+static void tick_fps_meter(void);
+static void draw_fps_meter(void);

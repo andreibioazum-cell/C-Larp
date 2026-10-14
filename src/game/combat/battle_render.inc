@@ -397,6 +397,7 @@ static void draw_game(void) {
     draw_controls();
     /* Красный отлив при уроне - поверх всего, но очень слабый. */
     draw_hurt_flash();
+    draw_fps_meter();
     if (finished == 1) {
         draw_result(tr_victory());
     } else if (finished == 2) {

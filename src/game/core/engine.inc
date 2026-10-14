@@ -185,9 +185,11 @@ static void logic_update(void) {
     }
     update_newyear();
     update_weather();
-    /* Цветокоррекция работает только в бою: лобби, меню и магазин остаются с
-     * настоящими цветами. Переключаем её здесь, до отрисовки кадра. */
-    ds_gfx_grade(gfx_ultra == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE));
+    /* Цветокоррекция на ультра работает в бою и в лобби; остальные меню и
+     * магазин остаются с настоящими цветами. Экран меняется под чёрной
+     * шторкой перехода, поэтому включение и выключение не видно.
+     * Переключаем её здесь, до отрисовки кадра. */
+    ds_gfx_grade(gfx_ultra == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE || game_state == ST_LOBBY));
 }
 
 static void draw_screen(void) {

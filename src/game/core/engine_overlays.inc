@@ -115,3 +115,44 @@ static void draw_achievement_toast(void) {
     ctext_scaled(body, top + hh + gap - bt, text_color, bs);
 }
 
+
+/* Счётчик FPS в бою, внизу справа. Кадры копятся полсекунды, и только потом
+ * число обновляется: так оно читается, а не мельтешит каждый кадр. Ниже
+ * кнопки удара (её нижний край на 78 px выше края экрана), поэтому ничего не
+ * перекрывает. */
+#define FPS_WINDOW 0.5
+#define FPS_SCALE 0.45
+#define FPS_MARGIN 12
+
+static double fps_acc;
+static double fps_frames;
+static double fps_shown;
+
+static void tick_fps_meter(void) {
+    if (dt <= 0) {
+        return;
+    }
+    fps_acc = fps_acc + dt;
+    fps_frames = fps_frames + 1;
+    if (fps_acc >= FPS_WINDOW) {
+        fps_shown = floor(fps_frames / fps_acc + 0.5);
+        fps_acc = 0;
+        fps_frames = 0;
+    }
+}
+
+static void draw_fps_meter(void) {
+    tick_fps_meter();
+    if (fps_shown <= 0) {
+        return;
+    }
+    const char *label = ds_concat(ds_num_to_string(fps_shown), " FPS");
+    double tw = text_ink_width(label) * FPS_SCALE;
+    double th = text_ink_height(label) * FPS_SCALE;
+    double tt = text_ink_top(label) * FPS_SCALE;
+    double x = screen_w - FPS_MARGIN - tw;
+    double y = screen_h - FPS_MARGIN - th - tt;
+    /* Тёмная подложка в 1 px - число видно и на снегу, и на траве. */
+    text_scaled(label, x + 1, y + 1, 0xB0000000, FPS_SCALE);
+    text_scaled(label, x, y, 0xFFFFFFFF, FPS_SCALE);
+}
