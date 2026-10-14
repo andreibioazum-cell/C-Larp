@@ -154,9 +154,19 @@ static int run_legal_read(const char *dir) {
 
 static int run_fresh(const char *dir) {
     net_set_data_path(dir);
-    assert(net_load_language() == 1); /* a new install speaks Russian (168-FZ) */
+    assert(net_load_language() == 1); /* phone language unknown: Russian (168-FZ) */
     assert(settings_pd_consent_version() == 0); /* no consent until the player ticks the box */
-    puts("native fresh: Russian by default, no data consent until it is given");
+    puts("native fresh: Russian when the phone language is unknown, no data consent until it is given");
+    return 0;
+}
+
+/* A new install follows the phone: Russian phone - Russian game, any other - English.
+ * A language already saved in settings.dat wins over the phone. */
+static int run_phone(const char *dir, const char *code, int expected) {
+    net_set_system_language(code);
+    net_set_data_path(dir);
+    assert(net_load_language() == expected);
+    printf("native phone: phone language '%s' -> game language %d\n", code, expected);
     return 0;
 }
 
@@ -192,6 +202,7 @@ int main(int argc, char **argv) {
     if (strcmp(argv[1], "legal") == 0) return run_legal(argv[2]);
     if (strcmp(argv[1], "legal-read") == 0) return run_legal_read(argv[2]);
     if (strcmp(argv[1], "fresh") == 0) return run_fresh(argv[2]);
+    if (strcmp(argv[1], "phone") == 0 && argc >= 5) return run_phone(argv[2], argv[3], atoi(argv[4]));
     if (strcmp(argv[1], "consent") == 0) return run_consent(argv[2]);
     if (strcmp(argv[1], "delete") == 0) return run_delete(argv[2]);
     fprintf(stderr, "unknown mode '%s'\n", argv[1]);
@@ -257,6 +268,14 @@ def main():
         fresh_install = temp / "fresh-install"
         fresh_install.mkdir()
         subprocess.run([*run, "fresh", str(fresh_install)], check=True)
+        for code, expected in (("en", 0), ("de", 0), ("ru", 1)):
+            phone = temp / ("phone-" + code)
+            phone.mkdir()
+            subprocess.run([*run, "phone", str(phone), code, str(expected)], check=True)
+        saved_choice = temp / "phone-saved"
+        saved_choice.mkdir()
+        (saved_choice / "settings.dat").write_text("lang 1\n", encoding="utf-8")
+        subprocess.run([*run, "phone", str(saved_choice), "en", "1"], check=True)
 
         account = temp / "account-device"
         account.mkdir()

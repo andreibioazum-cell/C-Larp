@@ -56,6 +56,8 @@ void net_set_java_vm(JavaVM *vm);
 void net_connect(const char *url, const char *room);
 void net_disconnect(void);
 void net_set_data_path(const char *path);
+/* Язык телефона (ISO 639-1, например "ru"): по нему выбирается язык новой установки. */
+void net_set_system_language(const char *code);
 
 void net_set_firebase_key(const char *key);
 void net_autologin(const char *url);

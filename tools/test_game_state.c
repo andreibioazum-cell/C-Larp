@@ -857,7 +857,7 @@ int main(void) {
     assert(player->hp == 20 && enemy->hp == 20);
     assert(class_level_tbl && remote_punches && plates_candies && flake_cache);
 
-    /* A new install speaks Russian (168-FZ); English is the player's choice. */
+    /* The game starts in Russian when the phone language is unknown (168-FZ). */
     assert(language == 1);
     assert(strcmp(tr_play(), "Играть") == 0);
     language = 0;

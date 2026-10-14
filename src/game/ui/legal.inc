@@ -318,8 +318,9 @@ static void draw_warning(void) {
     rect(0, 0, screen_w, screen_h, warn_rgb(0));
     uint32_t body = warn_rgb(text_color);
     double y = clamp(screen_h / 2 - 244, 8, screen_h);
-    warn_block(warn_ru, y, body);
-    warn_block(warn_en, y + 214, body);
+    /* Сначала текст на языке игры (он выбран по языку телефона), под ним дубль. */
+    warn_block(language == 1 ? warn_ru : warn_en, y, body);
+    warn_block(language == 1 ? warn_en : warn_ru, y + 214, body);
     draw_age_mark(screen_w - screen_margin - 96, back_y, 96, body);
     const char *label = tr_legal_accept();
     if (warn_ready < 1) {

@@ -16,11 +16,30 @@ static void st_unlock(void) {
     ds_mutex_unlock(st.lock);
 }
 
+static char sys_lang[8]; /* язык телефона ("ru", "en", ...), задаёт платформа */
+
+void net_set_system_language(const char *code) {
+    st_lock();
+    snprintf(sys_lang, sizeof(sys_lang), "%s", code ? code : "");
+    st_unlock();
+}
+
+/* Язык новой установки берётся из телефона: русский телефон - русская игра,
+ * любой другой - английская. Если язык неизвестен, остаётся русский
+ * (168-ФЗ: для российских игроков текст должен быть на русском). */
+static int system_language_default(void) {
+    int ru;
+    st_lock();
+    ru = !sys_lang[0] || (sys_lang[0] == 'r' && sys_lang[1] == 'u');
+    st_unlock();
+    return ru;
+}
+
 static void settings_read(void) {
     char path[320], line[128];
     FILE *f;
-    /* Новая установка говорит по-русски (168-ФЗ: русский язык по умолчанию). */
-    int language = 1, hitboxes = 1, musicvol = 70, has_file = 0;
+    /* -1: в файле языка нет, берём язык телефона. */
+    int language = -1, hitboxes = 1, musicvol = 70, has_file = 0;
     int winter = 1, legal = 0, theme = 1, pdc = 0, pdv = 0;
     st_lock();
     if (st.loaded) {
@@ -69,6 +88,8 @@ static void settings_read(void) {
         }
         fclose(f);
     }
+    if (language < 0)
+        language = system_language_default();
     st_lock();
     st.language = language ? 1 : 0;
     st.hitboxes = hitboxes ? 1 : 0;
@@ -203,6 +224,8 @@ void net_save_new_theme(double on) {
 
 void net_save_settings(double language, double hitboxes) {
     settings_read();
+    if (language < 0)
+        language = system_language_default();
     st_lock();
     st.language = language ? 1 : 0;
     st.hitboxes = hitboxes ? 1 : 0;
