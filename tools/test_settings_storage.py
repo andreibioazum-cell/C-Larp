@@ -91,6 +91,11 @@ static int run_write(const char *dir) {
     assert(net_load_language() == 1);
     assert(net_load_hitboxes() == 0);
     assert(net_load_music_volume() == 35);
+
+    assert(net_load_new_theme() == 1);
+    net_save_new_theme(0);
+    assert(net_load_new_theme() == 0);
+    assert(net_load_language() == 1);
     puts("native write: settings.dat created, local wins over cloud");
     return 0;
 }
@@ -100,7 +105,8 @@ static int run_read(const char *dir) {
     assert(net_load_language() == 1);
     assert(net_load_hitboxes() == 0);
     assert(net_load_music_volume() == 35);
-    puts("native read: a fresh process restores language, hitboxes and music volume");
+    assert(net_load_new_theme() == 0);
+    puts("native read: a fresh process restores language, hitboxes, music volume and theme");
     return 0;
 }
 
@@ -122,6 +128,7 @@ static int run_legacy(const char *dir) {
     assert(net_load_hitboxes() == 0);
 
     assert(net_load_music_volume() == 70);
+    assert(net_load_new_theme() == 1); /* files from before the toggle: new theme */
     net_save_settings(0, 1);
     assert(net_load_language() == 0);
     assert(net_load_hitboxes() == 1);
@@ -183,6 +190,7 @@ def main():
         saved = (data / "settings.dat").read_text(encoding="utf-8")
         assert "lang 1" in saved and "hitboxes 0" in saved, saved
         assert "musicvol 35" in saved, saved
+        assert "theme 0" in saved, saved
         assert "mod" not in saved, saved
         subprocess.run([*run, "read", str(data)], check=True)
 

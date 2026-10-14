@@ -38,7 +38,7 @@ btn_radius = 20;
 back_y = 24;
 title_gap = 12;
 lobby_rows = 5;
-modes_rows = 7;
+modes_rows = 6;
 screen_margin = 40;
 class_action_gap = 40;
 class_count = 6;
@@ -426,6 +426,7 @@ press_k = 0;
 press_phase = 0;
 press_new = 0;
 press_id = -1;
+new_theme = 1;
 ui_nav_gen = 0;
 
 /* NPC cube in the lobby (debug placeholder) */

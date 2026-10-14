@@ -629,6 +629,8 @@ double net_load_winter_theme(void) { return 0; }
 void net_save_winter_theme(double on) { (void)on; }
 double net_load_gfx_ultra(void) { return 1; }
 void net_save_gfx_ultra(double on) { (void)on; }
+double net_load_new_theme(void) { return 1; }
+void net_save_new_theme(double on) { (void)on; }
 void settings_mark_legal(void) {}
 double net_is_banned(const char *nick) {
     (void)nick;
@@ -1407,6 +1409,32 @@ int main(void) {
     assert(astra_rw_zone_live_for(astra_rw_lunge_time, 0, 1) == 1);
     astra_state = 0;
     astra_cd = 0;
+    /* On the move the lunge still beats the walk: it lands a full step
+     * further than walking would have carried her, and it bursts off faster
+     * than walking pace from the very first frame. */
+    {
+        double saved_jdx = joy.dx;
+        double saved_jdy = joy.dy;
+        joy.dx = 1;
+        joy.dy = 0;
+        player->x = 150;
+        player->y = 90;
+        start_grab_now();
+        assert(astra_x - 150 > player_walk_speed() * astra_rw_lunge_time + astra_rw_lunge_dist - 1e-6);
+        double before = player->x;
+        astra_rw_lunge_tick();
+        assert((player->x - before) / dt > player_walk_speed());
+        int k = 0;
+        while (k < 60) {
+            astra_rw_lunge_tick();
+            k = k + 1;
+        }
+        assert(fabs(player->x - astra_x) < 1e-9);
+        joy.dx = saved_jdx;
+        joy.dy = saved_jdy;
+        astra_state = 0;
+        astra_cd = 0;
+    }
     /* The grab/catch waits for the visual dash to finish; its first hit is
      * still scheduled before regular Astra's first beat. */
     player->x = 100;
@@ -2020,6 +2048,67 @@ int main(void) {
 
         game_state = ST_LOBBY;
         screen_h = saved_h;
+    }
+
+    /* The old theme is back as a settings toggle (row 5): rose colours, a
+     * left-aligned menu and no NPC cube; tapping again brings the new one. */
+    {
+        assert(new_theme == 1);
+        assert(menu_x() == center_x(btn_w));
+        game_state = ST_SETTINGS;
+        t_dir = 0;
+        t_target = 0;
+        logic_touch(menu_x() + menu_btn_w() / 2, settings_row_y(5) + settings_btn_h() / 2, 0, 20);
+        assert(new_theme == 0 && t_dir == 0);
+        assert(ui_purple == 0xFFD4508A && bg_screen == 0xFF3A1530);
+        assert(menu_x() == screen_margin);
+        press_new = 0;
+        logic_touch(menu_x() + menu_btn_w() / 2, settings_row_y(5) + settings_btn_h() / 2, 0, 21);
+        assert(new_theme == 1 && ui_purple == 0xFF5F10A0);
+        press_new = 0;
+        /* Privacy moved one row down. */
+        logic_touch(menu_x() + menu_btn_w() / 2, settings_row_y(6) + settings_btn_h() / 2, 0, 22);
+        assert(t_dir == 1 && t_target == ST_PRIVACY);
+        t_dir = 0;
+        t_target = 0;
+        press_new = 0;
+
+        /* The promo code sits in the bottom-right corner of the modes screen
+         * (on a landscape phone-sized screen, as the game runs). */
+        double saved_mw = screen_w;
+        double saved_mh = screen_h;
+        screen_w = 1280;
+        screen_h = 720;
+        game_state = ST_MODES;
+        assert(promo_corner_x() + promo_corner_w() == screen_w - screen_margin);
+        assert(promo_corner_y() + btn_h == screen_h - screen_margin);
+        assert(promo_corner_x() > menu_x() + menu_btn_w());
+        logic_touch(promo_corner_x() + promo_corner_w() / 2, promo_corner_y() + btn_h / 2, 0, 23);
+        assert(t_dir == 1 && t_target == ST_PROMO);
+        t_dir = 0;
+        t_target = 0;
+        press_new = 0;
+        /* Row 4 is now the winter toggle, row 5 the graphics pair. */
+        double saved_winter2 = winter_theme;
+        logic_touch(menu_x() + menu_btn_w() / 2, modes_row(4) + btn_h / 2, 0, 24);
+        assert(winter_theme == 1 - saved_winter2 && t_dir == 0);
+        press_new = 0;
+        logic_touch(menu_x() + menu_btn_w() / 2, modes_row(4) + btn_h / 2, 0, 25);
+        assert(winter_theme == saved_winter2);
+        press_new = 0;
+        double saved_gfx = gfx_ultra;
+        logic_touch(gfx_low_x() + gfx_btn_w() / 2, modes_row(5) + btn_h / 2, 0, 26);
+        assert(gfx_ultra == 0);
+        press_new = 0;
+        logic_touch(gfx_ultra_x() + gfx_btn_w() / 2, modes_row(5) + btn_h / 2, 0, 27);
+        assert(gfx_ultra == 1);
+        gfx_ultra = saved_gfx;
+        press_new = 0;
+        /* The gap between the two graphics halves is not a button. */
+        assert(menu_button_hit(gfx_low_x() + gfx_btn_w() + 5, modes_row(5) + btn_h / 2) == 0);
+        screen_w = saved_mw;
+        screen_h = saved_mh;
+        game_state = ST_LOBBY;
     }
 
     state_destroy();

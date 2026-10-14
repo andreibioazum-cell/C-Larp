@@ -71,3 +71,10 @@ static const char *tr_newyear_banner(void) {
     return "Happy New Year!";
 }
 
+
+static const char *tr_theme_label(void) {
+    if (language == 1) {
+        return new_theme == 1 ? "Тема: Новая" : "Тема: Старая";
+    }
+    return new_theme == 1 ? "Theme: New" : "Theme: Old";
+}

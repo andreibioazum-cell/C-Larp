@@ -14,6 +14,7 @@ static void centered_text(const char *label, double x, double w, double y, uint3
 static void rtext_in_box(const char *label, double x, double y, double w, double pad, uint32_t c, double scale);
 static void money_pair(const char *left, const char *right, double y, double scale, double gap);
 static void draw_nick_msg(const char *nick, const char *rest, double x, double y, uint32_t base, double scale);
+static void button_face(double x, double y, double w, double h, double col);
 static void button(const char *label, double x, double y, double w, double h);
 static void button_scaled(const char *label, double x, double y, double w, double h, double scale);
 static void roundrect_outline(double x, double y, double w, double h, double rad, double t, uint32_t c);

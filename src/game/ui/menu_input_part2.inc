@@ -115,16 +115,19 @@ static double menu_button_hit(double x, double y) {
         return 0;
     }
     if (game_state == ST_MODES) {
-        while (i <= 6) {
+        /* Rows 0..4, then the two graphics halves (not the gap between them)
+         * and the promo button in the corner. */
+        while (i <= 4) {
             if (hit_modes_row(x, y, i) == 1) return 1;
             i = i + 1;
         }
-        return 0;
+        if (hit_gfx_low(x, y) == 1 || hit_gfx_ultra(x, y) == 1) return 1;
+        return hit_promo_corner(x, y);
     }
     if (game_state == ST_SETTINGS) {
-        /* Only the six rows that are drawn (0..5) click; rows 6 and 7 used to
-         * click on empty space below the list. */
-        while (i <= 5) {
+        /* Only the seven rows that are drawn (0..6) click; row 7 used to click
+         * on empty space below the list. */
+        while (i <= 6) {
             if (hit_settings_row(x, y, i) == 1) return 1;
             i = i + 1;
         }

@@ -415,6 +415,9 @@ double press_k;
 double press_phase;
 double press_new;
 double press_id;
+/* 1 = the new look (purple, gradients, centred menu, NPC cube),
+ * 0 = the old one (rose, flat, left-aligned, no NPC). */
+double new_theme;
 /* Счётчик переходов: растёт при каждой смене экрана (запуск перехода,
  * сама подмена состояния, принудительное возвращение) и при смене
  * страницы в списке. Нажатие запоминает его, поэтому пульс нажатия не

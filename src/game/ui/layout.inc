@@ -8,7 +8,13 @@ static double content_top(void) { return title_y() + list_top_gap; }
 
 static double menu_btn_w(void) { return btn_w; }
 
-static double menu_x(void) { return center_x(btn_w); }
+/* The new theme centres the menu; the old one keeps it at the left margin. */
+static double menu_x(void) {
+    if (new_theme == 1) {
+        return center_x(btn_w);
+    }
+    return screen_margin;
+}
 
 static double menu_stride(void) { return btn_h + btn_gap; }
 
@@ -272,7 +278,7 @@ static double hit_modes_row(double px, double py, double i) {
     return hit_button(px, py, menu_x(), modes_row(i), menu_btn_w(), btn_h);
 }
 
-/* Графика: две половинные кнопки в шестом ряду - низкая и ультра. */
+/* Графика: две половинные кнопки в пятом ряду - низкая и ультра. */
 static double gfx_btn_w(void) { return (menu_btn_w() - 10) / 2; }
 
 static double gfx_low_x(void) { return menu_x(); }
@@ -280,11 +286,22 @@ static double gfx_low_x(void) { return menu_x(); }
 static double gfx_ultra_x(void) { return menu_x() + gfx_btn_w() + 10; }
 
 static double hit_gfx_low(double px, double py) {
-    return hit_button(px, py, gfx_low_x(), modes_row(6), gfx_btn_w(), btn_h);
+    return hit_button(px, py, gfx_low_x(), modes_row(5), gfx_btn_w(), btn_h);
 }
 
 static double hit_gfx_ultra(double px, double py) {
-    return hit_button(px, py, gfx_ultra_x(), modes_row(6), gfx_btn_w(), btn_h);
+    return hit_button(px, py, gfx_ultra_x(), modes_row(5), gfx_btn_w(), btn_h);
+}
+
+/* Промокод: отдельная кнопка в правом нижнем углу экрана режимов. */
+static double promo_corner_w(void) { return fit_w(220); }
+
+static double promo_corner_x(void) { return screen_w - screen_margin - promo_corner_w(); }
+
+static double promo_corner_y(void) { return screen_h - screen_margin - btn_h; }
+
+static double hit_promo_corner(double px, double py) {
+    return hit_button(px, py, promo_corner_x(), promo_corner_y(), promo_corner_w(), btn_h);
 }
 
 static double warn_btn_w(void) { return fit_w(560); }

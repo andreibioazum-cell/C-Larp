@@ -47,7 +47,9 @@ static void draw_lobby(void) {
     draw_menu_button(4, tr_achievements());
     draw_lobby_nick();
     draw_lobby_money();
-    draw_lobby_npc_cube();
+    if (new_theme == 1) {
+        draw_lobby_npc_cube(); /* the NPC cube belongs to the new theme */
+    }
     if (str_len(banned_msg) > 0) {
         ctext(banned_msg, lobby_msg_y(), text_color);
     }
@@ -59,15 +61,16 @@ static void draw_modes(void) {
     button(tr_solo(), menu_x(), modes_row(1), menu_btn_w(), btn_h);
     button(tr_online(), menu_x(), modes_row(2), menu_btn_w(), btn_h);
     button(tr_top(), menu_x(), modes_row(3), menu_btn_w(), btn_h);
-    button(tr_promo(), menu_x(), modes_row(4), menu_btn_w(), btn_h);
-    button_scaled(tr_winter_toggle(), menu_x(), modes_row(5), menu_btn_w(), btn_h, 0.8);
+    button_scaled(tr_winter_toggle(), menu_x(), modes_row(4), menu_btn_w(), btn_h, 0.8);
     draw_gfx_row();
+    /* The promo code lives in the bottom-right corner, out of the column. */
+    button(tr_promo(), promo_corner_x(), promo_corner_y(), promo_corner_w(), btn_h);
 }
 
 /* Две кнопки графики в одном ряду; выбранная обведена по контуру. */
 static void draw_gfx_row(void) {
     double w = gfx_btn_w();
-    double y = modes_row(6);
+    double y = modes_row(5);
     double lw = fit_text_scale(tr_gfx_low(), w - 16, 1);
     double uw = fit_text_scale(tr_gfx_ultra(), w - 16, 1);
     button_scaled(tr_gfx_low(), gfx_low_x(), y, w, btn_h, lw);
@@ -85,7 +88,8 @@ static void draw_settings(void) {
     button("Русский", menu_x(), settings_row_y(2), menu_btn_w(), settings_btn_h());
     button(tr_hitboxes_toggle(), menu_x(), settings_row_y(3), menu_btn_w(), settings_btn_h());
     button(tr_music_state(), menu_x(), settings_row_y(4), menu_btn_w(), settings_btn_h());
-    button_scaled(tr_privacy(), menu_x(), settings_row_y(5), menu_btn_w(), settings_btn_h(), 0.8);
+    button(tr_theme_label(), menu_x(), settings_row_y(5), menu_btn_w(), settings_btn_h());
+    button_scaled(tr_privacy(), menu_x(), settings_row_y(6), menu_btn_w(), settings_btn_h(), 0.8);
 }
 
 static void draw_privacy(void) {
