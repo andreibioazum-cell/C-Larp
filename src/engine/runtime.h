@@ -42,7 +42,6 @@ void ds_string_pool_tick(void);
 int console_count(void);
 const char *console_line(int index);
 int console_type(int index);
-void console_clear(void);
 typedef struct DSArray DSArray;
 DSArray *arr_new(void);
 void arr_push(DSArray *a, double v);
@@ -55,23 +54,13 @@ double clamp(double v, double lo, double hi);
 double lerp(double a, double b, double t);
 double dist(double x1, double y1, double x2, double y2);
 
-double ds_min(double a, double b);
-double ds_max(double a, double b);
-double ds_abs(double v);
-double ds_round(double v);
-double ds_sign(double v);
 double ds_mod(double a, double b);
-double ds_trunc(double v);
 double str_len(const char *s);
 int str_eq(const char *a, const char *b);
-int str_contains(const char *hay, const char *needle);
 double str_index_of(const char *hay, const char *needle);
 int str_starts_with(const char *s, const char *pref);
-int str_ends_with(const char *s, const char *suf);
 const char *str_sub(const char *s, double start, double len);
-double str_to_num(const char *s);
 const char *str_trim(const char *s);
-const char *str_lower(const char *s);
 const char *str_upper(const char *s);
 void ds_set_activity(void *activity);
 void alpha_notice_show(double russian);
@@ -79,7 +68,6 @@ void bye_notice_show(const char *text);
 void keyboard_show(void);
 void keyboard_hide(void);
 void keyboard_get_text_to(char *dst, size_t cap);
-const char *keyboard_get_raw(void);
 void keyboard_clear(void);
 int keyboard_visible(void);
 int keyboard_enter_pressed(void);
@@ -87,7 +75,6 @@ int keyboard_handle_key(int keycode, int action, int meta);
 int keyboard_uses_editor(void);
 void keyboard_type(const char *text);
 void keyboard_backspace(void);
-void keyboard_commit_utf8(const char *utf8);
 void rect(float x, float y, float w, float h, uint32_t color);
 void roundrect(float x, float y, float w, float h, float r, uint32_t color);
 /* C++-implemented glossy vertical gradient drawn as per-scanline strips
@@ -98,7 +85,6 @@ void rect_rot(float x, float y, float w, float h, float angle, uint32_t color);
 void circle(float x, float y, float r, uint32_t color);
 void ring(float x, float y, float r, float t, uint32_t color);
 void line(float x1, float y1, float x2, float y2, float thickness, uint32_t color);
-void clear_screen(uint32_t color);
 void ds_set_asset_manager(AAssetManager *assets);
 void ds_release_assets(void);
 int png_load(const char *name);
@@ -111,18 +97,15 @@ void tex_round(float x, float y, const char *name, float scale, float radius);
 /* Grayscale filter for the whole frame (1 = black and white, 0 = normal) and
  * a small decaying screen shake (amplitude in pixels, duration in seconds). */
 void ds_gfx_gray(double on);
-void ds_gfx_grade(double on);
 void ds_gfx_shake(double amp, double seconds);
 
 int snd_load(const char *name);
 int snd_play(const char *name);
 
-int sound_play(const char *name);
 int snd_loop(const char *name);
 void snd_stop(const char *name);
 int snd_playing(const char *name);
 void snd_volume(const char *name, double volume);
-void snd_stop_all(void);
 int ds_sound_init(AAssetManager *assets);
 void ds_sound_shutdown(void);
 
@@ -136,8 +119,6 @@ void ds_sound_set_java_vm(void *vm);
 void text(const char *string, float x, float y, uint32_t color);
 void text_scaled(const char *string, float x, float y, uint32_t color, float scale);
 
-int text_width(const char *string);
-int text_height(const char *string);
 int text_ink_width(const char *string);
 int text_ink_height(const char *string);
 int text_ink_top(const char *string);

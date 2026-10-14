@@ -6,6 +6,40 @@
 
 #include "game/game.c"
 
+/* Test-only views over the game rules. The game itself no longer needs these
+ * shortcuts, so they live here instead of in the shipped code. */
+static double astra_grab_total_fraction(void) { return astra_hit_fraction * astra_hit_count + astra_final_fraction; }
+
+static const char *fighter_sprite(double cls, double punching, double skin) {
+    double look = class_look(cls, skin);
+    if (look_ready(look) != 1) {
+        return "";
+    }
+    return look_tex(look, punching == 1);
+}
+
+static double class_hp_of(double cls) { return astra_rw_max_hp_for(cls, astra_rw_of(cls, class_skin_of(cls))); }
+
+static double class_power_of(double cls) {
+    return astra_rw_punch_damage_for(cls, class_level_of(cls), astra_rw_of(cls, class_skin_of(cls)));
+}
+
+static double class_visible_index(double cls) {
+    double n = 0;
+    double i = 0;
+    while (i < class_count) {
+        double c = class_at_order(i);
+        if (class_visible(c) == 1) {
+            if (c == cls) {
+                return n;
+            }
+            n = n + 1;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
 int screen_w = 320;
 int screen_h = 180;
 double dt = 1.0 / 60.0;
@@ -88,7 +122,6 @@ static int adm_all_greyscale(void) {
 /* The Players tab reads the ban list through these: a tiny in-memory list. */
 static char stub_bans[8][24];
 static int stub_ban_n;
-static int stub_ban_refresh_calls;
 static char stub_nicks[4][24];
 static char stub_last_chat[128];
 static uint32_t stub_circle_color;
@@ -174,9 +207,6 @@ void ds_log(const char *format, ...) {
 void ds_gfx_gray(double on) {
     (void)on;
 }
-void ds_gfx_grade(double on) {
-    (void)on;
-}
 void ds_gfx_shake(double amp, double seconds) {
     (void)amp;
     (void)seconds;
@@ -214,7 +244,6 @@ void keyboard_get_text_to(char *dst, size_t cap) {
     if (dst && cap)
         snprintf(dst, cap, "%s", stub_kb);
 }
-const char *keyboard_get_raw(void) { return stub_kb; }
 void keyboard_type(const char *text) { snprintf(stub_kb, sizeof(stub_kb), "%s", text ? text : ""); }
 void keyboard_backspace(void) {
     size_t len = strlen(stub_kb);
@@ -292,31 +321,6 @@ static char stub_login_pass[24];
 const char *net_player_nick(double slot) {
     int i = (int)slot;
     return (i >= 0 && i < 4) ? stub_nicks[i] : "";
-}
-double net_ban_list_count(void) {
-    return (double)stub_ban_n;
-}
-const char *net_ban_list_nick(double idx) {
-    static char ret[8][24];
-    static int pos = 0;
-    char *slot = ret[pos++ & 7];
-    int i = (int)idx;
-    slot[0] = 0;
-    if (i >= 0 && i < stub_ban_n)
-        snprintf(slot, sizeof(ret[0]), "%s", stub_bans[i]);
-    return slot;
-}
-double net_ban_list_have(const char *nick) {
-    for (int i = 0; i < stub_ban_n; i++)
-        if (nick && strcmp(stub_bans[i], nick) == 0)
-            return 1;
-    return 0;
-}
-double net_ban_list_busy(void) {
-    return 0;
-}
-void net_ban_list_refresh(void) {
-    stub_ban_refresh_calls++;
 }
 void net_ban_set(const char *nick, double banned) {
     int i, j = 0;
@@ -409,21 +413,6 @@ void net_save_progress_all(double a, double b, double c, double d, double e, dou
     (void)p;
     (void)q;
     (void)r;
-}
-void net_save_quest_state(double a, double b, double c, double d, double e, double f, double g, double h, double i,
-                          double j, double k, double l) {
-    (void)a;
-    (void)b;
-    (void)c;
-    (void)d;
-    (void)e;
-    (void)f;
-    (void)g;
-    (void)h;
-    (void)i;
-    (void)j;
-    (void)k;
-    (void)l;
 }
 
 int snd_load(const char *name) {
@@ -627,8 +616,6 @@ double net_load_music_volume(void) { return 0; }
 void net_save_music_volume(double volume) { (void)volume; }
 double net_load_winter_theme(void) { return 0; }
 void net_save_winter_theme(double on) { (void)on; }
-double net_load_gfx_ultra(void) { return 1; }
-void net_save_gfx_ultra(double on) { (void)on; }
 double net_load_new_theme(void) { return 1; }
 void net_save_new_theme(double on) { (void)on; }
 void settings_mark_legal(void) {}
@@ -743,7 +730,7 @@ int main(void) {
      * basic attacks kept their old damage - that is what makes fights last. */
     assert(player_max_hp_for(CLASS_ORDINARY) == 20 && player_max_hp_for(CLASS_SANTA) == 20);
     assert(azum_hp == 13 && astra_hp == 18 && ebuc_hp == 24 && enemy_base_hp == 20);
-    assert(punch_damage == 1 && enemy_damage == 1 && santa_damage == 0.25 && ebuc_damage == 1.0);
+    assert(punch_damage == 1 && santa_damage == 0.25 && ebuc_damage == 1.0);
     assert(ebuc_universe_damage >= ebuc_hp);
     azum_tex_ok = azum_punch_tex_ok = 1;
     azum_zombie_tex_ok = azum_zombie_punch_tex_ok = 1;
@@ -915,8 +902,8 @@ int main(void) {
         assert(newyear_menu_flakes <= 64);
         screen_w = 1080;
         screen_h = 2400;
-        lo = menu_x() - newyear_snow_col_pad;
-        hi = menu_x() + btn_w + newyear_snow_col_pad;
+        lo = menu_x() - 30;
+        hi = menu_x() + btn_w + 30;
         for (k = 0; k < 200; k++) {
             int j = 0;
             newyear_snow_t = 1.0 + k * 0.173;
@@ -1581,7 +1568,6 @@ int main(void) {
     pgrab_active = 0;
     pgrab_slot = -1;
     pthrow_t = 0;
-    pgrab_hits = 0;
     finished = 0;
     player->x = 470;
     player->y = 400;
@@ -1591,11 +1577,10 @@ int main(void) {
     stub_grab[1] = 2;
     for (int frame = 0; frame < 9; frame++)
         update_remote_grabs();
-    assert(pgrab_active == 0 && pgrab_hits == 0);
+    assert(pgrab_active == 0 && player->hp == 10);
     for (int frame = 9; frame < 45; frame++)
         update_remote_grabs();
-    assert(pgrab_hits == 3);
-    assert(fabs((double)pgrab_t - 45 * dt) < 1e-9);
+    assert(player->hp < 10);
     assert(astra_rw_beat_time_for(3, 1) < astra_rw_beat_time_for(3, 0));
     assert(45 * dt > astra_rw_beat_time_for(3, 1) && 45 * dt < astra_rw_beat_time_for(3, 0) + 1e-9);
     for (int frame = 0; frame < 400 && pthrow_t <= 0; frame++)
@@ -1640,7 +1625,6 @@ int main(void) {
     snprintf(stub_nicks[2], sizeof(stub_nicks[2]), "%s", ADMIN2_NICK);
     stub_ban_n = 1;
     snprintf(stub_bans[0], sizeof(stub_bans[0]), "old_cheater");
-    stub_ban_refresh_calls = 0;
     stub_last_chat[0] = 0;
 
     /* The orb is drawn even while the warning and the curtain are up, and it
@@ -1816,7 +1800,7 @@ int main(void) {
         double tx = menu_x() + btn_w / 2;
         double ty = menu_row(0) + btn_h / 2;
         logic_touch(tx, ty, 0, 1);
-        assert(t_dir == 1 && t_target == ST_MODES && press_down == 1);
+        assert(t_dir == 1 && t_target == ST_MODES);
         /* The squeeze is claimed by the button the draw passes under it. */
         assert(press_new == 1);
         (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h);
@@ -1831,7 +1815,6 @@ int main(void) {
         }
         assert(press_k > 0.95); /* fully squeezed and darkened */
         /* The finger is still down - and the button springs back anyway. */
-        assert(press_down == 1);
         n = 0;
         while (n < 30) {
             update_button_press();
@@ -1842,7 +1825,7 @@ int main(void) {
         /* Letting go changes nothing: the row already fired. */
         logic_touch(tx + 4, ty, 2, 1);
         logic_touch(tx + 4, ty, 1, 1);
-        assert(t_dir == 1 && t_target == ST_MODES && press_down == 0);
+        assert(t_dir == 1 && t_target == ST_MODES);
         t_dir = 0;
 
         /* A drag off a pressed button does not fire it a second time, and a
@@ -2088,7 +2071,7 @@ int main(void) {
         t_dir = 0;
         t_target = 0;
         press_new = 0;
-        /* Row 4 is now the winter toggle, row 5 the graphics pair. */
+        /* Row 4 is now the winter toggle. */
         double saved_winter2 = winter_theme;
         logic_touch(menu_x() + menu_btn_w() / 2, modes_row(4) + btn_h / 2, 0, 24);
         assert(winter_theme == 1 - saved_winter2 && t_dir == 0);
@@ -2096,16 +2079,6 @@ int main(void) {
         logic_touch(menu_x() + menu_btn_w() / 2, modes_row(4) + btn_h / 2, 0, 25);
         assert(winter_theme == saved_winter2);
         press_new = 0;
-        double saved_gfx = gfx_ultra;
-        logic_touch(gfx_low_x() + gfx_btn_w() / 2, modes_row(5) + btn_h / 2, 0, 26);
-        assert(gfx_ultra == 0);
-        press_new = 0;
-        logic_touch(gfx_ultra_x() + gfx_btn_w() / 2, modes_row(5) + btn_h / 2, 0, 27);
-        assert(gfx_ultra == 1);
-        gfx_ultra = saved_gfx;
-        press_new = 0;
-        /* The gap between the two graphics halves is not a button. */
-        assert(menu_button_hit(gfx_low_x() + gfx_btn_w() + 5, modes_row(5) + btn_h / 2) == 0);
         screen_w = saved_mw;
         screen_h = saved_mh;
         game_state = ST_LOBBY;

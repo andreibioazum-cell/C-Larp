@@ -61,7 +61,6 @@ void net_set_firebase_key(const char *key);
 void net_autologin(const char *url);
 int net_presence_check(const char *data_dir);
 double net_auth(const char *url, const char *nick, const char *pass);
-double net_set_nick(const char *nick);
 void net_logout(void);
 double net_login_status(void);
 const char *net_login_nick(void);
@@ -83,7 +82,6 @@ void net_publish_thud(double counter);
 void net_set_class(double cls);
 double net_status(void);
 double net_slot(void);
-double net_count(void);
 double net_event(void);
 void net_event_set(double mode);
 double net_player_online(double slot);
@@ -113,7 +111,6 @@ double net_player_station3_x(double slot);
 double net_player_station3_y(double slot);
 double net_player_station3_hp(double slot);
 
-double net_player_station(double slot);
 double net_player_grab_x(double slot);
 double net_player_grab_y(double slot);
 double net_player_grab_dx(double slot);
@@ -127,8 +124,6 @@ double net_player_thud(double slot);
 double net_player_dash(double slot);
 double net_player_dash_x(double slot);
 double net_player_dash_y(double slot);
-double net_player_dash_dx(double slot);
-double net_player_dash_dy(double slot);
 double net_player_class(double slot);
 double net_player_level(double slot);
 void net_set_level(double level);
@@ -163,21 +158,14 @@ void net_save_astra(double owned, double level, double levels_unlocked);
 /* Astra (Rework) developer variant: local-only selection bit. */
 double net_load_astra_rw(void);
 void net_save_astra_rw(double on);
-void net_save_progress(double cups, double candies, double cls, double azum, double santa, double ebuc, double level,
-                       double levels_unlocked);
 void net_save_progress_all(double cups, double candies, double cls, double azum, double santa, double ebuc,
                            double level, double levels_unlocked, double ordinary_level, double ordinary_levels_unlocked,
                            double azum_level, double azum_levels_unlocked, double santa_level,
                            double santa_levels_unlocked, double ebuc_level, double ebuc_levels_unlocked,
                            double bp_level, double azum_skin);
 
-#define ACH_FLAG_FIRST_WIN (1u << 1)
-#define ACH_FLAG_FIRST_BUY (1u << 2)
 #define ACH_FLAG_ALL_CHARACTERS (1u << 3)
-#define ACH_FLAG_LEGENDS (1u << 4)
 double net_load_achievement_flags(void);
-void net_save_achievement_flags(double flags);
-double net_has_achievement_flag(double flag);
 void net_mark_achievement_flag(double flag);
 
 double net_load_azum_revives(void);
@@ -188,14 +176,7 @@ const char *net_promo_new_code(void);
 double net_promo_check(const char *code);
 double net_promo_used(void);
 void net_promo_mark_used(void);
-double net_load_playtime(void);
-void net_save_playtime(double seconds);
-void net_add_playtime(double delta);
 
-void net_save_quest_state(double t0, double p0, double n0, double x0, double t1, double p1, double n1, double x1,
-                          double t2, double p2, double n2, double x2);
-double net_load_quest_state(double slot, double field);
-double net_quest_has_state(void);
 
 void net_leaderboard_fetch(const char *url);
 double net_leaderboard_status(void);
@@ -210,8 +191,6 @@ double net_load_music_volume(void);
 void net_save_music_volume(double volume);
 double net_load_winter_theme(void);
 void net_save_winter_theme(double on);
-double net_load_gfx_ultra(void);
-void net_save_gfx_ultra(double on);
 double net_load_new_theme(void);
 void net_save_new_theme(double on);
 
@@ -225,11 +204,6 @@ double net_chat_is_ban(const char *msg);
 double net_chat_is_unban(const char *msg);
 const char *net_chat_ban_target(const char *msg);
 const char *net_chat_unban_target(const char *msg);
-double net_ban_list_count(void);
-double net_ban_list_have(const char *nick);
-const char *net_ban_list_nick(double idx);
-double net_ban_list_busy(void);
-void net_ban_list_refresh(void);
 
 double net_chat_is_text_cmd(const char *msg);
 const char *net_chat_text_cmd_text(const char *msg);

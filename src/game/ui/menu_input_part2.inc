@@ -115,13 +115,11 @@ static double menu_button_hit(double x, double y) {
         return 0;
     }
     if (game_state == ST_MODES) {
-        /* Rows 0..4, then the two graphics halves (not the gap between them)
-         * and the promo button in the corner. */
+        /* Rows 0..4 and the promo button in the corner. */
         while (i <= 4) {
             if (hit_modes_row(x, y, i) == 1) return 1;
             i = i + 1;
         }
-        if (hit_gfx_low(x, y) == 1 || hit_gfx_ultra(x, y) == 1) return 1;
         return hit_promo_corner(x, y);
     }
     if (game_state == ST_SETTINGS) {

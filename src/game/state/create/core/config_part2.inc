@@ -26,7 +26,6 @@ plates_collect_time = 50;
 plates_candy_vanish_time = 0.7;
 plates_candy_vanish_stagger = 0.12;
 plates_candy_pop_time = 0.4;
-plates_candy_pick_time = 0.3;
 plates_santa_out_time = 2.5;
 plates_charge_time = 2.0;
 plates_santa_turn_time = 0.35;

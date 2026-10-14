@@ -1,4 +1,3 @@
-double newyear_red;
 double newyear_gold;
 double newyear_bg_top;
 double newyear_bg_bottom;
@@ -6,7 +5,6 @@ double newyear_snow_t;
 double newyear_menu_flakes;
 double newyear_flake_cached;
 DSArray *newyear_flake_cache;
-double newyear_snow_col_pad;
 const char *WINTER_JINGLE;
 double newyear_jingle_tried;
 double newyear_jingle_ok;

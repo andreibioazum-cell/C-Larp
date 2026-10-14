@@ -256,9 +256,6 @@ void rect(float x, float y, float w, float h, uint32_t c) {
     p->v.rc.h = h;
     p->v.rc.c = pack_c(c);
 }
-void clear_screen(uint32_t c) {
-    rect(0.0f, 0.0f, (float)screen_w, (float)screen_h, c);
-}
 void roundrect(float x, float y, float w, float h, float r, uint32_t c) {
     DSCmd *p = push(DS_CMD_ROUND);
     if (!p)
@@ -422,12 +419,6 @@ int text_ink_height(const char *s) {
         first = 0;
     }
     return first ? 0 : (int)(maxB - minT + 0.5f);
-}
-int text_width(const char *s) {
-    return text_ink_width(s);
-}
-int text_height(const char *s) {
-    return text_ink_height(s);
 }
 int text_ink_top(const char *s) {
     if (!s || !ensure_font())

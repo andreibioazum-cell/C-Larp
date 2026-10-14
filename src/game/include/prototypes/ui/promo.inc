@@ -8,7 +8,7 @@ static void draw_card_open(void);
 static double promo_field_y(void);
 static double promo_btn_y(void);
 static double promo_msg_y(void);
-static void promo_set_msg(const char *text, double kind);
+static void promo_set_msg(const char *text);
 static void promo_leave(void);
 static double promo_letter_ok(const char *ch);
 static double promo_digit_ok(const char *ch);

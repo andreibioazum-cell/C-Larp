@@ -5,13 +5,6 @@ static double enemy_grab_active(void) {
     return 0;
 }
 
-static GAME_MAYBE_UNUSED double enemy_grab_holding(void) {
-    if (egrab_state == 2 && pgrab_active == 1 && pgrab_slot == grab_slot_bot) {
-        return 1;
-    }
-    return 0;
-}
-
 static void enemy_grab_swing(void) { egrab_punch_t = astra_hit_show; }
 
 static double enemy_grab_punching(void) {
@@ -28,8 +21,6 @@ static void enemy_grab_clear(void) {
     if (pgrab_active == 1 && pgrab_slot == grab_slot_bot) {
         pgrab_active = 0;
         pgrab_slot = -1;
-        pgrab_t = 0;
-        pgrab_hits = 0;
     }
 }
 
@@ -70,8 +61,6 @@ static void tick_enemy_grab(void) {
                     egrab_state = 2;
                     pgrab_active = 1;
                     pgrab_slot = grab_slot_bot;
-                    pgrab_t = egrab_t;
-                    pgrab_hits = 0;
                     grab_cancel_actions();
                     ds_log("caught by the bot astra");
                 }
@@ -84,12 +73,10 @@ static void tick_enemy_grab(void) {
     if (egrab_state != 2) {
         return;
     }
-    pgrab_t = egrab_t;
     grab_quiet_player(astra_hit_interval);
     double due = astra_beats_done(egrab_t);
     while (egrab_hits < due) {
         egrab_hits = egrab_hits + 1;
-        pgrab_hits = egrab_hits;
         enemy_grab_swing();
         if (take_damage_at(astra_beat_damage(player->max_hp), enemy->x, enemy->y) == 1) {
             enemy_grab_stop(1);

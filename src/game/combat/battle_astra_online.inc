@@ -28,8 +28,6 @@ static void remote_grab_stop(double slot) {
     if (pgrab_active == 1 && pgrab_slot == slot) {
         pgrab_active = 0;
         pgrab_slot = -1;
-        pgrab_t = 0;
-        pgrab_hits = 0;
     }
 }
 
@@ -75,8 +73,6 @@ static double update_remote_grab(double slot) {
                     remote_grab_set(slot, GRAB_CAUGHT, 1);
                     pgrab_active = 1;
                     pgrab_slot = slot;
-                    pgrab_t = t;
-                    pgrab_hits = 0;
                     grab_cancel_actions();
                     ds_log("caught by astra of slot %g", slot);
                 }
@@ -91,12 +87,10 @@ static double update_remote_grab(double slot) {
     if (remote_grab_get(slot, GRAB_CAUGHT) != 1) {
         return 0;
     }
-    pgrab_t = t;
     grab_quiet_player(astra_rw_hit_interval_for(rw));
     double due = astra_rw_beats_done_for(t, rw);
     while (remote_grab_get(slot, GRAB_HITS) < due) {
         remote_grab_set(slot, GRAB_HITS, remote_grab_get(slot, GRAB_HITS) + 1);
-        pgrab_hits = remote_grab_get(slot, GRAB_HITS);
         remote_grab_swing(slot);
         if (take_damage_at(astra_beat_damage(player->max_hp), arr_get(remotes, slot * remote_fields + 1),
                           arr_get(remotes, slot * remote_fields + 2)) == 1) {

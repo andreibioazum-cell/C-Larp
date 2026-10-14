@@ -63,10 +63,6 @@ static DSThread ds_thread_start(void *(*fn)(void *), void *arg) {
         return (pthread_t)0;
     return t;
 }
-static void ds_thread_join(DSThread t) {
-    if (t)
-        pthread_join(t, NULL);
-}
 static void ds_thread_detach(DSThread t) {
     if (t)
         pthread_detach(t);

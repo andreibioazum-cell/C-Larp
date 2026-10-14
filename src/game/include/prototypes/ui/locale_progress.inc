@@ -14,7 +14,6 @@ static const char *tr_cups_unit(void);
 static const char *tr_candies_unit(void);
 static const char *tr_level_locked(void);
 static const char *tr_level_need_cups(void);
-static const char *tr_levels_soon(void);
 static const char *tr_cups(void);
 static const char *tr_buy_for(double cost, const char *currency);
 static const char *tr_class_need_cups(void);

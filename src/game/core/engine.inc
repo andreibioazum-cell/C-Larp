@@ -185,11 +185,6 @@ static void logic_update(void) {
     }
     update_newyear();
     update_weather();
-    /* Цветокоррекция на ультра работает в бою и в лобби; остальные меню и
-     * магазин остаются с настоящими цветами. Экран меняется под чёрной
-     * шторкой перехода, поэтому включение и выключение не видно.
-     * Переключаем её здесь, до отрисовки кадра. */
-    ds_gfx_grade(gfx_ultra == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE || game_state == ST_LOBBY));
 }
 
 static void draw_screen(void) {
@@ -345,7 +340,6 @@ static void logic_touch(double x, double y, double action, double id) {
      * press pulse (press_new): the next control drawn under it takes the
      * squeeze, so a button always shows its feedback on the touch itself. */
     if (action == 0) {
-        press_down = 1;
         press_x = x;
         press_y = y;
         press_new = 1;
@@ -359,7 +353,6 @@ static void logic_touch(double x, double y, double action, double id) {
             press_y = y;
         }
     } else if (action == 1 || action == 3) {
-        press_down = 0;
         if (action == 3) {
             /* The gesture was taken away: no press feedback for it. */
             press_new = 0;

@@ -4,12 +4,6 @@
 #include "engine/network.h"
 #include <math.h>
 
-#if defined(__GNUC__) || defined(__clang__)
-#define GAME_MAYBE_UNUSED __attribute__((unused))
-#else
-#define GAME_MAYBE_UNUSED
-#endif
-
 #include "types.inc"
 #include "state.inc"
 #include "functions.inc"

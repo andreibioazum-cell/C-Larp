@@ -227,13 +227,6 @@ const char *net_banner_color(void) {
     unlock();
     return s_banner_color_ret;
 }
-double net_count(void) {
-    double v;
-    lock();
-    v = net.count;
-    unlock();
-    return v;
-}
 const char *net_player_nick(double slot) {
     int i = sidx(slot);
     lock();
@@ -282,11 +275,8 @@ READER(net_player_station2_hp, net.players[i].station2_hp)
 READER(net_player_station3_x, net.players[i].station3_x)
 READER(net_player_station3_y, net.players[i].station3_y)
 READER(net_player_station3_hp, net.players[i].station3_hp)
-READER(net_player_station, net.players[i].station)
 READER(net_player_dash_x, net.players[i].dash_x)
 READER(net_player_dash_y, net.players[i].dash_y)
-READER(net_player_dash_dx, net.players[i].dash_dx)
-READER(net_player_dash_dy, net.players[i].dash_dy)
 READER(net_player_dash, net.players[i].dash)
 READER(net_player_grab_x, net.players[i].grab_x)
 READER(net_player_grab_y, net.players[i].grab_y)

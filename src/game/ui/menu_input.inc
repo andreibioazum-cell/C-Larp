@@ -287,15 +287,6 @@ static void touch_modes(double x, double y) {
         open_leaderboard();
         return;
     }
-    if (hit_gfx_low(x, y) == 1) {
-        gfx_ultra = 0;
-        save_settings();
-        return;
-    }
-    if (hit_gfx_ultra(x, y) == 1) {
-        gfx_ultra = 1;
-        save_settings();
-    }
 }
 
 static void touch_settings(double x, double y) {

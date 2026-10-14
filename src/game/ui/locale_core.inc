@@ -217,20 +217,6 @@ static const char *tr_achievement_first_win_desc(void) {
     return "Win your first battle";
 }
 
-static GAME_MAYBE_UNUSED const char *tr_achievement_first_buy(void) {
-    if (language == 1) {
-        return "Покупка";
-    }
-    return "First purchase";
-}
-
-static GAME_MAYBE_UNUSED const char *tr_achievement_first_buy_desc(void) {
-    if (language == 1) {
-        return "Купить первого персонажа";
-    }
-    return "Buy your first character";
-}
-
 static const char *tr_nick(void) {
     if (language == 1) {
         return "Ник";
@@ -285,13 +271,6 @@ static const char *tr_login_btn(void) {
         return "Войти / Зарегистрироваться";
     }
     return "Log In / Register";
-}
-
-static GAME_MAYBE_UNUSED const char *tr_leaderboard(void) {
-    if (language == 1) {
-        return "Лидерборд";
-    }
-    return "Leaderboard";
 }
 
 static const char *tr_loading(void) {

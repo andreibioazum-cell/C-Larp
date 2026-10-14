@@ -200,13 +200,6 @@ static const char *tr_level_need_cups(void) {
     return "Not enough cups for this level";
 }
 
-static GAME_MAYBE_UNUSED const char *tr_levels_soon(void) {
-    if (language == 1) {
-        return "Скоро!";
-    }
-    return "Coming soon!";
-}
-
 static const char *tr_cups(void) {
     if (language == 1) {
         return "Кубки";

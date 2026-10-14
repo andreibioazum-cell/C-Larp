@@ -183,46 +183,6 @@ static void queue_progress_patch(const char *url, const char *body) {
     cloud_dirty_set(1);
 }
 
-void net_save_progress(double cups, double candies, double cls, double azum, double santa, double ebuc, double level,
-                       double levels_unlocked) {
-    int k = (int)cls;
-    int ol, ou, al, au, sl, su, el, eu, bp, sk, atl, atu;
-    progress_read();
-    pg_lock();
-    ol = pg.ordinary_level;
-    ou = pg.ordinary_levels_unlocked;
-    al = pg.azum_level;
-    au = pg.azum_levels_unlocked;
-    sl = pg.santa_level;
-    su = pg.santa_levels_unlocked;
-    el = pg.ebuc_level;
-    eu = pg.ebuc_levels_unlocked;
-    bp = pg.bp_level;
-    sk = pg.azum_skin;
-    atl = pg.astra_level;
-    atu = pg.astra_levels_unlocked;
-    pg_unlock();
-    if (k == 0) {
-        ol = (int)level;
-        ou = (int)levels_unlocked;
-    } else if (k == 1) {
-        al = (int)level;
-        au = (int)levels_unlocked;
-    } else if (k == 2) {
-        sl = (int)level;
-        su = (int)levels_unlocked;
-    } else if (k == 3) {
-        el = (int)level;
-        eu = (int)levels_unlocked;
-    } else if (k == 4 || k == 5) {
-        atl = (int)level;
-        atu = (int)levels_unlocked;
-        net_save_astra(k == 4, atl, atu);
-    }
-    net_save_progress_all(cups, candies, cls, azum, santa, ebuc, level, levels_unlocked, ol, ou, al, au, sl, su, el, eu,
-                          bp, sk);
-}
-
 static DSMutex ach_lock = DS_MUTEX_INIT;
 static int ach_loaded = 0;
 static unsigned int ach_flags = 0;

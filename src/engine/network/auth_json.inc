@@ -48,27 +48,6 @@ double net_load_achievement_flags(void) {
     return value;
 }
 
-void net_save_achievement_flags(double flags) {
-    unsigned int f = (unsigned int)flags;
-    unsigned int r;
-    achievements_read();
-    ds_mutex_lock(ach_lock);
-    r = ach_revives;
-    ach_flags = f;
-    ach_loaded = 1;
-    ds_mutex_unlock(ach_lock);
-    achievements_write(f, r);
-}
-
-double net_has_achievement_flag(double flag) {
-    double result;
-    achievements_read();
-    ds_mutex_lock(ach_lock);
-    result = (ach_flags & (unsigned int)flag) ? 1.0 : 0.0;
-    ds_mutex_unlock(ach_lock);
-    return result;
-}
-
 void net_mark_achievement_flag(double flag) {
     unsigned int f, r;
     achievements_read();

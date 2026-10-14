@@ -3,7 +3,7 @@
 typedef struct {
     DSMutex lock;
     int loaded, has_file;
-    int language, hitboxes, musicvol, winter, gfx, theme;
+    int language, hitboxes, musicvol, winter, theme;
     int legal;
 } Settings;
 static Settings st = {.lock = DS_MUTEX_INIT};
@@ -19,7 +19,7 @@ static void settings_read(void) {
     char path[320], line[128];
     FILE *f;
     int language = 0, hitboxes = 1, musicvol = 70, has_file = 0;
-    int winter = 1, legal = 0, gfx = 1, theme = 1;
+    int winter = 1, legal = 0, theme = 1;
     st_lock();
     if (st.loaded) {
         st_unlock();
@@ -48,10 +48,6 @@ static void settings_read(void) {
                 winter = value;
                 continue;
             }
-            if (sscanf(line, "gfx %d", &value) == 1) {
-                gfx = value;
-                continue;
-            }
             if (sscanf(line, "theme %d", &value) == 1) {
                 theme = value;
                 continue;
@@ -68,7 +64,6 @@ static void settings_read(void) {
     st.hitboxes = hitboxes ? 1 : 0;
     st.musicvol = musicvol < 0 ? 0 : (musicvol > 100 ? 100 : musicvol);
     st.winter = winter ? 1 : 0;
-    st.gfx = gfx ? 1 : 0;
     st.theme = theme ? 1 : 0;
     st.legal = legal;
     st.has_file = has_file;
@@ -81,8 +76,8 @@ static void settings_write(void) {
     settings_read();
     data_file_path(path, sizeof(path), SETTINGS_FILE);
     st_lock();
-    snprintf(text, sizeof(text), "lang %d\nhitboxes %d\nmusicvol %d\nwinter %d\ngfx %d\ntheme %d\nlegal %d\n",
-             st.language, st.hitboxes, st.musicvol, st.winter, st.gfx, st.theme, st.legal);
+    snprintf(text, sizeof(text), "lang %d\nhitboxes %d\nmusicvol %d\nwinter %d\ntheme %d\nlegal %d\n",
+             st.language, st.hitboxes, st.musicvol, st.winter, st.theme, st.legal);
     st.has_file = 1;
     st_unlock();
     file_write_atomic(path, text);
@@ -174,26 +169,8 @@ void net_save_winter_theme(double on) {
     settings_push_to_cloud();
 }
 
-double net_load_gfx_ultra(void) {
-    double v;
-    settings_read();
-    st_lock();
-    v = (double)st.gfx;
-    st_unlock();
-    return v;
-}
-
-void net_save_gfx_ultra(double on) {
-    settings_read();
-    st_lock();
-    st.gfx = on ? 1 : 0;
-    st.loaded = 1;
-    st_unlock();
-    settings_write();
-}
-
-/* The menu theme stays on this device, like the graphics level: it is a
- * matter of taste per screen, not part of the cloud profile. */
+/* The menu theme stays on this device: it is a matter of taste per screen,
+ * not part of the cloud profile. */
 double net_load_new_theme(void) {
     double v;
     settings_read();

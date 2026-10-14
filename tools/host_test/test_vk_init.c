@@ -999,6 +999,7 @@ int console_type(int i) {
     return 0;
 }
 int screen_w = 720, screen_h = 1280;
+double dt = 0.0;
 
 #include "engine/graphics.c"
 

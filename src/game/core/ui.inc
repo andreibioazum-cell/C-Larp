@@ -81,12 +81,6 @@ static void centered_text(const char *label, double x, double w, double y, uint3
     text_scaled(label, x + (w - tw) / 2, y, c, scale);
 }
 
-static GAME_MAYBE_UNUSED void rtext_in_box(const char *label, double x, double y, double w, double pad, uint32_t c,
-                                           double scale) {
-    double tw = text_ink_width(label) * scale;
-    text_scaled(label, x + w - pad - tw, y, c, scale);
-}
-
 static void money_pair(const char *left, const char *right, double y, double scale, double gap) {
     double lw = text_ink_width(left) * scale;
     double rw = text_ink_width(right) * scale;
