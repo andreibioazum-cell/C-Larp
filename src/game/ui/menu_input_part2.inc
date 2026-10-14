@@ -122,7 +122,9 @@ static double menu_button_hit(double x, double y) {
         return 0;
     }
     if (game_state == ST_SETTINGS) {
-        while (i <= 7) {
+        /* Only the six rows that are drawn (0..5) click; rows 6 and 7 used to
+         * click on empty space below the list. */
+        while (i <= 5) {
             if (hit_settings_row(x, y, i) == 1) return 1;
             i = i + 1;
         }
@@ -162,7 +164,7 @@ static double menu_button_hit(double x, double y) {
     if (game_state == ST_PROMO) {
         double w = fit_w(560);
         double fx = center_x(w);
-        return back_hit(x, y) == 1 || hit_rect_pad(x, y, fx, promo_btn_y(), w, btn_h) == 1;
+        return back_hit(x, y) == 1 || hit_button(x, y, fx, promo_btn_y(), w, btn_h) == 1;
     }
     if (game_state == ST_ACHIEVEMENTS || game_state == ST_LEADERBOARD || game_state == ST_PRIVACY) {
         return back_hit(x, y);

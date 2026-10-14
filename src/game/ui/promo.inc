@@ -270,7 +270,7 @@ static void touch_promo(double x, double y, double action) {
         keyboard_show();
         return;
     }
-    if (hit_rect_pad(x, y, fx, promo_btn_y(), w, btn_h) == 1) {
+    if (hit_button(x, y, fx, promo_btn_y(), w, btn_h) == 1) {
         promo_submit();
         return;
     }

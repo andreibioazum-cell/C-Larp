@@ -41,10 +41,6 @@ static double hit_rect(double px, double py, double x, double y, double w, doubl
     return 0;
 }
 
-static double hit_rect_pad(double px, double py, double x, double y, double w, double h) {
-    return hit_rect(px, py, x - touch_pad_x, y - touch_pad_y, w + 2 * touch_pad_x, h + 2 * touch_pad_y);
-}
-
 static void ctext(const char *s, double y, uint32_t c) { text(s, (screen_w - text_ink_width(s)) / 2, y, c); }
 
 static void ctext_scaled(const char *s, double y, uint32_t c, double scale) {
@@ -103,72 +99,6 @@ static void draw_nick_msg(const char *nick, const char *rest, double x, double y
     double nw = text_ink_width(nick) * scale;
     text_scaled(nick, x, y, admin_color_of(nick, base), scale);
     text_scaled(rest, x + nw, y, base, scale);
-}
-
-/* Press feedback: a button answers the touch itself, not the release. The
- * press squeezes it by 5% and darkens it by 25%, and the squeeze then springs
- * back on its own - the finger does not have to lift, stay put or be let go
- * gently, the pulse always runs to the end. That is what makes a press feel
- * like a press instead of a hold.
- *
- * The pulse is owned by the control the finger landed on (press_btn_*): the
- * first one drawn under the touch claims it, so a card claims it before the
- * pill inside it. press_k ramps 0 -> 1 -> 0 (update_button_press), and every
- * edge is smoothstepped, so the squeeze eases in and eases back out. */
-#define PRESS_IN_TIME 0.06
-#define PRESS_OUT_TIME 0.13
-#define PRESS_SQUEEZE 0.05
-#define PRESS_SHADE 0.25
-
-static double press_btn_live;
-static double press_btn_x;
-static double press_btn_y;
-static double press_btn_w;
-static double press_btn_h;
-static double press_btn_gen;
-
-static double button_press_k(double x, double y, double w, double h) {
-    if (press_new == 1 && press_phase == 0 && hit_rect(press_x, press_y, x, y, w, h) == 1) {
-        /* A fresh touch: this control owns the pulse. */
-        press_new = 0;
-        press_btn_live = 1;
-        press_btn_x = x;
-        press_btn_y = y;
-        press_btn_w = w;
-        press_btn_h = h;
-        press_btn_gen = ui_nav_gen;
-        press_k = 0;
-        press_phase = 1;
-    }
-    /* Пульс принадлежит тому экрану, где его взяли: на следующем экране в тех
-     * же координатах часто стоит своя кнопка (ряды меню и настроек совпадают),
-     * и на низком fps недосжавшийся пульс мигал бы уже на ней. */
-    if (press_btn_live == 1 && press_phase != 0 && press_btn_gen == ui_nav_gen && x == press_btn_x &&
-        y == press_btn_y && w == press_btn_w && h == press_btn_h) {
-        /* Smoothstep: the squeeze eases in and the spring back eases out. */
-        return press_k * press_k * (3 - 2 * press_k);
-    }
-    return 0;
-}
-
-static void update_button_press(void) {
-    if (press_phase == 1) {
-        press_k = press_k + dt / PRESS_IN_TIME;
-        if (press_k >= 1) {
-            press_k = 1;
-            press_phase = 2;
-        }
-        return;
-    }
-    if (press_phase == 2) {
-        press_k = press_k - dt / PRESS_OUT_TIME;
-        if (press_k <= 0) {
-            /* Back to rest: the next touch may claim any control again. */
-            press_k = 0;
-            press_phase = 0;
-            press_btn_live = 0;
-        }
-    }
 }
 
 static void button(const char *label, double x, double y, double w, double h) {
@@ -235,7 +165,7 @@ static void draw_back(void) {
     button(tr_back(), (screen_w - btn_w) / 2, back_y, btn_w, btn_h);
 }
 
-static double back_hit(double x, double y) { return hit_rect_pad(x, y, (screen_w - btn_w) / 2, back_y, btn_w, btn_h); }
+static double back_hit(double x, double y) { return hit_button(x, y, (screen_w - btn_w) / 2, back_y, btn_w, btn_h); }
 
 static double battle_back_x(void) { return (screen_w - btn_w) / 2; }
 
@@ -243,7 +173,7 @@ static double battle_back_y(void) { return back_y; }
 
 static void draw_battle_back(void) { button(tr_back(), battle_back_x(), battle_back_y(), btn_w, btn_h); }
 
-static double battle_back_hit(double x, double y) { return hit_rect_pad(x, y, battle_back_x(), battle_back_y(), btn_w, btn_h); }
+static double battle_back_hit(double x, double y) { return hit_button(x, y, battle_back_x(), battle_back_y(), btn_w, btn_h); }
 
 static void screen_fill(void) {
     double top = bg_screen;

@@ -38,8 +38,6 @@ double back_y;
 double title_gap;
 double lobby_rows;
 double modes_rows;
-double touch_pad_x;
-double touch_pad_y;
 double screen_margin;
 double class_action_gap;
 double class_count;
@@ -416,6 +414,7 @@ double press_y;
 double press_k;
 double press_phase;
 double press_new;
+double press_id;
 /* Счётчик переходов: растёт при каждой смене экрана (запуск перехода,
  * сама подмена состояния, принудительное возвращение) и при смене
  * страницы в списке. Нажатие запоминает его, поэтому пульс нажатия не

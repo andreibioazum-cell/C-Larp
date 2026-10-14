@@ -284,6 +284,8 @@ static void draw_chat(void) {
     }
     screen_fill();
     double cx = chat_close_x();
+    /* The open chat covers the fight, so its own buttons claim the press. */
+    press_overlay = 1;
     button(tr_close(), cx, chat_top_y(), btn_w, btn_h);
     double lx = 16;
     double lw = screen_w - 32;
@@ -335,6 +337,7 @@ static void draw_chat(void) {
         text_in_field(shown, lx + 10, iy, ih, text_color, 0.55);
     }
     button_scaled(tr_send(), lx + lw - 112, iy, 112, ih, 0.5);
+    press_overlay = 0;
     roundrect(sticker_btn_x(), iy, STICKER_BTN, ih, 10, ui_purple);
     draw_sticker_face(sticker_btn_x() + STICKER_BTN / 2, iy + ih / 2);
     if (sticker_menu_open == 1) {
@@ -352,13 +355,13 @@ static double touch_chat(double x, double y, double action) {
         return 0;
     }
     if (chat_open == 0) {
-        if (hit_rect(x, y, chat_btn_x(), chat_btn_y(), chat_btn_w(), chat_btn_h()) == 1) {
+        if (hit_button(x, y, chat_btn_x(), chat_btn_y(), chat_btn_w(), chat_btn_h()) == 1) {
             chat_set_open(1);
             return 1;
         }
         return 0;
     }
-    if (hit_rect(x, y, chat_close_x(), chat_top_y(), btn_w, btn_h) == 1) {
+    if (hit_button(x, y, chat_close_x(), chat_top_y(), btn_w, btn_h) == 1) {
         chat_set_open(0);
         return 1;
     }
@@ -366,7 +369,7 @@ static double touch_chat(double x, double y, double action) {
     double lw = screen_w - 32;
     double iy = chat_input_y();
     double ih = 52;
-    if (hit_rect(x, y, sticker_btn_x(), iy, STICKER_BTN, ih) == 1) {
+    if (hit_round(x, y, sticker_btn_x(), iy, STICKER_BTN, ih, 10) == 1) {
         if (sticker_menu_open == 1) {
             sticker_menu_open = 0;
         } else {
@@ -395,7 +398,7 @@ static double touch_chat(double x, double y, double action) {
         }
         return 1;
     }
-    if (hit_rect(x, y, lx + lw - 112, iy, 112, ih) == 1) {
+    if (hit_button(x, y, lx + lw - 112, iy, 112, ih) == 1) {
         chat_send();
         keyboard_hide();
         return 1;
@@ -412,11 +415,11 @@ static double chat_button_hit(double x, double y) {
     double iy = chat_input_y();
     double ih = 52;
     if (chat_open == 0) {
-        return hit_rect(x, y, chat_btn_x(), chat_btn_y(), chat_btn_w(), chat_btn_h());
+        return hit_button(x, y, chat_btn_x(), chat_btn_y(), chat_btn_w(), chat_btn_h());
     }
-    if (hit_rect(x, y, chat_close_x(), chat_top_y(), btn_w, btn_h) == 1 ||
-        hit_rect(x, y, sticker_btn_x(), iy, STICKER_BTN, ih) == 1 ||
-        hit_rect(x, y, lx + lw - 112, iy, 112, ih) == 1) {
+    if (hit_button(x, y, chat_close_x(), chat_top_y(), btn_w, btn_h) == 1 ||
+        hit_round(x, y, sticker_btn_x(), iy, STICKER_BTN, ih, 10) == 1 ||
+        hit_button(x, y, lx + lw - 112, iy, 112, ih) == 1) {
         return 1;
     }
     if (sticker_menu_open == 1) {

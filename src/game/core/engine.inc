@@ -347,9 +347,15 @@ static void logic_touch(double x, double y, double action, double id) {
         press_x = x;
         press_y = y;
         press_new = 1;
+        press_id = id;
     } else if (action == 2) {
-        press_x = x;
-        press_y = y;
+        /* Only the finger that armed the pulse moves it: in a fight the stick
+         * finger keeps sliding and used to drag the press point off the pad
+         * that was just hit, so the punch went off without its squeeze. */
+        if (id == press_id && press_new == 1) {
+            press_x = x;
+            press_y = y;
+        }
     } else if (action == 1 || action == 3) {
         press_down = 0;
         if (action == 3) {
@@ -361,9 +367,18 @@ static void logic_touch(double x, double y, double action, double id) {
      * transition curtain and the epilepsy warning - and consume their own
      * touches before anything else, so they never disappear mid-transition. */
     if (admin_touch(x, y, action, id) == 1) {
+        if (action == 0) {
+            press_new = 0;
+        }
         return;
     }
     if (t_dir != 0) {
+        /* A touch that lands mid-transition is ignored, so it may not squeeze
+         * anything either (a move of the finger that started the transition
+         * keeps its squeeze). */
+        if (action == 0) {
+            press_new = 0;
+        }
         classes_swipe_reset();
         return;
     }
@@ -375,6 +390,9 @@ static void logic_touch(double x, double y, double action, double id) {
         return;
     }
     if (studio_open == 1) {
+        if (action == 0) {
+            press_new = 0;
+        }
         return;
     }
     /* Battles keep raw touches - the joysticks and the block pad must react

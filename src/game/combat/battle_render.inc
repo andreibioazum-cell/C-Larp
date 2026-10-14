@@ -286,7 +286,9 @@ static double battle_pad_r(void) {
     return 60;
 }
 static void draw_pad(double cx, double cy, double r, uint32_t col, const char *label, double scale) {
-    double p = button_press_k(cx - r, cy - r, r * 2, r * 2);
+    /* The squeeze is claimed by the circle itself - the same circle the
+     * touch handler fires on - not by its square bounding box. */
+    double p = button_press_k_round(cx - r, cy - r, r * 2, r * 2, r);
     double s = 1 - PRESS_SQUEEZE * p;
     double rr = r * s;
     circle(cx, cy, rr, shade(col, 1 - PRESS_SHADE * p));

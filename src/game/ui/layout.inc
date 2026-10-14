@@ -17,7 +17,7 @@ static double menu_top(void) { return screen_h / 2 - (lobby_rows * btn_h + (lobb
 static double menu_row(double i) { return menu_top() + i * menu_stride(); }
 
 static double hit_menu_row(double px, double py, double i) {
-    return hit_rect_pad(px, py, menu_x(), menu_row(i), menu_btn_w(), btn_h);
+    return hit_button(px, py, menu_x(), menu_row(i), menu_btn_w(), btn_h);
 }
 
 static double settings_stride(void) {
@@ -50,7 +50,7 @@ static double settings_top(void) {
 static double settings_row_y(double i) { return settings_top() + i * settings_stride(); }
 
 static double hit_settings_row(double px, double py, double i) {
-    return hit_rect_pad(px, py, menu_x(), settings_row_y(i), menu_btn_w(), settings_btn_h());
+    return hit_button(px, py, menu_x(), settings_row_y(i), menu_btn_w(), settings_btn_h());
 }
 
 static double lobby_title_y(void) { return menu_top() - 70; }
@@ -118,7 +118,7 @@ static double class_pick_w(void) { return classes_card_w() - 2 * class_pick_inse
 static double class_pick_y(void) { return classes_top() + class_card_h - class_pick_h - class_pick_pad; }
 
 static double hit_class_card(double px, double py, double vi) {
-    return hit_rect(px, py, classes_card_x(vi), classes_top(), classes_card_w(), class_card_h);
+    return hit_button(px, py, classes_card_x(vi), classes_top(), classes_card_w(), class_card_h);
 }
 
 /* The price / pick pill drawn at the bottom of a shop card. It is part of the
@@ -126,8 +126,7 @@ static double hit_class_card(double px, double py, double vi) {
  * touch itself, while the rest of the card waits for the finger to lift so a
  * swipe can still page the list. */
 static double hit_class_pill(double px, double py, double vi) {
-    return hit_rect_pad(px, py, classes_card_x(vi) + class_pick_inset(), class_pick_y(), class_pick_w(),
-                        class_pick_h);
+    return hit_button(px, py, classes_card_x(vi) + class_pick_inset(), class_pick_y(), class_pick_w(), class_pick_h);
 }
 
 static double classes_nav_w(void) { return 36; }
@@ -141,12 +140,12 @@ static double classes_prev_x(void) { return 4; }
 static double classes_next_x(void) { return screen_w - classes_nav_w() - 4; }
 
 static double hit_classes_prev(double px, double py) {
-    return classes_page > 0 && hit_rect_pad(px, py, classes_prev_x(), classes_nav_y(), classes_nav_w(), classes_nav_h());
+    return classes_page > 0 && hit_button(px, py, classes_prev_x(), classes_nav_y(), classes_nav_w(), classes_nav_h());
 }
 
 static double hit_classes_next(double px, double py) {
     return classes_page < classes_page_count() - 1 &&
-           hit_rect_pad(px, py, classes_next_x(), classes_nav_y(), classes_nav_w(), classes_nav_h());
+           hit_button(px, py, classes_next_x(), classes_nav_y(), classes_nav_w(), classes_nav_h());
 }
 
 static double classes_swipe_zone(double px, double py) {
@@ -175,14 +174,14 @@ static double class_has_skins(double cls) { return cls == CLASS_AZUM || cls == C
 static double skins_btn_visible(void) { return class_has_skins(player_class); }
 
 static double hit_levels_btn(double px, double py) {
-    return hit_rect_pad(px, py, levels_btn_x(), class_actions_y(), class_action_w(), btn_h);
+    return hit_button(px, py, levels_btn_x(), class_actions_y(), class_action_w(), btn_h);
 }
 
 static double hit_skins_btn(double px, double py) {
     if (skins_btn_visible() == 0) {
         return 0;
     }
-    return hit_rect_pad(px, py, skins_btn_x(), class_actions_y(), class_action_w(), btn_h);
+    return hit_button(px, py, skins_btn_x(), class_actions_y(), class_action_w(), btn_h);
 }
 
 static double class_msg_y(void) { return class_actions_y() + btn_h + 14; }
@@ -206,7 +205,7 @@ static double levels_row_y(double n) { return levels_top() + (n - 1) * (level_ro
 static double levels_msg_y(void) { return levels_row_y(max_level) + level_row_h + 12; }
 
 static double hit_level_row(double px, double py, double n) {
-    return hit_rect(px, py, levels_x(), levels_row_y(n), levels_w(), level_row_h);
+    return hit_button(px, py, levels_x(), levels_row_y(n), levels_w(), level_row_h);
 }
 
 static double skins_total_w(void) { return skin_card_w * SKIN_COUNT + skin_card_gap * (SKIN_COUNT - 1); }
@@ -226,7 +225,7 @@ static double skin_status_y(void) { return skins_top() + 146; }
 static double skins_msg_y(void) { return skins_top() + skin_card_h + 16; }
 
 static double hit_skin_card(double px, double py, double i) {
-    return hit_rect(px, py, skins_card_x(i), skins_top(), skin_card_w, skin_card_h);
+    return hit_button(px, py, skins_card_x(i), skins_top(), skin_card_w, skin_card_h);
 }
 
 static double ach_w(void) { return fit_w(760); }
@@ -262,7 +261,7 @@ static double hit_login_field(double px, double py, double field_y) {
 }
 
 static double hit_login_btn(double px, double py) {
-    return hit_rect_pad(px, py, login_btn_x(), login_btn_y(), login_btn_w, btn_h);
+    return hit_button(px, py, login_btn_x(), login_btn_y(), login_btn_w, btn_h);
 }
 
 static double modes_top(void) { return screen_h / 2 - (modes_rows * btn_h + (modes_rows - 1) * btn_gap) / 2; }
@@ -270,7 +269,7 @@ static double modes_top(void) { return screen_h / 2 - (modes_rows * btn_h + (mod
 static double modes_row(double i) { return modes_top() + i * menu_stride(); }
 
 static double hit_modes_row(double px, double py, double i) {
-    return hit_rect_pad(px, py, menu_x(), modes_row(i), menu_btn_w(), btn_h);
+    return hit_button(px, py, menu_x(), modes_row(i), menu_btn_w(), btn_h);
 }
 
 /* Графика: две половинные кнопки в шестом ряду - низкая и ультра. */
@@ -281,11 +280,11 @@ static double gfx_low_x(void) { return menu_x(); }
 static double gfx_ultra_x(void) { return menu_x() + gfx_btn_w() + 10; }
 
 static double hit_gfx_low(double px, double py) {
-    return hit_rect_pad(px, py, gfx_low_x(), modes_row(6), gfx_btn_w(), btn_h);
+    return hit_button(px, py, gfx_low_x(), modes_row(6), gfx_btn_w(), btn_h);
 }
 
 static double hit_gfx_ultra(double px, double py) {
-    return hit_rect_pad(px, py, gfx_ultra_x(), modes_row(6), gfx_btn_w(), btn_h);
+    return hit_button(px, py, gfx_ultra_x(), modes_row(6), gfx_btn_w(), btn_h);
 }
 
 static double warn_btn_w(void) { return fit_w(560); }
@@ -293,5 +292,5 @@ static double warn_btn_w(void) { return fit_w(560); }
 static double warn_btn_y(void) { return screen_h / 2 + 160; }
 
 static double hit_warn_btn(double px, double py) {
-    return hit_rect_pad(px, py, center_x(warn_btn_w()), warn_btn_y(), warn_btn_w(), btn_h);
+    return hit_button(px, py, center_x(warn_btn_w()), warn_btn_y(), warn_btn_w(), btn_h);
 }

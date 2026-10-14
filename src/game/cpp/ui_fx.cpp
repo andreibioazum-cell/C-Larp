@@ -56,11 +56,14 @@ uint32_t lerp_argb(uint32_t top, uint32_t bottom, float t) {
 
 // Horizontal inset of the rounded silhouette at |dy| from a corner-circle
 // center: the exact half-chord of the corner arc, so every strip stays
-// inside the same outline roundrect() would produce.
+// inside the same outline roundrect() would produce. Only rows inside the
+// corner bands ask for it, so |dy| == rad is the flat top or bottom edge
+// itself: the inset there is the whole radius, never zero (a zero inset
+// would paint the edge row full width, past both corners).
 inline float row_inset(float dy, float rad) {
     float d = fabsf(dy);
     if (d >= rad) {
-        return 0.0f;
+        return rad;
     }
     return rad - sqrtf(rad * rad - d * d);
 }
@@ -88,20 +91,37 @@ extern "C" void cb_button_gradient(float x, float y, float w, float h, float rad
     const uint32_t bottom = shade_argb(color, kBottomShade);
     const float cy_top = y + rad;
     const float cy_bottom = y + h - rad;
-    const int rows = static_cast<int>(ceilf(h));
-    for (int i = 0; i < rows; ++i) {
-        const float row_y = y + static_cast<float>(i);
-        const float row_center = row_y + 0.5f;
-        const float t = (h > 1.0f) ? (row_center - y) / h : 0.0f;
+    const float y_end = y + h;
+    // Strips follow the pixel grid and are clipped to [y, y + h]. A pressed
+    // button is squeezed to a fractional height, and the old loop stepped
+    // ceil(h) whole rows from y: the last row then hung below the button,
+    // its centre fell past the corner arcs and it was drawn full width - two
+    // thin stripes flashing out of the bottom corners on every press.
+    const int first = static_cast<int>(floorf(y));
+    const int last = static_cast<int>(ceilf(y_end));
+    for (int py = first; py < last; ++py) {
+        const float r0 = fmaxf(static_cast<float>(py), y);
+        const float r1 = fminf(static_cast<float>(py) + 1.0f, y_end);
+        if (r1 <= r0) {
+            continue;
+        }
+        // The pixel centre decides what the rasterizer fills; clamped into
+        // the clipped strip it never leaves the silhouette, so the inset is
+        // always taken inside the corner arcs.
+        const float rc = fminf(fmaxf(static_cast<float>(py) + 0.5f, r0), r1);
+        const float t = (h > 1.0f) ? (rc - y) / h : 0.0f;
         const uint32_t c = lerp_argb(top, bottom, t);
         // Straight sides between the two corner-circle centers; the arcs
         // clip only the rows above/below them.
         float inset = 0.0f;
-        if (row_center < cy_top) {
-            inset = row_inset_for(row_center, cy_top, rad);
-        } else if (row_center > cy_bottom) {
-            inset = row_inset_for(row_center, cy_bottom, rad);
+        if (rc < cy_top) {
+            inset = row_inset_for(rc, cy_top, rad);
+        } else if (rc > cy_bottom) {
+            inset = row_inset_for(rc, cy_bottom, rad);
         }
-        rect(x + inset, row_y, w - 2.0f * inset, 1.0f, c);
+        const float sw = w - 2.0f * inset;
+        if (sw > 0.0f) {
+            rect(x + inset, r0, sw, r1 - r0, c);
+        }
     }
 }

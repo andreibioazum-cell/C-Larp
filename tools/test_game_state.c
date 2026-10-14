@@ -1937,6 +1937,87 @@ int main(void) {
         assert(class_owned_of(cls) == 0 && cups == 1000);
         classes_page = 0;
 
+        /* Button hitboxes are exactly the drawn shape, and the squeeze is
+         * claimed by the very same test: a press either fires and squeezes,
+         * or does neither. */
+        game_state = ST_LOBBY;
+        press_phase = 0;
+        press_k = 0;
+        press_new = 0;
+        t_dir = 0;
+        t_target = 0;
+        /* Just beside the button (the old invisible touch margin): nothing. */
+        logic_touch(menu_x() - 6, menu_row(0) + btn_h / 2, 0, 6);
+        assert(t_dir == 0);
+        (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h);
+        assert(press_phase == 0);
+        press_new = 0;
+        logic_touch(menu_x() + btn_w / 2, menu_row(0) + btn_h + 4, 0, 6);
+        assert(t_dir == 0);
+        (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h);
+        assert(press_phase == 0);
+        press_new = 0;
+        /* The transparent rounded corner is not part of the button either. */
+        logic_touch(menu_x() + 2, menu_row(0) + 2, 0, 6);
+        assert(t_dir == 0);
+        (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h);
+        assert(press_phase == 0);
+        press_new = 0;
+        /* The very edge of the visible shape fires - and squeezes. */
+        logic_touch(menu_x() + btn_radius, menu_row(0) + 1, 0, 6);
+        assert(t_dir == 1 && t_target == ST_MODES);
+        (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h);
+        assert(press_phase == 1);
+        n = 0;
+        while (n < 30) {
+            update_button_press();
+            n = n + 1;
+        }
+        t_dir = 0;
+        t_target = 0;
+        /* The shape test itself: rounded corners and round pads. */
+        assert(hit_round(3, 3, 0, 0, 100, 40, 20) == 0);
+        assert(hit_round(20, 1, 0, 0, 100, 40, 20) == 1);
+        assert(hit_round(50, 20, 0, 0, 100, 40, 20) == 1);
+        assert(hit_round(101, 20, 0, 0, 100, 40, 20) == 0);
+        assert(hit_round(110, 110, 0, 0, 120, 120, 60) == 0);
+        assert(hit_round(60 + 59, 60, 0, 0, 120, 120, 60) == 1);
+
+        /* A quick second tap while the first squeeze is still springing back
+         * gets its own squeeze instead of firing silently. */
+        logic_touch(menu_x() + btn_w / 2, menu_row(0) + btn_h / 2, 0, 7);
+        (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h);
+        n = 0;
+        while (press_phase != 2 && n < 30) {
+            update_button_press();
+            n = n + 1;
+        }
+        update_button_press();
+        assert(press_phase == 2);
+        t_dir = 0;
+        press_new = 1; /* the second tap */
+        (void)button_press_k(menu_x(), menu_row(0), btn_w, btn_h);
+        assert(press_phase == 1 && press_new == 0);
+        n = 0;
+        while (n < 30) {
+            update_button_press();
+            n = n + 1;
+        }
+        assert(press_phase == 0);
+
+        /* A touch that lands mid-transition is ignored, so it squeezes nothing. */
+        t_dir = 1;
+        logic_touch(menu_x() + btn_w / 2, menu_row(1) + btn_h / 2, 0, 8);
+        assert(press_new == 0);
+        t_dir = 0;
+        /* Another finger sliding does not drag the press point away. */
+        logic_touch(menu_x() + btn_w / 2, menu_row(1) + btn_h / 2, 0, 9);
+        t_dir = 0;
+        t_target = 0;
+        logic_touch(5, 5, 2, 10);
+        assert(press_x == menu_x() + btn_w / 2 && press_y == menu_row(1) + btn_h / 2);
+        press_new = 0;
+
         game_state = ST_LOBBY;
         screen_h = saved_h;
     }

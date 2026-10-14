@@ -4,6 +4,7 @@
 #include "include/prototypes/ui/locale_settings.inc"
 #include "include/prototypes/ui/locale_progress.inc"
 #include "include/prototypes/ui/locale_extra.inc"
+#include "include/prototypes/core/press.inc"
 #include "include/prototypes/core/ui.inc"
 #include "include/prototypes/ui/progress_classes.inc"
 #include "include/prototypes/ui/progress_rewards.inc"

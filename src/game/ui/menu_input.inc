@@ -148,9 +148,19 @@ static void draw_warning(void) {
     double bw = warn_btn_w();
     double bx = center_x(bw);
     double by = warn_btn_y();
-    roundrect(bx, by, bw, btn_h, btn_radius, warn_rgb(0));
-    roundrect_outline(bx, by, bw, btn_h, btn_radius, warn_frame_th, warn_rgb(0xFFFFFF));
-    text_in_box(label, bx, by, bw, btn_h, warn_rgb(0xFFFFFF), scale);
+    /* The consent button answers the touch like every other button. The
+     * screen under the warning is drawn first, so it is told to keep its
+     * hands off this touch (press_overlay) and only this button claims it. */
+    press_overlay = 1;
+    double p = button_press_k(bx, by, bw, btn_h);
+    press_overlay = 0;
+    double s = 1 - PRESS_SQUEEZE * p;
+    double k = 1 - PRESS_SHADE * p;
+    double sx = squeeze_x(bx, bw, s);
+    double sy = squeeze_y(by, by, btn_h, s);
+    roundrect(sx, sy, bw * s, btn_h * s, btn_radius, warn_rgb(0));
+    roundrect_outline(sx, sy, bw * s, btn_h * s, btn_radius, warn_frame_th, warn_rgb(shade(0xFFFFFF, k)));
+    text_in_box(label, sx, sy, bw * s, btn_h * s, warn_rgb(shade(0xFFFFFF, k)), scale * s);
 }
 
 static void legal_accept(void) {
