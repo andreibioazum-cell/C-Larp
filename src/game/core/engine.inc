@@ -8,6 +8,7 @@ static void start_transition(double target) {
      * - так нажатия не видно. Сначала даём кнопке досжаться, потом гасим. */
     t_hold = transition_hold;
     t_dir = 1;
+    ui_nav_gen = ui_nav_gen + 1;
 }
 
 static void leave_screen(double state) {
@@ -42,6 +43,7 @@ static double enter_screen(double state) {
         if (net_is_banned(net_login_nick()) == 1) {
             banned_msg = tr_banned();
             game_state = ST_LOBBY;
+            ui_nav_gen = ui_nav_gen + 1;
             t_dir = -1;
             t_fade = 1;
             return 0;
@@ -70,6 +72,7 @@ static void update_transition(void) {
     if (t_dir == 2) {
         leave_screen(game_state);
         game_state = t_target;
+        ui_nav_gen = ui_nav_gen + 1;
         if (enter_screen(t_target) == 1) {
             t_dir = -1;
         }

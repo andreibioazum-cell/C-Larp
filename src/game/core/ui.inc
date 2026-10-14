@@ -125,6 +125,7 @@ static double press_btn_x;
 static double press_btn_y;
 static double press_btn_w;
 static double press_btn_h;
+static double press_btn_gen;
 
 static double button_press_k(double x, double y, double w, double h) {
     if (press_new == 1 && press_phase == 0 && hit_rect(press_x, press_y, x, y, w, h) == 1) {
@@ -135,11 +136,15 @@ static double button_press_k(double x, double y, double w, double h) {
         press_btn_y = y;
         press_btn_w = w;
         press_btn_h = h;
+        press_btn_gen = ui_nav_gen;
         press_k = 0;
         press_phase = 1;
     }
-    if (press_btn_live == 1 && press_phase != 0 && x == press_btn_x && y == press_btn_y && w == press_btn_w &&
-        h == press_btn_h) {
+    /* Пульс принадлежит тому экрану, где его взяли: на следующем экране в тех
+     * же координатах часто стоит своя кнопка (ряды меню и настроек совпадают),
+     * и на низком fps недосжавшийся пульс мигал бы уже на ней. */
+    if (press_btn_live == 1 && press_phase != 0 && press_btn_gen == ui_nav_gen && x == press_btn_x &&
+        y == press_btn_y && w == press_btn_w && h == press_btn_h) {
         /* Smoothstep: the squeeze eases in and the spring back eases out. */
         return press_k * press_k * (3 - 2 * press_k);
     }

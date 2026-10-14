@@ -427,6 +427,7 @@ press_y = 0;
 press_k = 0;
 press_phase = 0;
 press_new = 0;
+ui_nav_gen = 0;
 
 /* NPC cube in the lobby (debug placeholder) */
 CUBE_NPC_TEX = "Cube_20261007211025.png";

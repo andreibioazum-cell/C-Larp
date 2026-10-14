@@ -121,9 +121,10 @@ static void finish_game(double result) {
     }
 }
 
-/* End-of-battle pay-out. A win played with any cheat switched on pays no Cups
- * and hands out no win achievements, even if the cheat was switched back off
- * right away; the loss penalty stays what it always was. */
+/* Выплата за бой. Если в этом бою хотя бы раз включался чит из админки, бой
+ * ничего не меняет в кошельке: ни победа не даёт кубки (и достижения за
+ * победу), ни поражение их не отнимает. Чит мог быть выключен сразу после
+ * включения - метка всё равно остаётся до конца боя. */
 static void award_battle_result(double result) {
     if (result == 1) {
         if (admin_cups_allowed() == 0) {
@@ -142,6 +143,10 @@ static void award_battle_result(double result) {
             grant_achievement(ACH_LAST_HP);
         }
         ds_log("win +%g cups +%g candies", cup_win, candy_win);
+        return;
+    }
+    if (admin_cups_allowed() == 0) {
+        ds_log("lose: no cups taken away, a cheat was used in this battle");
         return;
     }
     cups = cups - cup_lose;

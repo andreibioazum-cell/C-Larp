@@ -179,7 +179,11 @@ static double admin_any_cheat_on(void) {
 
 /* Called when a battle starts: entering a fight with a cheat already on marks
  * it just like flipping one on during the fight does. */
-static void admin_battle_stain_reset(void) { cheat_stain = admin_any_cheat_on(); }
+static void admin_battle_stain_reset(void) {
+    cheat_stain = admin_any_cheat_on();
+    /* Новый бой: прошлый админский стан забыт, кружок снова по делу. */
+    cheat_estun_mark = 0;
+}
 
 /* A stained battle pays no Cups at the end. */
 static double admin_cups_allowed(void) { return cheat_stain == 0 ? 1 : 0; }
