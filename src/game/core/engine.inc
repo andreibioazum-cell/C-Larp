@@ -154,6 +154,7 @@ static void update_music(void) {
 static void logic_update(void) {
     update_warning();
     docs_tick();
+    acct_tick();
     update_studio();
     update_alpha_notice();
     update_transition();
@@ -179,7 +180,7 @@ static void logic_update(void) {
         update_game();
     } else if (game_state == ST_ONLINE) {
         update_online();
-    } else if (game_state == ST_LOGIN) {
+    } else if (game_state == ST_LOGIN && acct_open == 0) {
         update_login();
     } else if (game_state == ST_PROMO) {
         update_promo();
@@ -244,6 +245,9 @@ static void logic_draw(void) {
     if (docs_open == 1) {
         draw_docs();
     }
+    if (acct_open != 0) {
+        draw_account();
+    }
     draw_achievement_toast();
     /* Last of all: the admin orb and its panel are never covered, not by the
      * transition curtain, not by the epilepsy warning or the splash. */
@@ -285,6 +289,10 @@ static double logic_back(void) {
      * first: the epilepsy warning and the splash never hide it. */
     if (admin_panel_open == 1) {
         admin_panel_close();
+        return 1;
+    }
+    if (acct_open != 0) {
+        acct_back();
         return 1;
     }
     if (docs_open == 1) {
@@ -381,8 +389,12 @@ static void logic_touch(double x, double y, double action, double id) {
         classes_swipe_reset();
         return;
     }
-    if (game_state != ST_CLASSES || docs_open == 1 || warn_open == 1 || studio_open == 1) {
+    if (game_state != ST_CLASSES || acct_open != 0 || docs_open == 1 || warn_open == 1 || studio_open == 1) {
         classes_swipe_reset();
+    }
+    if (acct_open != 0) {
+        touch_account(x, y, action, id);
+        return;
     }
     if (docs_open == 1) {
         touch_docs(x, y, action);

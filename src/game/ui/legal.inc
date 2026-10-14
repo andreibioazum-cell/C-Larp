@@ -1,6 +1,6 @@
 /* «Правовая информация»: окно документов поверх любого экрана (из
  * предупреждения при запуске, со входа в аккаунт и из настроек), согласие
- * на обработку персональных данных, удаление аккаунта и знак 12+.
+ * на обработку персональных данных, вход в удаление аккаунта и знак 12+.
  *
  * Окно - оверлей, а не отдельный экран: его открывают и из предупреждения,
  * которое само висит поверх всего, и со входа, где нельзя терять введённый
@@ -12,9 +12,6 @@ static double docs_page;
  * появления согласия или редакция документов сменилась). */
 static double docs_ask;
 static double docs_asked;
-static double docs_del_arm;
-static double docs_del_busy;
-static const char *docs_msg = "";
 /* Галочка согласия на экране входа. */
 static double login_consent;
 
@@ -31,8 +28,6 @@ static void docs_show(double page, double ask) {
     docs_open = 1;
     docs_page = clamp(page, 0, LEGAL_PAGES - 1);
     docs_ask = ask;
-    docs_del_arm = 0;
-    docs_msg = "";
     keyboard_hide();
     ui_nav_gen = ui_nav_gen + 1;
 }
@@ -40,7 +35,6 @@ static void docs_show(double page, double ask) {
 static void docs_close(void) {
     docs_open = 0;
     docs_ask = 0;
-    docs_del_arm = 0;
     ui_nav_gen = ui_nav_gen + 1;
 }
 
@@ -91,10 +85,7 @@ static const char *docs_mid_label(void) {
     if (docs_ask == 1) {
         return tr_consent_agree();
     }
-    if (docs_del_busy == 1) {
-        return tr_delete_busy();
-    }
-    return docs_del_arm > 0 ? tr_delete_confirm() : tr_delete_account();
+    return tr_delete_account();
 }
 
 static void draw_docs(void) {
@@ -114,7 +105,7 @@ static void draw_docs(void) {
         docs_text(consent_ok() == 1 ? tr_consent_given() : tr_consent_missing(), docs_line_y(LEGAL_LINES - 1), 0.5);
     }
     if (docs_page == LEGAL_PAGE_RIGHTS) {
-        const char *note = str_len(docs_msg) > 0 ? docs_msg : (net_login_status() == 2 ? "" : tr_delete_need_login());
+        const char *note = net_login_status() == 2 ? "" : tr_delete_need_login();
         docs_text(note, docs_line_y(LEGAL_LINES - 1), 0.5);
     }
     if (docs_page > 0) {
@@ -141,21 +132,6 @@ static double docs_button_hit(double x, double y) {
            hit_docs_mid(x, y) == 1 || hit_docs_refuse(x, y) == 1;
 }
 
-static void docs_delete_tap(void) {
-    if (docs_del_busy == 1) {
-        return;
-    }
-    if (docs_del_arm <= 0) {
-        docs_del_arm = 4;
-        docs_msg = "";
-        return;
-    }
-    docs_del_arm = 0;
-    docs_del_busy = 1;
-    docs_msg = tr_delete_busy();
-    net_delete_account();
-}
-
 static void touch_docs(double x, double y, double action) {
     if (action != 0) {
         return;
@@ -169,12 +145,10 @@ static void touch_docs(double x, double y, double action) {
     }
     if (hit_docs_prev(x, y) == 1) {
         docs_page = docs_page - 1;
-        docs_del_arm = 0;
         return;
     }
     if (hit_docs_next(x, y) == 1) {
         docs_page = docs_page + 1;
-        docs_del_arm = 0;
         return;
     }
     if (hit_docs_mid(x, y) == 1) {
@@ -183,7 +157,8 @@ static void touch_docs(double x, double y, double action) {
             docs_close();
             return;
         }
-        docs_delete_tap();
+        /* Удаление - на экране аккаунта: пароль и свайп вправо. */
+        acct_show(ACCT_DELETE);
         return;
     }
     if (hit_docs_refuse(x, y) == 1) {
@@ -196,26 +171,10 @@ static void touch_docs(double x, double y, double action) {
 
 /* --- кадр -------------------------------------------------------------- */
 
-/* Удаление идёт в фоне; когда оно закончилось, игра забывает прогресс из
- * памяти, чтобы следующее сохранение не вернуло стёртое. */
 static void docs_tick(void) {
-    if (docs_del_arm > 0) {
-        docs_del_arm = docs_del_arm - dt;
-    }
-    if (docs_del_busy == 1) {
-        double st = net_delete_account_status();
-        if (st == 2) {
-            docs_del_busy = 0;
-            docs_msg = tr_delete_done();
-            progress_from_storage();
-        } else if (st == 3) {
-            docs_del_busy = 0;
-            docs_msg = tr_delete_failed();
-        }
-    }
     /* Аккаунт, вошедший до появления согласия, спрашиваем один раз за
      * запуск, когда игрок спокойно стоит в лобби. */
-    if (docs_open == 0 && docs_asked == 0 && warn_open == 0 && studio_open == 0 && t_dir == 0 &&
+    if (docs_open == 0 && acct_open == 0 && docs_asked == 0 && warn_open == 0 && studio_open == 0 && t_dir == 0 &&
         game_state == ST_LOBBY && net_login_status() == 2 && consent_ok() == 0) {
         docs_asked = 1;
         docs_show(LEGAL_PAGE_CONSENT, 1);

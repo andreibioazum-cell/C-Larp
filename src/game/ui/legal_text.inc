@@ -21,6 +21,8 @@
 
 /* 1 - открыто окно документов (оно поверх всего, см. legal.inc). */
 static double docs_open;
+/* Режим экрана аккаунта (account.inc), 0 - закрыт; он поверх документов. */
+static double acct_open;
 
 static const char *const legal_ru[LEGAL_PAGES][LEGAL_LINES + 1] = {
     {"Правовая информация", "Игра «Cubic Battle 4». Возраст: 12+", "Правообладатель и оператор данных:",
@@ -196,13 +198,6 @@ static const char *tr_delete_account(void) {
     return "Delete account and data";
 }
 
-static const char *tr_delete_confirm(void) {
-    if (language == 1) {
-        return "Нажмите ещё раз: удалить навсегда";
-    }
-    return "Tap again: delete forever";
-}
-
 static const char *tr_delete_busy(void) {
     if (language == 1) {
         return "Удаляем...";
@@ -215,13 +210,6 @@ static const char *tr_delete_done(void) {
         return "Аккаунт и данные удалены";
     }
     return "Account and data deleted";
-}
-
-static const char *tr_delete_failed(void) {
-    if (language == 1) {
-        return "Не удалось: нет связи, повторите позже";
-    }
-    return "Failed: no connection, try again later";
 }
 
 static const char *tr_delete_need_login(void) {

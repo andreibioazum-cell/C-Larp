@@ -215,6 +215,12 @@ static void touch_lobby(double x, double y, double action) {
         return;
     }
     if (hit_menu_row(x, y, 3) == 1) {
+        /* Вошедший игрок попадает в свой аккаунт (смена пароля, выход,
+         * удаление), остальные - на вход. */
+        if (net_login_status() == 2) {
+            acct_show(ACCT_MENU);
+            return;
+        }
         login_after = ST_LOBBY;
         start_transition(ST_LOGIN);
         return;

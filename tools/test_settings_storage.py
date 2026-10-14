@@ -178,18 +178,90 @@ static int run_consent(const char *dir) {
     return 0;
 }
 
-static int run_delete(const char *dir) {
+static void fake_session(const char *nick, const char *pass) {
+    lg_lock();
+    snprintf(lg.session_nick, sizeof(lg.session_nick), "%s", nick);
+    snprintf(lg.session_pass, sizeof(lg.session_pass), "%s", pass);
+    lg.status = NET_LOGIN_OK;
+    lg_unlock();
+    session_save(nick, pass);
+}
+
+static double wait_delete(void) {
     int spins = 0;
+    double st;
+    while ((st = net_delete_account_status()) == 1 && spins++ < 500)
+        sleep_ms(10);
+    return st;
+}
+
+static double wait_password(void) {
+    int spins = 0;
+    double st;
+    while ((st = net_change_password_status()) == 1 && spins++ < 500)
+        sleep_ms(10);
+    return st;
+}
+
+static int file_exists(const char *dir, const char *name) {
+    char path[512];
+    FILE *f;
+    snprintf(path, sizeof(path), "%s/%s", dir, name);
+    f = fopen(path, "r");
+    if (f)
+        fclose(f);
+    return f != NULL;
+}
+
+static int run_delete(const char *dir) {
     double st;
     net_set_data_path(dir);
     assert(settings_pd_consent_version() == 1);
-    net_delete_account();
-    while ((st = net_delete_account_status()) == 1 && spins++ < 500)
-        sleep_ms(10);
+    fake_session("tester", "secret1");
+    /* A wrong password deletes nothing. */
+    net_delete_account("secret2");
+    assert(wait_delete() == 4);
+    net_delete_account("");
+    assert(wait_delete() == 4);
+    assert(file_exists(dir, "auth.dat") && file_exists(dir, "progress.dat"));
+    assert(settings_pd_consent_version() == 1);
+    net_delete_account("secret1");
+    st = wait_delete();
     assert(st == 2);
     assert(settings_pd_consent_version() == 0);
     assert(net_load_language() == 0); /* the player's own settings stay */
-    puts("native delete: account files wiped, consent withdrawn, settings kept");
+    puts("native delete: wrong password refused; with the right one account files wiped, consent withdrawn, settings kept");
+    return 0;
+}
+
+static int run_password(const char *dir) {
+    char text[128] = "";
+    FILE *f;
+    net_set_data_path(dir);
+    net_change_password("secret1", "newpass2");
+    assert(wait_password() == 6); /* not signed in */
+    fake_session("tester", "secret1");
+    net_change_password("secret9", "newpass2");
+    assert(wait_password() == 4); /* wrong current password */
+    net_change_password("secret1", "new pass");
+    assert(wait_password() == 5); /* spaces are not allowed */
+    net_change_password("secret1", "");
+    assert(wait_password() == 5);
+    net_change_password("secret1", "newpass2");
+    assert(wait_password() == 2);
+    assert(strcmp(net_login_pass(), "newpass2") == 0);
+    {
+        char path[512];
+        snprintf(path, sizeof(path), "%s/auth.dat", dir);
+        f = fopen(path, "r");
+        assert(f);
+        assert(fgets(text, sizeof(text), f));
+        fclose(f);
+    }
+    assert(strcmp(text, "tester newpass2\n") == 0); /* autologin keeps working */
+    net_change_password("secret1", "other3");
+    assert(wait_password() == 4); /* the old password no longer works */
+    puts("native password: current password checked, new one validated, session and auth.dat moved over");
     return 0;
 }
 
@@ -205,6 +277,7 @@ int main(int argc, char **argv) {
     if (strcmp(argv[1], "phone") == 0 && argc >= 5) return run_phone(argv[2], argv[3], atoi(argv[4]));
     if (strcmp(argv[1], "consent") == 0) return run_consent(argv[2]);
     if (strcmp(argv[1], "delete") == 0) return run_delete(argv[2]);
+    if (strcmp(argv[1], "password") == 0) return run_password(argv[2]);
     fprintf(stderr, "unknown mode '%s'\n", argv[1]);
     return 2;
 }
@@ -289,6 +362,9 @@ def main():
         for name in ("auth.dat", "progress.dat", "achievements.dat", "promo.dat", "progress.dirty"):
             assert not (account / name).exists(), name
         withdrawn = (account / "settings.dat").read_text(encoding="utf-8")
+        password_dir = temp / "password-device"
+        password_dir.mkdir()
+        subprocess.run([*run, "password", str(password_dir)], check=True)
         assert "pdv 0" in withdrawn and "pdc 0" in withdrawn and "lang 0" in withdrawn, withdrawn
     return 0
 

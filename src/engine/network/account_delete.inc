@@ -2,18 +2,21 @@
  *
  * 152-ФЗ, ст. 9 ч. 2 и ст. 21 ч. 5: субъект вправе отозвать согласие, и тогда
  * оператор прекращает обработку и уничтожает персональные данные. В игре это
- * одна кнопка в «Правовой информации»; удаление идёт в своём потоке:
- *   1. свежий вход тем же паролем (Firebase удаляет учётку только после
- *      недавнего входа);
+ * экран «Аккаунт → Удалить аккаунт»: игрок вводит пароль и проводит
+ * ползунок вправо. Удаление идёт в своём потоке:
+ *   0. введённый пароль должен совпасть с паролем сессии;
+ *   1. свежий вход этим паролем (Firebase удаляет учётку только после
+ *      недавнего входа; заодно сервер ещё раз проверяет пароль);
  *   2. профиль users/<ник> удаляется из базы; если на сервере ещё старые
  *      правила без права на самоудаление, профиль обнуляется;
  *   3. учётная запись Firebase Auth удаляется (accounts:delete);
  *   4. на устройстве стираются сессия, прогресс, достижения, промокод и
  *      отметка о согласии на обработку данных.
  * Статус: 0 — ничего не идёт, 1 — идёт, 2 — удалено, 3 — ошибка сети или
- * сервера (ничего не стёрто, можно повторить). */
+ * сервера (ничего не стёрто, можно повторить), 4 — неверный пароль. */
 
 static volatile int s_acct_del_status = 0;
+static char s_acct_del_pass[64];
 
 static void acct_wipe_local(void) {
     static const char *const files[] = {SESSION_FILE, PROGRESS_FILE, ACHIEVEMENTS_FILE, PROGRESS_DIRTY_FILE,
@@ -43,20 +46,31 @@ static void acct_wipe_local(void) {
 }
 
 static void *acct_delete_job(void *arg) {
-    char nick[LOGIN_NICK_MAX + 2] = "", pass[64] = "", url[URL], body[512], resp[1024];
+    char nick[LOGIN_NICK_MAX + 2] = "", pass[64] = "", typed[64], url[URL], body[512], resp[1024];
     char email[96], epass[192], idt[FB_ID_MAX];
     int code;
     (void)arg;
+    snprintf(typed, sizeof(typed), "%s", s_acct_del_pass);
+    memset(s_acct_del_pass, 0, sizeof(s_acct_del_pass));
     lg_lock();
     snprintf(nick, sizeof(nick), "%s", lg.session_nick);
     snprintf(pass, sizeof(pass), "%s", lg.session_pass);
     lg_unlock();
+    if (nick[0] && (!pass[0] || strcmp(pass, typed) != 0)) {
+        memset(typed, 0, sizeof(typed));
+        s_acct_del_status = 4;
+        return NULL;
+    }
+    memset(typed, 0, sizeof(typed));
     if (nick[0] && net.base[0]) {
-        if (fb_enabled() && pass[0]) {
+        if (fb_enabled()) {
+            int r;
             fb_email_of(nick, email, sizeof(email));
             snprintf(epass, sizeof(epass), "%s%s", pass, net_pass_suffix());
-            if (fb_try_sign_in(email, epass, NULL) == 2) {
-                s_acct_del_status = 3;
+            r = fb_try_sign_in(email, epass, NULL);
+            memset(epass, 0, sizeof(epass));
+            if (r != 0) {
+                s_acct_del_status = r == 1 ? 4 : 3;
                 return NULL;
             }
         }
@@ -92,10 +106,11 @@ static void *acct_delete_job(void *arg) {
     return NULL;
 }
 
-void net_delete_account(void) {
+void net_delete_account(const char *password) {
     DSThread t;
     if (s_acct_del_status == 1)
         return;
+    snprintf(s_acct_del_pass, sizeof(s_acct_del_pass), "%s", password ? password : "");
     s_acct_del_status = 1;
     t = ds_thread_start(acct_delete_job, NULL);
     if (t) {
@@ -105,10 +120,10 @@ void net_delete_account(void) {
     s_acct_del_status = 3;
 }
 
-/* Прочитать статус; готовый результат (2 или 3) отдаётся один раз. */
+/* Прочитать статус; готовый результат (2, 3 или 4) отдаётся один раз. */
 double net_delete_account_status(void) {
     int s = s_acct_del_status;
-    if (s == 2 || s == 3)
+    if (s >= 2)
         s_acct_del_status = 0;
     return (double)s;
 }

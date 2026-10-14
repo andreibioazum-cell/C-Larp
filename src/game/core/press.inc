@@ -67,7 +67,7 @@ static double press_covered(void) {
     if (press_overlay == 1) {
         return 0;
     }
-    if (docs_open == 1 || warn_open == 1) {
+    if (acct_open != 0 || docs_open == 1 || warn_open == 1) {
         return 1;
     }
     if (game_state == ST_SOLO || game_state == ST_ONLINE) {

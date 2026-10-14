@@ -202,10 +202,16 @@ double settings_legal_ts(void);
 void settings_set_pd_consent(double version);
 double settings_pd_consent_version(void);
 void net_pd_consent_upload(void);
-/* Удалить аккаунт, облачный профиль и данные на устройстве. Статус:
- * 0 — ничего, 1 — идёт, 2 — удалено, 3 — ошибка (результат отдаётся один раз). */
-void net_delete_account(void);
+/* Удалить аккаунт, облачный профиль и данные на устройстве; нужен пароль
+ * аккаунта. Статус: 0 — ничего, 1 — идёт, 2 — удалено, 3 — ошибка сети,
+ * 4 — неверный пароль (результат отдаётся один раз). */
+void net_delete_account(const char *password);
 double net_delete_account_status(void);
+/* Сменить пароль аккаунта. Статус: 0 — ничего, 1 — идёт, 2 — изменён,
+ * 3 — ошибка сети, 4 — неверный текущий пароль, 5 — новый пароль не подходит,
+ * 6 — не выполнен вход (результат отдаётся один раз). */
+void net_change_password(const char *old_pass, const char *new_pass);
+double net_change_password_status(void);
 
 double net_banned(void);
 double net_is_banned(const char *nick);

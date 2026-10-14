@@ -629,13 +629,31 @@ static int stub_logout_calls;
 void settings_set_pd_consent(double version) { stub_pd_ver = version; }
 double settings_pd_consent_version(void) { return stub_pd_ver; }
 void net_pd_consent_upload(void) { stub_pd_uploads++; }
-void net_delete_account(void) {
+static char stub_delete_pass[64];
+static int stub_pass_calls;
+static double stub_pass_status;
+static char stub_pass_old[64], stub_pass_new[64];
+void net_delete_account(const char *password) {
     stub_delete_calls++;
+    snprintf(stub_delete_pass, sizeof(stub_delete_pass), "%s", password ? password : "");
     stub_delete_status = 1;
+}
+void net_change_password(const char *old_pass, const char *new_pass) {
+    stub_pass_calls++;
+    snprintf(stub_pass_old, sizeof(stub_pass_old), "%s", old_pass ? old_pass : "");
+    snprintf(stub_pass_new, sizeof(stub_pass_new), "%s", new_pass ? new_pass : "");
+    stub_pass_status = 1;
+}
+double net_change_password_status(void) {
+    double v = stub_pass_status;
+    if (v >= 2) {
+        stub_pass_status = 0;
+    }
+    return v;
 }
 double net_delete_account_status(void) {
     double v = stub_delete_status;
-    if (v == 2 || v == 3) {
+    if (v >= 2) {
         stub_delete_status = 0;
     }
     return v;
@@ -712,6 +730,138 @@ static void assert_clean(const char *in, const char *want) {
         fprintf(stderr, "chat filter: '%s' -> '%s', want '%s'\n", in, out, want);
         assert(0);
     }
+}
+
+/* Свайп ползунка удаления пальцем id: от ползунка на долю frac дорожки. */
+static void swipe_delete_knob(double frac, double id) {
+    double kx = acct_knob_x() + acct_knob_w() / 2;
+    double ky = acct_slider_y() + acct_slider_h() / 2;
+    double span = acct_w() - acct_knob_w() - 8;
+    logic_touch(kx, ky, 0, id);
+    press_new = 0;
+    logic_touch(kx + span * frac * 0.5, ky, 2, id);
+    logic_touch(kx + span * frac, ky, 2, id);
+    logic_touch(kx + span * frac, ky, 1, id);
+}
+
+/* Удаление: без пароля и без свайпа до конца ничего не уходит на сервер. */
+static void test_account_delete(void) {
+    int calls = stub_delete_calls;
+    /* Свайп без пароля: просьба ввести пароль, ползунок уезжает назад. */
+    swipe_delete_knob(1.2, 60);
+    assert(stub_delete_calls == calls && str_eq(acct_msg, tr_acct_need_pass()) == 1);
+    /* Пароль введён, но ползунок отпущен на полпути - не удаляем. */
+    logic_touch(acct_x() + acct_w() / 2, acct_field_y(0) + login_fh / 2, 0, 61);
+    press_new = 0;
+    assert(keyboard_visible() == 1 && acct_field == 0);
+    keyboard_type("secret1");
+    acct_tick();
+    assert(strcmp(acct_buf[0], "secret1") == 0 && strcmp(acct_mask(0), "*******") == 0);
+    acct_knob = 0;
+    swipe_delete_knob(0.5, 62);
+    assert(stub_delete_calls == calls && acct_knob > 0.3);
+    double k = acct_knob;
+    dt = 0.05;
+    acct_tick();
+    assert(acct_knob < k); /* springs back */
+    acct_knob = 0;
+    /* Обычное касание (без свайпа) по ползунку тоже ничего не делает. */
+    logic_touch(acct_knob_x() + acct_knob_w() / 2, acct_slider_y() + acct_slider_h() / 2, 0, 63);
+    press_new = 0;
+    logic_touch(acct_knob_x() + acct_knob_w() / 2, acct_slider_y() + acct_slider_h() / 2, 1, 63);
+    assert(stub_delete_calls == calls);
+    /* Свайп до конца с паролем: удаление с этим паролем, поле очищено. */
+    swipe_delete_knob(1.2, 64);
+    assert(stub_delete_calls == calls + 1 && strcmp(stub_delete_pass, "secret1") == 0);
+    assert(acct_busy == 1 && acct_buf[0][0] == 0);
+    /* Неверный пароль: сообщение, можно повторить. */
+    stub_delete_status = 4;
+    acct_tick();
+    assert(acct_busy == 0 && acct_done == 0 && str_eq(acct_msg, tr_acct_wrong()) == 1);
+    acct_buf[0][0] = 's';
+    acct_buf[0][1] = 0;
+    acct_knob = 0;
+    swipe_delete_knob(1.2, 65);
+    assert(stub_delete_calls == calls + 2);
+    stub_delete_status = 2;
+    acct_tick();
+    assert(acct_busy == 0 && acct_done == 1 && str_eq(acct_msg, tr_delete_done()) == 1);
+}
+
+/* Экран аккаунта из лобби: меню, смена пароля, выход. */
+static void test_account_screen(void) {
+    char saved_nick[24];
+    snprintf(saved_nick, sizeof(saved_nick), "%s", stub_login_nick);
+    snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", "tester");
+    stub_login_status = 2;
+    game_state = ST_LOBBY;
+    t_dir = 0;
+    docs_open = 0;
+    acct_open = 0;
+    logic_touch(menu_x() + menu_btn_w() / 2, menu_row(3) + btn_h / 2, 0, 70);
+    press_new = 0;
+    assert(acct_open == ACCT_MENU && t_dir == 0);
+    logic_touch(acct_x() + acct_w() / 2, acct_menu_y(0) + btn_h / 2, 0, 71);
+    press_new = 0;
+    assert(acct_open == ACCT_PASS);
+    /* Проверки до сервера: пустые поля, несовпадение, тот же пароль. */
+    logic_touch(acct_x() + acct_w() / 2, acct_below_fields() + btn_h / 2, 0, 72);
+    press_new = 0;
+    assert(str_eq(acct_msg, tr_acct_need_pass()) == 1 && stub_pass_calls == 0);
+    snprintf(acct_buf[0], ACCT_BUF, "%s", "old1");
+    snprintf(acct_buf[1], ACCT_BUF, "%s", "new1");
+    snprintf(acct_buf[2], ACCT_BUF, "%s", "new2");
+    acct_pass_try();
+    assert(str_eq(acct_msg, tr_acct_mismatch()) == 1 && stub_pass_calls == 0);
+    snprintf(acct_buf[1], ACCT_BUF, "%s", "old1");
+    snprintf(acct_buf[2], ACCT_BUF, "%s", "old1");
+    acct_pass_try();
+    assert(str_eq(acct_msg, tr_acct_same()) == 1 && stub_pass_calls == 0);
+    /* Пароль админа задан в коде: его смена отняла бы права админа. */
+    snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", ADMIN_NICK);
+    snprintf(acct_buf[1], ACCT_BUF, "%s", "new1");
+    snprintf(acct_buf[2], ACCT_BUF, "%s", "new1");
+    acct_pass_try();
+    assert(str_eq(acct_msg, tr_acct_admin()) == 1 && stub_pass_calls == 0);
+    snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", "tester");
+    /* Ввод через клавиатуру: Enter переходит к следующему полю. */
+    logic_touch(acct_x() + acct_w() / 2, acct_field_y(1) + login_fh / 2, 0, 73);
+    press_new = 0;
+    assert(acct_field == 1 && keyboard_visible() == 1);
+    keyboard_type("new1");
+    acct_tick();
+    logic_touch(acct_x() + acct_w() / 2, acct_field_y(2) + login_fh / 2, 0, 74);
+    press_new = 0;
+    keyboard_type("new1");
+    acct_tick();
+    assert(strcmp(acct_buf[1], "new1") == 0 && strcmp(acct_buf[2], "new1") == 0);
+    logic_touch(acct_x() + acct_w() / 2, acct_below_fields() + btn_h / 2, 0, 75);
+    press_new = 0;
+    assert(stub_pass_calls == 1 && strcmp(stub_pass_old, "old1") == 0 && strcmp(stub_pass_new, "new1") == 0);
+    assert(acct_busy == 2 && acct_buf[0][0] == 0 && acct_buf[1][0] == 0);
+    stub_pass_status = 4;
+    acct_tick();
+    assert(acct_busy == 0 && str_eq(acct_msg, tr_acct_wrong()) == 1);
+    acct_busy = 2;
+    stub_pass_status = 2;
+    acct_tick();
+    assert(acct_busy == 0 && str_eq(acct_msg, tr_acct_changed()) == 1);
+    /* «Назад» - в меню аккаунта, ещё раз - закрыть. */
+    assert(logic_back() == 1 && acct_open == ACCT_MENU);
+    /* Выход из аккаунта. */
+    int logouts = stub_logout_calls;
+    logic_touch(acct_x() + acct_w() / 2, acct_menu_y(2) + btn_h / 2, 0, 76);
+    press_new = 0;
+    assert(acct_open == 0 && stub_logout_calls == logouts + 1);
+    /* Без входа «Аккаунт» ведёт на экран входа. */
+    stub_login_status = 0;
+    logic_touch(menu_x() + menu_btn_w() / 2, menu_row(3) + btn_h / 2, 0, 77);
+    press_new = 0;
+    assert(acct_open == 0 && t_target == ST_LOGIN);
+    t_dir = 0;
+    t_target = 0;
+    snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", saved_nick);
+    puts("account: menu, password change checks, sign-out, delete needs password + full swipe right");
 }
 
 /* Правовая часть: фильтр чата, согласие при входе, вопрос в лобби, окно
@@ -804,7 +954,7 @@ static void test_legal(void) {
     docs_close();
     stub_pd_ver = LEGAL_DOCS_VERSION;
 
-    /* Листание и удаление аккаунта: второе нажатие подтверждает. */
+    /* Листание; кнопка удаления открывает экран аккаунта поверх документов. */
     docs_show(0, 0);
     assert(hit_docs_prev(docs_prev_x() + docs_nav_w() / 2, docs_row_y() + btn_h / 2) == 0);
     logic_touch(docs_next_x() + docs_nav_w() / 2, docs_row_y() + btn_h / 2, 0, 44);
@@ -814,13 +964,10 @@ static void test_legal(void) {
     assert(hit_docs_next(docs_next_x() + docs_nav_w() / 2, docs_row_y() + btn_h / 2) == 0);
     logic_touch(docs_mid_x() + docs_mid_w() / 2, docs_row_y() + btn_h / 2, 0, 45);
     press_new = 0;
-    assert(docs_del_arm > 0 && stub_delete_calls == 0);
-    logic_touch(docs_mid_x() + docs_mid_w() / 2, docs_row_y() + btn_h / 2, 0, 46);
-    press_new = 0;
-    assert(stub_delete_calls == 1 && docs_del_busy == 1);
-    stub_delete_status = 2;
-    docs_tick();
-    assert(docs_del_busy == 0 && str_eq(docs_msg, tr_delete_done()) == 1);
+    assert(acct_open == ACCT_DELETE && docs_open == 1 && stub_delete_calls == 0);
+    test_account_delete();
+    /* «Назад» закрывает экран аккаунта и оставляет документы. */
+    assert(logic_back() == 1 && acct_open == 0 && docs_open == 1);
     docs_close();
     /* Без входа кнопки удаления нет. */
     stub_login_status = 0;
@@ -837,9 +984,12 @@ static void test_legal(void) {
     assert(logic_back() == 1 && docs_open == 0);
     warn_open = 0;
 
-    /* Русский режим: описания по-русски, игровые термины (HP) остаются. */
+    test_account_screen();
+    stub_login_status = 2;
+
+    /* Описания персонажей - авторские фразы, не переводятся; HP остаётся. */
     language = 1;
-    assert(strchr(tr_class_ordinary_desc(), 'I') == NULL);
+    assert(str_eq(tr_class_ordinary_desc(), "I was the first") == 1);
     assert(strstr(tr_achievement_last_hp_desc(), "HP") != NULL);
 
     game_state = ST_LOBBY;
