@@ -237,11 +237,11 @@ static void draw_enemy_shadow(void) {
     double sx = enemy->x - shadow_off;
     double sy = enemy->y + shadow_off;
     if (look == LOOK_NONE) {
-        draw_shadow_blur_circle(sx, sy, ehw, shadow_alpha * 1.7, ehw * 0.07);
+        draw_shadow_blur_circle(sx, sy, ehw, shadow_alpha * 2.5, ehw * 0.07);
         return;
     }
     draw_shadow_blur_tex(sx, sy, ehw, es, look_tex(look, fighter_pose_of(FLOOK_BOT, enemy_punching_now())),
-                         sprite_a(enemy->angle), shadow_alpha * 1.7, ehw * 0.07);
+                         sprite_a(enemy->angle), shadow_alpha * 2.5, ehw * 0.07);
 }
 
 static void draw_enemy_hitbox(void) {

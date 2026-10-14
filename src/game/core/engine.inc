@@ -182,12 +182,12 @@ static void logic_update(void) {
     }
     update_newyear();
     update_weather();
+    /* Цветокоррекция работает только в бою: лобби, меню и магазин остаются с
+     * настоящими цветами. Переключаем её здесь, до отрисовки кадра. */
+    ds_gfx_grade(gfx_ultra == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE));
 }
 
 static void draw_screen(void) {
-    /* Цветокоррекция работает только в бою: лобби, меню и магазин остаются
-     * с настоящими цветами. */
-    ds_gfx_grade(gfx_ultra == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE));
     if (game_state == ST_LOBBY) {
         draw_lobby();
     } else if (game_state == ST_SOLO) {

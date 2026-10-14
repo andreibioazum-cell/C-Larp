@@ -1,31 +1,54 @@
 /* Обработка кадра боя: виньетка, красный отлив при уроне и смаз движения.
  * Живёт отдельно, чтобы battle_render.inc не разрастался. */
 
-/* Ультра: виньетка затемняет именно края экрана - восемь полос по периметру,
- * каждая ближе к центру светлее. Прямоугольник по форме экрана, а не круг. */
+/* Размытие полосы - та же свёртка, что и у тени: центр, кольцо из шести
+ * отступов поближе и кольцо подальше. Край полосы получается мягким, поэтому
+ * не видно ни ступенек, ни прямых углов. */
+static void vignette_band(double x, double y, double w, double h, double a, double blur) {
+    const double kw[3] = {0.25, 0.09, 0.06};
+    const double kr[3] = {0.0, 0.55, 1.0};
+    int ring = 0;
+    while (ring < 3) {
+        double rr = blur * kr[ring];
+        unsigned ai = (unsigned)(int)(a * kw[ring] * 255.0 + 0.5);
+        if (ai >= 1) {
+            uint32_t c = ((uint32_t)ai) << 24;
+            if (ring == 0) {
+                rect(x, y, w, h, c);
+            } else {
+                double i = 0;
+                while (i < 6) {
+                    double ang = i * pi / 3;
+                    rect(x + cos(ang) * rr, y + sin(ang) * rr, w, h, c);
+                    i = i + 1;
+                }
+            }
+        }
+        ring = ring + 1;
+    }
+}
+
+/* Ультра: виньетка затемняет края экрана. Полосы идут по периметру и каждая
+ * размыта свёрткой, поэтому это плавный уход в темноту, а не набор рамок. */
 static void draw_vignette(void) {
-    /* Много узких полос вместо восьми широких: соседние отличаются на 4-5
-     * единиц прозрачности, поэтому ступенек не видно - только плавный уход
-     * в темноту у краёв. */
-    int steps = 28;
-    double sx = screen_w * 0.075 / steps;
-    double sy = screen_h * 0.075 / steps;
-    double tw = sx * 1.6;
-    double th = sy * 1.6;
+    int steps = 8;
+    double sx = screen_w * 0.08 / steps;
+    double sy = screen_h * 0.08 / steps;
+    double tw = sx * 1.4;
+    double th = sy * 1.4;
     int i = 0;
     while (i < steps) {
         double k = (steps - 1 - i) / (double)(steps - 1);
-        unsigned a = (unsigned)(int)(0.22 * k * k * 255.0 + 0.5);
-        if (a >= 1) {
+        double a = 0.26 * k * k;
+        if (a > 0.002) {
             double x = i * sx;
             double y = i * sy;
             double w = screen_w - 2 * x;
             double h = screen_h - 2 * y;
-            uint32_t c = ((uint32_t)a) << 24;
-            rect(x, y, w, th, c);
-            rect(x, y + h - th, w, th, c);
-            rect(x, y, tw, h, c);
-            rect(x + w - tw, y, tw, h, c);
+            vignette_band(x, y, w, th, a, sy * 1.8);
+            vignette_band(x, y + h - th, w, th, a, sy * 1.8);
+            vignette_band(x, y, tw, h, a, sx * 1.8);
+            vignette_band(x + w - tw, y, tw, h, a, sx * 1.8);
         }
         i = i + 1;
     }
