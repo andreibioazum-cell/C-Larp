@@ -837,10 +837,10 @@ static void test_legal(void) {
     assert(logic_back() == 1 && docs_open == 0);
     warn_open = 0;
 
-    /* Русский режим без латиницы там, где есть перевод. */
+    /* Русский режим: описания по-русски, игровые термины (HP) остаются. */
     language = 1;
     assert(strchr(tr_class_ordinary_desc(), 'I') == NULL);
-    assert(strstr(tr_achievement_last_hp_desc(), "HP") == NULL);
+    assert(strstr(tr_achievement_last_hp_desc(), "HP") != NULL);
 
     game_state = ST_LOBBY;
     language = saved_lang;

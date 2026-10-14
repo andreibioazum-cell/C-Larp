@@ -177,7 +177,7 @@ static const char *tr_achievement_last_hp(void) {
 
 static const char *tr_achievement_last_hp_desc(void) {
     if (language == 1) {
-        return "Выиграть бой с полным здоровьем, не получив урона";
+        return "Выиграть бой с полным HP, не получив урона";
     }
     return "Win a battle at full HP without taking any damage";
 }

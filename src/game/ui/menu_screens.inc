@@ -47,8 +47,6 @@ static void draw_lobby(void) {
     draw_menu_button(4, tr_achievements());
     draw_lobby_nick();
     draw_lobby_money();
-    /* Знак информационной продукции (436-ФЗ) виден в главном меню всегда. */
-    draw_age_mark(screen_w - screen_margin - 80, back_y, 80, text_color);
     if (new_theme == 1) {
         draw_lobby_npc_cube(); /* the NPC cube belongs to the new theme */
     }
