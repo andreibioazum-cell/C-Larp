@@ -3,7 +3,6 @@ static double astra_zone_width(double lv);
 static double astra_cd_for(double lv);
 static double astra_throw_dist_for(double lv);
 static double astra_throw_stun_for(double lv);
-static double astra_final_time(void);
 static double astra_zone_live(double t, double caught);
 static void astra_swing_now(void);
 static void tick_astra_poses(void);

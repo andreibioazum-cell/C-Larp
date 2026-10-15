@@ -1050,7 +1050,7 @@ int main(void) {
     assert(punch_forward_offset == 19 && astra_grab_forward_offset == 19);
     assert(fabs(astra_hit_interval - 0.2) < 1e-9);
     assert(fabs(astra_final_delay - 0.85) < 1e-9);
-    assert(fabs(astra_final_time() - astra_ability_beat_time_for(astra_hit_count, 0) - astra_final_delay) < 1e-9);
+    assert(fabs(astra_ability_final_time_for(0) - astra_ability_beat_time_for(astra_hit_count, 0) - astra_final_delay) < 1e-9);
     assert(class_cost_of(CLASS_AZUM) == 65);
     assert(class_cost_of(CLASS_SANTA) == 100);
     assert(class_cost_of(CLASS_EBUC) == 120);

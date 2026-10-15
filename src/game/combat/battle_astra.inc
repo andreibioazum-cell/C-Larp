@@ -37,8 +37,6 @@ static double astra_throw_stun_for(double lv) {
     return astra_throw_stun;
 }
 
-static double astra_final_time(void) { return astra_ability_final_time_for(0); }
-
 static double astra_zone_live(double t, double caught) { return astra_ability_zone_live_for(t, caught, 0); }
 
 static void astra_swing_now(void) { astra_punch_t = astra_hit_show; }
