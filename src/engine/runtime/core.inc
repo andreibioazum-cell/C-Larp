@@ -92,7 +92,12 @@ static DSStringNode *ds_strings = NULL;
  * освобождаются. */
 static unsigned long ds_string_gen = 0;
 static void platform_log(int is_error, const char *format, va_list args) {
+#ifdef __EMSCRIPTEN__
+    vfprintf(is_error ? stderr : stdout, format, args);
+    fprintf(is_error ? stderr : stdout, "\n");
+#else
     __android_log_vprint(is_error ? ANDROID_LOG_ERROR : ANDROID_LOG_INFO, "CubicBattle", format, args);
+#endif
 }
 void ds_log(const char *format, ...) {
     char tmp[DS_CONSOLE_LINE_MAX];

@@ -6,9 +6,15 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __EMSCRIPTEN__
+/* Веб/WASM сборка: нет Android NDK. AAssetManager и ANativeWindow — заглушки. */
+struct AAssetManager;
+struct ANativeWindow;
+#else
 #include <android/asset_manager.h>
 #include <android/log.h>
 #include <android/native_window.h>
+#endif
 typedef struct Buffer {
     uint32_t *pixels;
     int width;

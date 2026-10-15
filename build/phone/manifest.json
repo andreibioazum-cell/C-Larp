@@ -1,0 +1,10 @@
+{
+  "name": "Cubic Battle 4",
+  "short_name": "CB4",
+  "start_url": "./shell.html",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0b0b12",
+  "theme_color": "#0b0b12",
+  "icons": [{"src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any"}]
+}
