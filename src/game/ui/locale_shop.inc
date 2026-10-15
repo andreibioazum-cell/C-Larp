@@ -56,6 +56,10 @@ static const char *tr_class_astra_desc(void) {
     return "I love you, Azum...";
 }
 
+static const char *tr_class_codecracker(void) { return "CodeCracker"; }
+
+static const char *tr_class_codecracker_desc(void) { return "Stop-The-World"; }
+
 static const char *tr_class_ebuc(void) {
     return "ebuC";
 }

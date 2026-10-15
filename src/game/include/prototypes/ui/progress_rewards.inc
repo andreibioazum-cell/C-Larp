@@ -9,5 +9,3 @@ static void progress_normalize(void);
 static void progress_from_storage(void);
 static void settings_from_storage(void);
 static void save_settings(void);
-static void music_volume_apply(void);
-static void music_volume_cycle(void);

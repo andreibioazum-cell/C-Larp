@@ -57,7 +57,9 @@ static void enemy_pick_random_class(void) {
     } else if (roll < ebuc_to) {
         enemy_class = CLASS_EBUC;
     } else if (roll < santa_to) {
-        enemy_class = CLASS_SANTA;
+        /* Santa is developer-only for now, so the bot does not roll him
+         * for anyone else either. */
+        enemy_class = dev_access() == 1 ? CLASS_SANTA : CLASS_ORDINARY;
     } else if (roll < astra_to) {
         enemy_class = CLASS_ASTRA;
     } else {
@@ -72,7 +74,7 @@ static void enemy_pick_random_class(void) {
     enemy_dash_cd = enemy_first_super_min + (rand() % 100) / 100.0 * 2.0;
     enemy_dash_active = 0;
     enemy_grab_clear();
-    enemy->max_hp = player_max_hp_for(enemy_class);
+    enemy->max_hp = astra_ability_max_hp_for(enemy_class, astra_ability_of(enemy_class, SKIN_NORMAL));
     enemy->hp = enemy->max_hp;
     ds_log("enemy class %g hp %g", enemy_class, enemy->max_hp);
 }

@@ -18,10 +18,10 @@ static const char *fighter_sprite(double cls, double punching, double skin) {
     return look_tex(look, punching == 1);
 }
 
-static double class_hp_of(double cls) { return astra_rw_max_hp_for(cls, astra_rw_of(cls, class_skin_of(cls))); }
+static double class_hp_of(double cls) { return astra_ability_max_hp_for(cls, astra_ability_of(cls, class_skin_of(cls))); }
 
 static double class_power_of(double cls) {
-    return astra_rw_punch_damage_for(cls, class_level_of(cls), astra_rw_of(cls, class_skin_of(cls)));
+    return astra_ability_punch_damage_for(cls, class_level_of(cls), astra_ability_of(cls, class_skin_of(cls)));
 }
 
 static double class_visible_index(double cls) {
@@ -314,7 +314,6 @@ void net_save_astra(double owned, double level, double unlocked) {
     (void)level;
     (void)unlocked;
 }
-static double stub_astra_rw;
 static double stub_login_status;
 static char stub_login_nick[24];
 static char stub_login_pass[24];
@@ -349,12 +348,6 @@ char *ds_num_to_string(double number) {
 }
 void net_chat_send(const char *text) {
     snprintf(stub_last_chat, sizeof(stub_last_chat), "%s", text ? text : "");
-}
-double net_load_astra_rw(void) {
-    return stub_astra_rw;
-}
-void net_save_astra_rw(double on) {
-    stub_astra_rw = on ? 1 : 0;
 }
 double net_login_status(void) {
     return stub_login_status;
@@ -599,12 +592,11 @@ double net_load_astra_level(void) { return 0; }
 double net_load_astra_levels_unlocked(void) { return 0; }
 double net_load_achievement_flags(void) { return 0; }
 double net_load_azum_revives(void) { return 0; }
-double net_promo_check(const char *code) {
-    (void)code;
-    return 0;
-}
-double net_promo_used(void) { return 0; }
-void net_promo_mark_used(void) {}
+void net_connect(const char *url, const char *room) { (void)url; (void)room; }
+void net_disconnect(void) {}
+static int stub_promo2027_used;
+double net_promo_2027_used(void) { return stub_promo2027_used; }
+void net_promo_2027_mark_used(void) { stub_promo2027_used = 1; }
 void net_leaderboard_fetch(const char *url) { (void)url; }
 double net_load_language(void) { return 0; }
 double net_load_hitboxes(void) { return 0; }
@@ -714,13 +706,37 @@ const char *str_sub(const char *s, double start, double len) {
     (void)len;
     return "";
 }
+/* Faithful little versions (the runtime ones are not linked into this
+ * harness): trim + uppercase over rotating static buffers. */
 const char *str_trim(const char *s) {
-    (void)s;
-    return "";
+    static char bufs[4][128];
+    static int slot;
+    if (s == NULL) s = "";
+    while (*s == ' ' || *s == '\t' || *s == '\n' || *s == '\r') s++;
+    size_t n = strlen(s);
+    while (n > 0 && (s[n - 1] == ' ' || s[n - 1] == '\t' || s[n - 1] == '\n' || s[n - 1] == '\r')) n--;
+    if (n > 127) n = 127;
+    char *out = bufs[slot];
+    slot = (slot + 1) % 4;
+    memcpy(out, s, n);
+    out[n] = '\0';
+    return out;
 }
 const char *str_upper(const char *s) {
-    (void)s;
-    return "";
+    static char bufs[4][128];
+    static int slot;
+    if (s == NULL) s = "";
+    char *out = bufs[slot];
+    slot = (slot + 1) % 4;
+    size_t i = 0;
+    while (s[i] != '\0' && i < 127) {
+        char c = s[i];
+        if (c >= 'a' && c <= 'z') c = (char)(c - 'a' + 'A');
+        out[i] = c;
+        i++;
+    }
+    out[i] = '\0';
+    return out;
 }
 
 static void assert_clean(const char *in, const char *want) {
@@ -800,7 +816,17 @@ static void test_account_screen(void) {
     acct_open = 0;
     logic_touch(menu_x() + menu_btn_w() / 2, menu_row(3) + btn_h / 2, 0, 70);
     press_new = 0;
-    assert(acct_open == ACCT_MENU && t_dir == 0);
+    /* The account opens through the screen transition, like every other
+     * screen: nothing yet, the account at the end of the fade. */
+    assert(acct_open == 0 && t_dir == 1 && acct_pending == 1);
+    {
+        double saved_dt = dt;
+        dt = 0.1;
+        for (int step = 0; step < 60 && acct_open == 0; step++) update_transition();
+        dt = saved_dt;
+    }
+    assert(acct_open == ACCT_MENU);
+    t_dir = 0;
     logic_touch(acct_x() + acct_w() / 2, acct_menu_y(0) + btn_h / 2, 0, 71);
     press_new = 0;
     assert(acct_open == ACCT_PASS);
@@ -1016,26 +1042,19 @@ int main(void) {
     assert(strcmp(tr_play(), "Играть") == 0);
     language = 0;
 
-    assert(class_count == 6 && CLASS_ASTRA == 4 && CLASS_ASTRA_REWORK == 5);
-    star_line_count = 0;
-    draw_star(80, 80, 20, 0xFFFF00);
-    assert(star_line_count >= 10);
-    star_line_count = 0;
-    draw_imbalance_stars();
-    int steady_star_lines = star_line_count;
-    draw_imbalance_stars();
-    assert(steady_star_lines > 0 && star_line_count == 2 * steady_star_lines);
-    assert(strcmp(tr_class_level_effect(CLASS_ASTRA, 1), tr_class_level_effect(CLASS_ASTRA_REWORK, 1)) == 0);
-    assert(strcmp(tr_class_level_effect(CLASS_ASTRA, 2), tr_class_level_effect(CLASS_ASTRA_REWORK, 2)) == 0);
-    assert(strcmp(tr_class_level_effect(CLASS_ASTRA, 3), tr_class_level_effect(CLASS_ASTRA_REWORK, 3)) == 0);
+    assert(class_count == 6 && CLASS_ASTRA == 4 && CLASS_CODECRACKER == 6);
+    assert(winter_theme == 0 && winter_theme_on() == 0); /* the normal theme is the default */
+    assert(strcmp(tr_class_level_effect(CLASS_ASTRA, 1), tr_class_level_effect(CLASS_ASTRA, 1)) == 0);
+    assert(strcmp(tr_class_level_effect(CLASS_ASTRA, 2), tr_class_level_effect(CLASS_ASTRA, 2)) == 0);
+    assert(strcmp(tr_class_level_effect(CLASS_ASTRA, 3), tr_class_level_effect(CLASS_ASTRA, 3)) == 0);
     assert(punch_forward_offset == 19 && astra_grab_forward_offset == 19);
     assert(fabs(astra_hit_interval - 0.2) < 1e-9);
     assert(fabs(astra_final_delay - 0.85) < 1e-9);
-    assert(fabs(astra_final_time() - astra_rw_beat_time_for(astra_hit_count, 0) - astra_final_delay) < 1e-9);
+    assert(fabs(astra_ability_final_time_for(0) - astra_ability_beat_time_for(astra_hit_count, 0) - astra_final_delay) < 1e-9);
     assert(class_cost_of(CLASS_AZUM) == 65);
     assert(class_cost_of(CLASS_SANTA) == 100);
     assert(class_cost_of(CLASS_EBUC) == 120);
-    assert(class_cost_of(CLASS_ASTRA) == 90);
+    assert(class_cost_of(CLASS_ASTRA) == 135);
     assert(class_has_super(CLASS_ASTRA) == 1);
     assert(astra_cd_for(0) == 8);
     assert(astra_cd_for(1) < astra_cd_for(0));
@@ -1045,9 +1064,9 @@ int main(void) {
     assert(strcmp(WINTER_JINGLE, "winter_jingle.wav") == 0);
     assert(strcmp(fighter_sprite(CLASS_ORDINARY, 0, SKIN_NORMAL), ORDINARY_TEX) == 0);
     assert(strcmp(fighter_sprite(CLASS_ORDINARY, 1, SKIN_NORMAL), PUNCH_TEX) == 0);
-    assert(strcmp(fighter_sprite(CLASS_ASTRA_REWORK, 0, SKIN_NORMAL), ORDINARY_TEX) == 0);
-    assert(strcmp(class_card_tex(CLASS_ASTRA_REWORK, SKIN_NORMAL), ORDINARY_CARD_TEX) == 0);
-    assert(class_has_super(CLASS_ASTRA_REWORK) == 1 && player_max_hp_for(CLASS_ASTRA_REWORK) == astra_hp);
+    assert(strcmp(fighter_sprite(CLASS_ASTRA, 0, SKIN_NORMAL), ORDINARY_TEX) == 0);
+    assert(strcmp(class_card_tex(CLASS_ASTRA, SKIN_NORMAL), ASTRA_CARD_TEX) == 0);
+    assert(class_has_super(CLASS_ASTRA) == 1 && player_max_hp_for(CLASS_ASTRA) == astra_hp);
     /* Long-fight balance: every pool doubled (ordinary/santa 20, azum 13,
      * astra 18, ebuc 24) and the ability numbers scaled with them, while the
      * basic attacks kept their old damage - that is what makes fights last. */
@@ -1130,7 +1149,18 @@ int main(void) {
     assert(ground_tiles == 0 && ground_fills == 1);
     ground_texture_missing = 0;
 
+    /* Winter theme (and Santa, and candies) are developer-only for now:
+     * a saved winter setting alone does not turn anything on. */
     winter_theme = 1;
+    astra_ability_ok = 0;
+    assert(dev_access() == 0 && winter_theme_on() == 0 && candies_on() == 0);
+    assert(class_visible(CLASS_SANTA) == 0);
+    ground_tiles = ground_fills = 0;
+    draw_arena_background();
+    assert(strcmp(last_ground, GRASS) == 0);
+    astra_ability_ok = 1;
+    assert(dev_access() == 1 && winter_theme_on() == 1 && candies_on() == 1);
+    assert(class_visible(CLASS_SANTA) == 1);
     ground_tiles = ground_fills = 0;
     draw_arena_background();
     assert(ground_tiles > 0 && ground_fills == 1);
@@ -1138,6 +1168,8 @@ int main(void) {
     assert(snow_active() == 1);
     assert(newyear_active() == 1);
     assert(newyear_menu_active() == 0);
+    /* Developer access stays on through the winter/candy sections below;
+     * the admin-login section further down refreshes it from credentials. */
 
     /* The lobby gradient is one smooth wash in every theme: hundreds of ~2 px
      * bands instead of the old thirty 14 px strips. */
@@ -1578,77 +1610,93 @@ int main(void) {
         game_state = ST_LOBBY;
     }
 
-    /* Rework is its own developer-only class; accept the former pair only for
-     * compatibility with clients that still send Astra + special skin. */
-    assert(astra_rw_of(CLASS_ASTRA_REWORK, SKIN_NORMAL) == 1);
-    assert(astra_rw_of(CLASS_ASTRA_REWORK, SKIN_SPECIAL) == 1);
-    assert(astra_rw_of(CLASS_ASTRA, SKIN_SPECIAL) == 1);
-    assert(astra_rw_of(CLASS_ASTRA, SKIN_NORMAL) == 0);
-    assert(astra_rw_of(CLASS_AZUM, SKIN_SPECIAL) == 0);
+    /* The ordinary Astra class now always uses the fast ability kit. */
+    assert(astra_ability_of(CLASS_ASTRA, SKIN_NORMAL) == 1);
+    assert(astra_ability_of(CLASS_ASTRA, SKIN_SPECIAL) == 1);
+    assert(astra_ability_of(CLASS_AZUM, SKIN_SPECIAL) == 0);
     assert(admin_slot("DIMASI4EK229") == 1);
     assert(admin_slot("QWERTYUIOPAJ1234") == 2);
     assert(admin_slot("regular_player") == 0);
     stub_login_status = 2;
     snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", ADMIN_NICK);
     snprintf(stub_login_pass, sizeof(stub_login_pass), "%s", ADMIN_PASS);
-    astra_rw_refresh();
-    assert(astra_rw_allowed() == 1);
-    assert(astra_rw_is_dev() == 1);
+    astra_ability_refresh();
+    assert(astra_ability_allowed() == 1);
+    assert(astra_ability_is_dev() == 1);
     stub_login_pass[0] = 'x';
     stub_login_pass[1] = 0;
-    astra_rw_refresh();
-    assert(astra_rw_allowed() == 0);
+    astra_ability_refresh();
+    assert(astra_ability_allowed() == 0);
     snprintf(stub_login_pass, sizeof(stub_login_pass), "%s", ADMIN_PASS);
-    astra_rw_refresh();
-    assert(astra_rw_allowed() == 1);
+    astra_ability_refresh();
+    assert(astra_ability_allowed() == 1);
     snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", ADMIN2_NICK);
     snprintf(stub_login_pass, sizeof(stub_login_pass), "%s", ADMIN2_PASS);
-    astra_rw_refresh();
-    assert(astra_rw_allowed() == 1 && astra_rw_is_dev() == 1);
+    astra_ability_refresh();
+    assert(astra_ability_allowed() == 1 && astra_ability_is_dev() == 1);
     stub_login_pass[0] = 'x';
-    astra_rw_refresh();
-    assert(astra_rw_allowed() == 0);
+    astra_ability_refresh();
+    assert(astra_ability_allowed() == 0);
     snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", ADMIN_NICK);
     snprintf(stub_login_pass, sizeof(stub_login_pass), "%s", ADMIN_PASS);
-    astra_rw_refresh();
-    assert(astra_rw_allowed() == 1);
+    astra_ability_refresh();
+    assert(astra_ability_allowed() == 1);
 
-    player_class = CLASS_ASTRA_REWORK;
+    player_class = CLASS_ASTRA;
     player_level = 0;
-    astra_skin = 0;
-    assert(astra_rw_on() == 1 && astra_rw_local() == 1);
-    assert(class_skin_of(CLASS_ASTRA_REWORK) == SKIN_NORMAL && current_skin() == SKIN_NORMAL);
-    assert(class_owned_of(CLASS_ASTRA_REWORK) == 1 && class_visible(CLASS_ASTRA_REWORK) == 1);
-    assert(strcmp(class_name_of(CLASS_ASTRA_REWORK), tr_class_astra_rework()) == 0);
-    assert(strcmp(class_desc_of(CLASS_ASTRA_REWORK), "devdevdev") == 0);
-    assert(strcmp(astra_rw_desc(), "devdevdev") == 0);
-    assert(fabs(astra_rw_max_hp_for(CLASS_ASTRA_REWORK, 1) - astra_hp * 0.95) < 1e-9);
-    assert(astra_rw_max_hp_for(CLASS_ASTRA_REWORK, 1) < astra_hp);
-    assert(astra_rw_max_hp_for(CLASS_AZUM, 1) == azum_hp);
-    assert(fabs(astra_rw_punch_damage_for(CLASS_ASTRA_REWORK, 0, 1) - punch_damage * 0.93) < 1e-9);
-    assert(astra_rw_punch_damage_for(CLASS_ASTRA_REWORK, 0, 1) <
-           astra_rw_punch_damage_for(CLASS_ASTRA_REWORK, 0, 0));
-    assert(fabs(astra_rw_punch_damage_net(CLASS_ASTRA_REWORK, 0, SKIN_NORMAL) -
-                astra_rw_punch_damage_for(CLASS_ASTRA_REWORK, 0, 1)) < 1e-9);
-    assert(fabs(class_hp_of(CLASS_ASTRA) - astra_hp) < 1e-9);
-    assert(fabs(class_hp_of(CLASS_ASTRA_REWORK) - astra_hp * 0.95) < 1e-9);
-    assert(fabs(class_power_of(CLASS_ASTRA_REWORK) - punch_damage * 0.93) < 1e-9);
-    classes_page = 0;
+    set_class_owned(CLASS_ASTRA, 1);
+    assert(astra_ability_on() == 1 && astra_ability_local() == 1);
+    assert(class_skin_of(CLASS_ASTRA) == SKIN_NORMAL && current_skin() == SKIN_NORMAL);
+    assert(class_owned_of(CLASS_ASTRA) == 1 && class_visible(CLASS_ASTRA) == 1);
+    assert(strcmp(class_name_of(CLASS_ASTRA), tr_class_astra()) == 0);
+    assert(fabs(astra_ability_max_hp_for(CLASS_ASTRA, 1) - astra_hp * 0.95) < 1e-9);
+    assert(astra_ability_max_hp_for(CLASS_ASTRA, 1) < astra_hp);
+    assert(astra_ability_max_hp_for(CLASS_AZUM, 1) == azum_hp);
+    assert(fabs(astra_ability_punch_damage_for(CLASS_ASTRA, 0, 1) - punch_damage * 0.93) < 1e-9);
+    assert(astra_ability_punch_damage_for(CLASS_ASTRA, 0, 1) <
+           astra_ability_punch_damage_for(CLASS_ASTRA, 0, 0));
+    assert(fabs(astra_ability_punch_damage_net(CLASS_ASTRA, 0, SKIN_NORMAL) -
+                astra_ability_punch_damage_for(CLASS_ASTRA, 0, 1)) < 1e-9);
+    assert(fabs(class_hp_of(CLASS_ASTRA) - astra_hp * 0.95) < 1e-9);
+    assert(fabs(class_power_of(CLASS_ASTRA) - punch_damage * 0.93) < 1e-9);
+    classes_scroll = 0;
+    codecracker_refresh();
+    assert(codecracker_allowed() == 1 && codecracker_allowed() == astra_ability_allowed());
+    assert(player_max_hp_for(CLASS_CODECRACKER) == 9 && codecracker_hp == 9);
+    assert(codecracker_speed_mult == 3 && codecracker_touch_damage == 1.6 && codecracker_touch_heal == 0.75);
+    assert(codecracker_super_time == 7 && codecracker_super_absorb == 0.5);
+    assert(class_has_super(CLASS_CODECRACKER) == 1 && codecracker_super_active() == 0);
+    /* The overclock ultimate: 7 seconds of triple speed and half damage,
+     * then it is just an ordinary cube with a small HP pool again. */
+    player_class = CLASS_CODECRACKER;
+    codecracker_super_t = codecracker_super_time;
+    assert(codecracker_super_active() == 1);
+    assert(fabs(player_walk_speed() - joy_speed * codecracker_speed_mult * admin_cheat_speed_mult()) < 1e-6);
+    {
+        double hp_before = player->hp;
+        player->hp = codecracker_hp;
+        take_damage(2);
+        assert(fabs(player->hp - (codecracker_hp - 1)) < 1e-9); /* half absorbed */
+        player->hp = hp_before;
+    }
+    codecracker_super_t = 0;
+    assert(fabs(player_walk_speed() - joy_speed * admin_cheat_speed_mult()) < 1e-6);
+    player_class = CLASS_ORDINARY;
+    assert(class_owned_of(CLASS_CODECRACKER) == 1 && class_visible(CLASS_CODECRACKER) == 1);
+    assert(visible_class_at(5) == CLASS_CODECRACKER);
     screen_w = 320;
-    assert(classes_page_size() == 1 && classes_page_count() == 6);
-    assert(classes_page_start() == 0 && visible_class_at(5) == CLASS_ASTRA_REWORK);
-    classes_page_next();
-    assert(classes_page_start() == 1);
-    classes_page_prev();
-    assert(classes_page_start() == 0);
+    assert(classes_page_size() == 1 && classes_scroll_needed() == 1);
+    assert(classes_scroll == 0 && visible_class_at(5) == CLASS_CODECRACKER);
+    classes_scroll_by(100000);
+    assert(classes_scroll == classes_scroll_max() && classes_scroll > 0);
+    classes_scroll_by(-100000);
+    assert(classes_scroll == 0);
     screen_w = 600;
-    assert(classes_page_size() == 3 && classes_page_count() == 2);
-    classes_page_next();
-    assert(classes_page_start() == 3 && classes_page_items() == 3);
-    assert(visible_class_at(classes_page_start() + 2) == CLASS_ASTRA_REWORK);
-    classes_page = 0;
+    assert(classes_page_size() == 3 && classes_scroll_needed() == 1);
+    assert(visible_class_at(5) == CLASS_CODECRACKER);
+    classes_scroll = 0;
     screen_w = 900;
-    assert(classes_page_size() == 5 && classes_page_count() == 2);
+    assert(classes_page_size() == 5 && classes_scroll_needed() == 1);
     double swipe_y = classes_top() + class_card_h / 2;
     double swipe_x = classes_card_x(0) + classes_card_w() / 2;
     double selected_before_swipe = player_class;
@@ -1656,38 +1704,38 @@ int main(void) {
     touch_classes(swipe_x, swipe_y, 0, 7);
     touch_classes(swipe_x - 100, swipe_y, 2, 7);
     touch_classes(swipe_x - 100, swipe_y, 1, 7);
-    assert(classes_page == 1 && player_class == selected_before_swipe);
-    swipe_x = classes_card_x(classes_page_start()) + classes_card_w() / 2;
+    assert(classes_scroll > 0 && player_class == selected_before_swipe);
+    double scroll_after_drag = classes_scroll;
+    swipe_x = classes_card_x(1) + classes_card_w() / 2;
     touch_classes(swipe_x, swipe_y, 0, 7);
     touch_classes(swipe_x + 100, swipe_y, 2, 7);
     touch_classes(swipe_x + 100, swipe_y, 1, 7);
-    assert(classes_page == 0 && player_class == selected_before_swipe);
-    double had_rework_access = astra_rw_ok;
-    astra_rw_ok = 0;
-    assert(classes_visible_count() == 5 && classes_page_count() == 1);
+    assert(classes_scroll < scroll_after_drag && player_class == selected_before_swipe);
+    double had_astra_access = astra_ability_ok;
+    astra_ability_ok = 0;
+    codecracker_ok = 0;
+    assert(classes_visible_count() == 4 && classes_scroll_needed() == 0); /* no Santa either: developer-only */
     assert(classes_swipe_zone(swipe_x, swipe_y) == 0);
-    astra_rw_ok = had_rework_access;
-    classes_page = 0;
+    astra_ability_ok = had_astra_access;
+    codecracker_refresh();
+    classes_scroll = 0;
     screen_w = 320;
     player_class = CLASS_ASTRA;
-    astra_skin = 1;
     progress_normalize();
-    assert(player_class == CLASS_ASTRA_REWORK && astra_skin == 0);
-    assert(astra_rw_hit_interval_for(1) < astra_rw_hit_interval_for(0));
+    assert(astra_ability_hit_interval_for(1) < astra_ability_hit_interval_for(0));
     /* the first three beats land sooner... */
-    assert(astra_rw_beat_time_for(1, 1) < astra_rw_beat_time_for(1, 0));
-    assert(astra_rw_beat_time_for(3, 1) < astra_rw_beat_time_for(3, 0));
-    assert(astra_rw_beats_done_for(astra_rw_beat_time_for(3, 1), 1) == 3);
+    assert(astra_ability_beat_time_for(1, 1) < astra_ability_beat_time_for(1, 0));
+    assert(astra_ability_beat_time_for(3, 1) < astra_ability_beat_time_for(3, 0));
+    assert(astra_ability_beats_done_for(astra_ability_beat_time_for(3, 1), 1) == 3);
     /* ...and then the throw waits only ~0.4 s after the last beat, so the
      * whole ultimate reads as fast hits, a short pause, the throw. */
-    assert(fabs(astra_rw_final_delay_for(1) - 0.4) < 1e-9);
-    assert(fabs(astra_rw_final_time_for(1) - astra_rw_beat_time_for(3, 1) - 0.4) < 1e-9);
-    assert(astra_rw_final_time_for(1) < astra_rw_final_time_for(0));
-    assert(astra_rw_grab_time_for(1) < astra_rw_grab_time_for(0));
-    assert(fabs(astra_rw_throw_dist_for(0, 1) - astra_throw_dist_for(0) * 1.10) < 1e-9);
-    assert(astra_rw_throw_dist_for(0, 1) < astra_throw_dist_for(0) * 1.35);
-    assert(astra_rw_throw_stun_for(0, 1) == astra_rw_throw_stun_for(0, 0));
-    assert(astra_rw_tint() != 0 && astra_rw_tint_local() == astra_rw_tint());
+    assert(fabs(astra_ability_final_delay_for(1) - 0.4) < 1e-9);
+    assert(fabs(astra_ability_final_time_for(1) - astra_ability_beat_time_for(3, 1) - 0.4) < 1e-9);
+    assert(astra_ability_final_time_for(1) < astra_ability_final_time_for(0));
+    assert(astra_ability_grab_time_for(1) < astra_ability_grab_time_for(0));
+    assert(fabs(astra_ability_throw_dist_for(0, 1) - astra_throw_dist_for(0) * 1.10) < 1e-9);
+    assert(astra_ability_throw_dist_for(0, 1) < astra_throw_dist_for(0) * 1.35);
+    assert(astra_ability_throw_stun_for(0, 1) == astra_ability_throw_stun_for(0, 0));
     /* pressing the ultimate takes a small forward step: the grab origin is
      * the end of the step, while the body slides there smoothly frame by
      * frame instead of jumping in one go */
@@ -1699,24 +1747,24 @@ int main(void) {
     start_grab_now();
     assert(astra_punch_t == 0);
     assert(fabs(player->x - 150) < 1e-9);
-    assert(astra_x > 150 && astra_x - 150 <= astra_rw_lunge_dist + 1e-9);
+    assert(astra_x > 150 && astra_x - 150 <= astra_ability_lunge_dist + 1e-9);
     assert(fabs(astra_y - 90) < 1e-9);
     double lunge_prev = player->x;
-    astra_rw_lunge_tick();
+    astra_ability_lunge_tick();
     assert(player->x > lunge_prev && player->x < astra_x);
     lunge_prev = player->x;
     int lunge_frames = 1;
     while (lunge_frames < 60 && player->x < astra_x) {
-        astra_rw_lunge_tick();
+        astra_ability_lunge_tick();
         assert(player->x >= lunge_prev);
         lunge_prev = player->x;
         lunge_frames = lunge_frames + 1;
     }
     assert(fabs(player->x - astra_x) < 1e-9);
     assert(fabs(player->y - astra_y) < 1e-9);
-    assert(lunge_frames * dt >= astra_rw_lunge_time);
-    assert(astra_rw_zone_live_for(astra_rw_lunge_time / 2, 0, 1) == 0);
-    assert(astra_rw_zone_live_for(astra_rw_lunge_time, 0, 1) == 1);
+    assert(lunge_frames * dt >= astra_ability_lunge_time);
+    assert(astra_ability_zone_live_for(astra_ability_lunge_time / 2, 0, 1) == 0);
+    assert(astra_ability_zone_live_for(astra_ability_lunge_time, 0, 1) == 1);
     astra_state = 0;
     astra_cd = 0;
     /* On the move the lunge still beats the walk: it lands a full step
@@ -1730,13 +1778,13 @@ int main(void) {
         player->x = 150;
         player->y = 90;
         start_grab_now();
-        assert(astra_x - 150 > player_walk_speed() * astra_rw_lunge_time + astra_rw_lunge_dist - 1e-6);
+        assert(astra_x - 150 > player_walk_speed() * astra_ability_lunge_time + astra_ability_lunge_dist - 1e-6);
         double before = player->x;
-        astra_rw_lunge_tick();
+        astra_ability_lunge_tick();
         assert((player->x - before) / dt > player_walk_speed());
         int k = 0;
         while (k < 60) {
-            astra_rw_lunge_tick();
+            astra_ability_lunge_tick();
             k = k + 1;
         }
         assert(fabs(player->x - astra_x) < 1e-9);
@@ -1746,7 +1794,7 @@ int main(void) {
         astra_cd = 0;
     }
     /* The grab/catch waits for the visual dash to finish; its first hit is
-     * still scheduled before regular Astra's first beat. */
+     * still scheduled before Astra's first beat. */
     player->x = 100;
     player->y = 90;
     player->hp = 10;
@@ -1770,41 +1818,43 @@ int main(void) {
     assert(astra_hits_done == 1 && astra_punch_t > 0);
     astra_release(0);
     astra_cd = 0;
-    /* Rework is no longer an Astra skin: both class cards use a cube icon,
-     * while only the separate Rework card receives the developer tuning. */
-    player_class = CLASS_ASTRA_REWORK;
-    assert(class_has_skins(CLASS_ASTRA) == 0 && class_has_skins(CLASS_ASTRA_REWORK) == 0);
+    /* Astra has no separate skin or developer variant: one ordinary card,
+     * with the current fast ability kit. */
+    player_class = CLASS_ASTRA;
+    assert(class_has_skins(CLASS_ASTRA) == 0 && class_has_skins(CLASS_ASTRA) == 0);
     assert(skins_btn_visible() == 0 && current_skin() == SKIN_NORMAL);
     pick_skin(SKIN_SPECIAL);
-    assert(astra_skin == 0 && astra_rw_local() == 1 && current_skin() == SKIN_NORMAL);
-    assert(strcmp(class_card_tex(CLASS_ASTRA_REWORK, SKIN_NORMAL), ORDINARY_CARD_TEX) == 0);
+    assert(strcmp(class_card_tex(CLASS_ASTRA, SKIN_NORMAL), ASTRA_CARD_TEX) == 0);
     assert(strcmp(class_card_tex(CLASS_ORDINARY, SKIN_NORMAL), ORDINARY_CARD_TEX) == 0);
-    assert(fabs(class_hp_of(CLASS_ASTRA) - astra_hp) < 1e-9);
-    assert(fabs(class_hp_of(CLASS_ASTRA_REWORK) - astra_hp * 0.95) < 1e-9);
-    /* The classes screen rates imbalance in stars, with Rework separate from
-     * regular Astra and never outside the 0..5 scale. */
-    assert(class_imbalance_of(CLASS_ORDINARY) == 1);
-    assert(class_imbalance_of(CLASS_SANTA) == 2);
-    assert(class_imbalance_of(CLASS_AZUM) == 3);
-    assert(class_imbalance_of(CLASS_EBUC) == 3);
-    assert(class_imbalance_of(CLASS_ASTRA) == 4);
-    assert(class_imbalance_of(CLASS_ASTRA_REWORK) == 5);
-    double star_cls = 0;
-    while (star_cls < class_count) {
-        assert(class_imbalance_of(star_cls) >= 0 && class_imbalance_of(star_cls) <= 5);
-        star_cls = star_cls + 1;
-    }
-    /* no developer account, no rework: same save file cannot enable it */
+    assert(fabs(class_hp_of(CLASS_ASTRA) - astra_hp * 0.95) < 1e-9);
+    /* The card keeps only its description; no rating graphic is drawn. */
+    /* No developer account still hides only developer-only classes. */
     stub_login_nick[0] = 'x';
     stub_login_nick[1] = 0;
-    astra_rw_refresh();
-    assert(astra_rw_allowed() == 0 && astra_rw_local() == 0);
-    assert(class_owned_of(CLASS_ASTRA_REWORK) == 0 && class_visible(CLASS_ASTRA_REWORK) == 0);
-    assert(class_visible_index(CLASS_ASTRA_REWORK) == -1 && classes_visible_count() == 5);
-    assert(classes_page_count() == 5);
-    assert(class_skin_of(CLASS_ASTRA_REWORK) == SKIN_NORMAL && current_skin() == SKIN_NORMAL);
-    assert(astra_rw_tint_local() == 0);
-    assert(class_imbalance_of(CLASS_ASTRA) == 4);
+    astra_ability_refresh();
+    codecracker_refresh();
+    assert(astra_ability_allowed() == 0 && codecracker_allowed() == 0);
+    assert(class_visible(CLASS_ASTRA) == 1);
+    assert(class_owned_of(CLASS_CODECRACKER) == 0 && class_visible(CLASS_CODECRACKER) == 0);
+    assert(class_visible_index(CLASS_ASTRA) >= 0 && classes_visible_count() == 4);
+    assert(class_visible_index(CLASS_CODECRACKER) == -1);
+    assert(class_skin_of(CLASS_ASTRA) == SKIN_NORMAL && current_skin() == SKIN_NORMAL);
+    /* Candies and Santa are only hidden while they are developer-only, never
+     * taken away: an earlier balance and an earlier purchase survive in the
+     * save, and both come back the moment access opens for everyone. */
+    candies = 37;
+    set_class_owned(CLASS_SANTA, 1);
+    player_class = CLASS_SANTA;
+    progress_normalize();
+    assert(player_class == CLASS_ORDINARY); /* cannot play Santa for now */
+    assert(candies == 37 && class_owned_of(CLASS_SANTA) == 1);
+    assert(class_visible(CLASS_SANTA) == 0 && candies_on() == 0);
+    astra_ability_ok = 1; /* the future "for everyone" update, via the dev gate */
+    assert(class_visible(CLASS_SANTA) == 1 && candies_on() == 1 && candies == 37);
+    select_class(CLASS_SANTA);
+    assert(player_class == CLASS_SANTA);
+    astra_ability_ok = 0;
+    player_class = CLASS_ORDINARY;
     progress_normalize();
     assert(player_class == CLASS_ORDINARY);
     player->angle = 0;
@@ -1816,10 +1866,11 @@ int main(void) {
     astra_state = 0;
     astra_cd = 0;
     player_class = CLASS_ORDINARY;
-    astra_skin = 0;
 
     stub_net_slot = -1;
     online_ready = 0;
+    screen_w = 1080;
+    screen_h = 1920;
 
     player_class = CLASS_ASTRA;
     player_level = 0;
@@ -1884,10 +1935,9 @@ int main(void) {
     assert(pthrow_t > 0);
     double plain_throw = pthrow_speed * astra_throw_time;
 
-    /* The same grab from an Astra (Rework) attacker: the variant is read from
-     * the class-ID/legacy-pair snapshot, the three hits land sooner, the throw
-     * waits only ~0.4 s after the last beat and goes farther; the total
-     * damage of the grab is unchanged. */
+    /* The same grab from an Astra attacker uses the class snapshot; the three
+     * hits land sooner, the throw waits only ~0.4 s after the last beat and
+     * goes farther; the total damage of the grab is unchanged. */
     pgrab_active = 0;
     pgrab_slot = -1;
     pthrow_t = 0;
@@ -1904,8 +1954,8 @@ int main(void) {
     for (int frame = 9; frame < 45; frame++)
         update_remote_grabs();
     assert(player->hp < 10);
-    assert(astra_rw_beat_time_for(3, 1) < astra_rw_beat_time_for(3, 0));
-    assert(45 * dt > astra_rw_beat_time_for(3, 1) && 45 * dt < astra_rw_beat_time_for(3, 0) + 1e-9);
+    assert(astra_ability_beat_time_for(3, 1) < astra_ability_beat_time_for(3, 0));
+    assert(45 * dt > astra_ability_beat_time_for(3, 1) && 45 * dt < astra_ability_beat_time_for(3, 0) + 1e-9);
     for (int frame = 0; frame < 400 && pthrow_t <= 0; frame++)
         update_remote_grabs();
     assert(fabs(player->hp - 5.5) < 1e-6);
@@ -2210,8 +2260,8 @@ int main(void) {
         /* One shop card, sold once: the pill buys on the press, the rest of
          * the card on the release, and a swipe pages instead of buying. */
         cups = 1000;
-        classes_page = 1; /* the second card: Azum, 65 cups */
-        double v0 = classes_page_start();
+        classes_scroll = 0; /* the second card: Azum, 65 cups */
+        double v0 = 1;
         double cls = visible_class_at(v0);
         assert(cls != CLASS_ORDINARY && class_owned_of(cls) == 0);
         double card_x = classes_card_x(v0) + classes_card_w() / 2;
@@ -2259,17 +2309,19 @@ int main(void) {
         logic_touch(card_x, card_y, 1, 4);
         assert(class_owned_of(cls) == 1 && player_class == cls && cups == 1000 - class_cost_of(cls));
 
-        /* A sideways drag over a card pages the list instead of buying. */
+        /* A sideways drag over a card scrolls the strip instead of buying -
+         * provided the strip overflows at all in this test's screen size. */
         set_class_owned(cls, 0);
         player_class = CLASS_ORDINARY;
         cups = 1000;
-        classes_page = 1;
+        classes_scroll = 0;
         logic_touch(card_x, card_y, 0, 5);
         logic_touch(card_x - classes_swipe_threshold() - 10, card_y, 2, 5);
-        assert(classes_page == 2);
+        assert(classes_scroll == classes_scroll_needed() * (classes_swipe_threshold() + 10) ||
+               classes_scroll == classes_scroll_max());
         logic_touch(card_x - classes_swipe_threshold() - 10, card_y, 1, 5);
         assert(class_owned_of(cls) == 0 && cups == 1000);
-        classes_page = 0;
+        classes_scroll = 0;
 
         /* Button hitboxes are exactly the drawn shape, and the squeeze is
          * claimed by the very same test: a press either fires and squeezes,
@@ -2356,7 +2408,7 @@ int main(void) {
         screen_h = saved_h;
     }
 
-    /* The old theme is back as a settings toggle (row 5): rose colours, a
+    /* The old theme is back as a settings toggle (row 4): rose colours, a
      * left-aligned menu and no NPC cube; tapping again brings the new one. */
     {
         assert(new_theme == 1);
@@ -2364,16 +2416,16 @@ int main(void) {
         game_state = ST_SETTINGS;
         t_dir = 0;
         t_target = 0;
-        logic_touch(menu_x() + menu_btn_w() / 2, settings_row_y(5) + settings_btn_h() / 2, 0, 20);
+        logic_touch(menu_x() + menu_btn_w() / 2, settings_row_y(4) + settings_btn_h() / 2, 0, 20);
         assert(new_theme == 0 && t_dir == 0);
         assert(ui_purple == 0xFFD4508A && bg_screen == 0xFF3A1530);
         assert(menu_x() == screen_margin);
         press_new = 0;
-        logic_touch(menu_x() + menu_btn_w() / 2, settings_row_y(5) + settings_btn_h() / 2, 0, 21);
+        logic_touch(menu_x() + menu_btn_w() / 2, settings_row_y(4) + settings_btn_h() / 2, 0, 21);
         assert(new_theme == 1 && ui_purple == 0xFF5F10A0);
         press_new = 0;
-        /* Row 6 opens the legal documents window over the settings. */
-        logic_touch(menu_x() + menu_btn_w() / 2, settings_row_y(6) + settings_btn_h() / 2, 0, 22);
+        /* Row 5 opens the legal documents window over the settings. */
+        logic_touch(menu_x() + menu_btn_w() / 2, settings_row_y(5) + settings_btn_h() / 2, 0, 22);
         assert(t_dir == 0 && docs_open == 1 && docs_page == 0 && docs_ask == 0);
         assert(logic_back() == 1 && docs_open == 0 && game_state == ST_SETTINGS);
         press_new = 0;
@@ -2392,14 +2444,40 @@ int main(void) {
         assert(t_dir == 1 && t_target == ST_PROMO);
         t_dir = 0;
         t_target = 0;
+
+        /* Промокод 2027: +27 кубков, один раз; мусорный код ничего не даёт. */
+        {
+            stub_login_status = 2;
+            game_state = ST_PROMO;
+            double cups_before = cups;
+            promo_focus = 0;
+            promo_input = "2027";
+            promo_submit();
+            assert(cups == cups_before + 27 && stub_promo2027_used == 1);
+            promo_submit();
+            assert(cups == cups_before + 27);
+            promo_input = "1234";
+            promo_submit();
+            assert(cups == cups_before + 27);
+            stub_login_status = 0;
+            game_state = ST_MODES;
+        }
         press_new = 0;
-        /* Row 4 is now the winter toggle. */
+        /* Row 4 is the winter toggle: grey and dead without developer
+         * access, a working toggle with it. */
         double saved_winter2 = winter_theme;
+        double saved_dev = astra_ability_ok;
+        astra_ability_ok = 0;
         logic_touch(menu_x() + menu_btn_w() / 2, modes_row(4) + btn_h / 2, 0, 24);
+        assert(winter_theme == saved_winter2 && t_dir == 0);
+        press_new = 0;
+        astra_ability_ok = 1;
+        logic_touch(menu_x() + menu_btn_w() / 2, modes_row(4) + btn_h / 2, 0, 25);
         assert(winter_theme == 1 - saved_winter2 && t_dir == 0);
         press_new = 0;
-        logic_touch(menu_x() + menu_btn_w() / 2, modes_row(4) + btn_h / 2, 0, 25);
+        logic_touch(menu_x() + menu_btn_w() / 2, modes_row(4) + btn_h / 2, 0, 26);
         assert(winter_theme == saved_winter2);
+        astra_ability_ok = saved_dev;
         press_new = 0;
         screen_w = saved_mw;
         screen_h = saved_mh;

@@ -24,7 +24,7 @@ static void remote_grab_stop(double slot) {
     remote_grab_set(slot, GRAB_CAUGHT, 0);
     remote_grab_set(slot, GRAB_HITS, 0);
     remote_grab_set(slot, GRAB_T, 0);
-    remote_grab_set(slot, GRAB_RW, 0);
+    remote_grab_set(slot, GRAB_ASTRA_KIT, 0);
     if (pgrab_active == 1 && pgrab_slot == slot) {
         pgrab_active = 0;
         pgrab_slot = -1;
@@ -40,9 +40,9 @@ static void remote_grab_begin(double slot) {
     remote_grab_set(slot, GRAB_Y, net_player_grab_y(slot) * screen_h);
     remote_grab_set(slot, GRAB_DX, net_player_grab_dx(slot));
     remote_grab_set(slot, GRAB_DY, net_player_grab_dy(slot));
-    /* Resolve the Rework bit once from read_remotes()' class ID (or legacy
-     * Astra/skin pair): every later frame reads the cached bit, not the network. */
-    remote_grab_set(slot, GRAB_RW, astra_rw_of_slot(slot));
+    /* Resolve the Astra ability bit once from the class snapshot; later
+     * frames read the cached value instead of the network. */
+    remote_grab_set(slot, GRAB_ASTRA_KIT, astra_ability_of_slot(slot));
 }
 
 static double update_remote_grab(double slot) {
@@ -58,7 +58,7 @@ static double update_remote_grab(double slot) {
     if (remote_grab_get(slot, GRAB_ACTIVE) != 1) {
         return 0;
     }
-    double rw = remote_grab_get(slot, GRAB_RW);
+    double kit = remote_grab_get(slot, GRAB_ASTRA_KIT);
     double t = remote_grab_get(slot, GRAB_T) + dt;
     remote_grab_set(slot, GRAB_T, t);
     double lv = net_player_level(slot);
@@ -67,8 +67,8 @@ static double update_remote_grab(double slot) {
     double gdx = remote_grab_get(slot, GRAB_DX);
     double gdy = remote_grab_get(slot, GRAB_DY);
     if (remote_grab_get(slot, GRAB_CAUGHT) == 0) {
-        if (t <= astra_rw_catch_time_for(rw)) {
-            if (t >= astra_rw_lunge_time_for(rw) && pgrab_active == 0 && revive_prot <= 0 && player->hp > 0) {
+        if (t <= astra_ability_catch_time_for(kit)) {
+            if (t >= astra_ability_lunge_time_for(kit) && pgrab_active == 0 && revive_prot <= 0 && player->hp > 0) {
                 if (astra_zone_hits_player(gx, gy, gdx, gdy, lv) == 1) {
                     remote_grab_set(slot, GRAB_CAUGHT, 1);
                     pgrab_active = 1;
@@ -78,7 +78,7 @@ static double update_remote_grab(double slot) {
                 }
             }
         } else {
-            if (t >= astra_rw_grab_time_for(rw)) {
+            if (t >= astra_ability_grab_time_for(kit)) {
                 remote_grab_stop(slot);
             }
             return 0;
@@ -87,8 +87,8 @@ static double update_remote_grab(double slot) {
     if (remote_grab_get(slot, GRAB_CAUGHT) != 1) {
         return 0;
     }
-    grab_quiet_player(astra_rw_hit_interval_for(rw));
-    double due = astra_rw_beats_done_for(t, rw);
+    grab_quiet_player(astra_ability_hit_interval_for(kit));
+    double due = astra_ability_beats_done_for(t, kit);
     while (remote_grab_get(slot, GRAB_HITS) < due) {
         remote_grab_set(slot, GRAB_HITS, remote_grab_get(slot, GRAB_HITS) + 1);
         remote_grab_swing(slot);
@@ -102,7 +102,7 @@ static double update_remote_grab(double slot) {
             return 0;
         }
     }
-    if (t >= astra_rw_final_time_for(rw)) {
+    if (t >= astra_ability_final_time_for(kit)) {
         remote_grab_swing(slot);
         /* remote_grab_stop() clears the grab immediately, so explicitly pulse
          * the final damage zone and let the normal fade-out render it. */
@@ -114,7 +114,7 @@ static double update_remote_grab(double slot) {
             return 1;
         }
         if (player->hp > 0 && finished == 0) {
-            throw_player(gdx, gdy, astra_rw_throw_dist_for(lv, rw), astra_rw_throw_stun_for(lv, rw));
+            throw_player(gdx, gdy, astra_ability_throw_dist_for(lv, kit), astra_ability_throw_stun_for(lv, kit));
         }
     }
     return 0;

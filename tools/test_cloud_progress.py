@@ -35,7 +35,7 @@ static const char *CLOUD_NO_ASTRA =
     "{\"nick\":\"tester\",\"cups\":100,\"candies\":20,\"cls\":0,\"azum\":0,\"santa\":0,"
     "\"ebuc\":0,\"level\":0,\"levels\":0}";
 
-static const char *CLOUD_REWORK =
+static const char *CLOUD_LEGACY_ASTRA =
     "{\"nick\":\"tester\",\"cups\":100,\"candies\":20,\"cls\":5,\"azum\":0,\"santa\":0,"
     "\"ebuc\":0,\"astra\":0,\"azum_skin\":1,\"level\":2,\"levels\":3,\"astra_level\":2,"
     "\"astra_levels\":3}";
@@ -96,32 +96,31 @@ static int run_astra(const char *dir) {
     return 0;
 }
 
-static int run_astra_rework(const char *dir) {
+static int run_legacy_local(const char *dir) {
     net_set_data_path(dir);
-    assert(net_load_astra_rw() == 0);
-    net_save_astra(1, 3, 3);
-    net_save_astra_rw(1);
-    assert(net_load_astra_rw() == 1);
-    /* The developer switch stays on the device: a full profile save and a
-     * cloud sync must not carry it away or bring it in from another phone. */
-    net_save_progress_all(90, 20, 4, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    assert(net_load_astra_rw() == 1);
-    assert(apply_user_json_keep_local(CLOUD_NO_ASTRA) == 1);
-    assert(net_load_astra_rw() == 1);
-    net_save_astra(1, 3, 3);
-    assert(net_load_astra_rw() == 1);
-    net_save_astra_rw(0);
-    assert(net_load_astra_rw() == 0);
-    puts("astra rework: the developer-only variant is local, and survives every save path");
+    char path[320];
+    snprintf(path, sizeof(path), "%s/progress.dat", dir);
+    FILE *f = fopen(path, "w");
+    assert(f != NULL);
+    /* 18-field save from before per-class Astra progress existed. */
+    fputs("100 5 0 0 20 2 3 0 0 0 0 0 0 0 0 0 0 0\n", f);
+    fclose(f);
+    assert(net_load_class() == 4);
+    assert(net_load_astra() == 1);
+    assert(net_load_astra_level() == 2);
+    assert(net_load_astra_levels_unlocked() == 3);
+    assert(net_load_level() == 2 && net_load_levels_unlocked() == 3);
+    net_save_progress_all(100, 20, 4, 0, 0, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    puts("legacy local save: class ID 5 is rewritten as ordinary Astra");
     return 0;
 }
 
-static int run_rework_profile(const char *dir) {
+static int run_legacy_profile(const char *dir) {
     net_set_data_path(dir);
-    assert(apply_user_json_keep_local(CLOUD_REWORK) == 0);
-    assert(net_load_class() == 5);
+    assert(apply_user_json_keep_local(CLOUD_LEGACY_ASTRA) == 0);
+    assert(net_load_class() == 4);
     assert(pending_skin == 0);
-    assert(net_load_astra() == 0);
+    assert(net_load_astra() == 1);
     assert(net_load_astra_level() == 2);
     assert(net_load_astra_levels_unlocked() == 3);
     assert(net_load_level() == 2 && net_load_levels_unlocked() == 3);
@@ -130,8 +129,8 @@ static int run_rework_profile(const char *dir) {
     net_save_astra(0, 1, 1);
     cloud_dirty_set(1);
     assert(apply_user_json_keep_local(CLOUD_NO_ASTRA) == 1);
-    assert(net_load_class() == 5 && net_load_astra() == 0);
-    puts("astra rework class: class ID 5 loads without Astra ownership and survives a dirty local merge");
+    assert(net_load_class() == 4 && net_load_astra() == 1);
+    puts("legacy Astra class: class ID 5 migrates to the ordinary Astra and survives a dirty local merge");
     return 0;
 }
 
@@ -160,22 +159,23 @@ int main(int argc, char **argv) {
     if (strcmp(argv[1], "offline-buy") == 0) return run_offline_buy(argv[2]);
     if (strcmp(argv[1], "clean") == 0) return run_clean(argv[2]);
     if (strcmp(argv[1], "astra") == 0) return run_astra(argv[2]);
-    if (strcmp(argv[1], "astra-rework") == 0) return run_astra_rework(argv[2]);
-    if (strcmp(argv[1], "rework-profile") == 0) return run_rework_profile(argv[2]);
+    if (strcmp(argv[1], "legacy-local") == 0) return run_legacy_local(argv[2]);
+    if (strcmp(argv[1], "legacy-profile") == 0) return run_legacy_profile(argv[2]);
     if (strcmp(argv[1], "admin-ban-guard") == 0) return run_admin_ban_guard(argv[2]);
     fprintf(stderr, "unknown mode '%s'\n", argv[1]);
     return 2;
 }
 '''
 
-def check_rework_firebase_rules():
+def check_class_rules():
     rules = json.loads((ROOT / "firebase.rules.json").read_text(encoding="utf-8"))["rules"]
     validators = [
         rules["users"]["$nick"]["cls"][".validate"],
         rules["rooms"]["$room"]["players"]["$slot"]["cls"][".validate"],
     ]
     for rule in validators:
-        assert "newData.val() <= 4" in rule and "newData.val() == 5" in rule
+        assert "newData.val() <= 4" in rule and "newData.val() == 6" in rule
+        assert "newData.val() == 5" not in rule
         assert rule.count("(") == rule.count(")")
         assert "auth != null" in rule
         assert "dimasi4ek229@cb4.game" in rule
@@ -183,7 +183,7 @@ def check_rework_firebase_rules():
 
 
 def main():
-    check_rework_firebase_rules()
+    check_class_rules()
     with tempfile.TemporaryDirectory(prefix="cubic-cloud-") as directory:
         temp = Path(directory)
         android = temp / "android"
@@ -228,17 +228,17 @@ def main():
         saved = (astra / "progress.dat").read_text(encoding="utf-8").split()
         assert len(saved) == 22 and saved[18:] == ["1", "3", "3", "0"], saved
 
-        rework = temp / "rework"
-        rework.mkdir()
-        subprocess.run([*run, "astra-rework", str(rework)], check=True)
-        saved = (rework / "progress.dat").read_text(encoding="utf-8").split()
-        assert len(saved) == 22 and saved[18:] == ["1", "3", "3", "0"], saved
+        legacy_local = temp / "legacy-local"
+        legacy_local.mkdir()
+        subprocess.run([*run, "legacy-local", str(legacy_local)], check=True)
+        saved = (legacy_local / "progress.dat").read_text(encoding="utf-8").split()
+        assert saved[1] == "4" and saved[18] == "1", saved
 
-        rework_class = temp / "rework-class"
-        rework_class.mkdir()
-        subprocess.run([*run, "rework-profile", str(rework_class)], check=True)
-        saved = (rework_class / "progress.dat").read_text(encoding="utf-8").split()
-        assert saved[1] == "5", saved
+        legacy_class = temp / "legacy-class"
+        legacy_class.mkdir()
+        subprocess.run([*run, "legacy-profile", str(legacy_class)], check=True)
+        saved = (legacy_class / "progress.dat").read_text(encoding="utf-8").split()
+        assert saved[1] == "4" and saved[18] == "1", saved
 
         bans = temp / "bans"
         bans.mkdir()

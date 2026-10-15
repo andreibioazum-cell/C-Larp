@@ -135,6 +135,24 @@ static void fire_super(void) {
         start_dash_now();
         return;
     }
+    if (player_class == CLASS_CODECRACKER) {
+        if (codecracker_on() == 0 || super_cd > 0 || codecracker_super_t > 0) {
+            queued_super = 0;
+            return;
+        }
+        if (player_stun > 0 || player_freeze > 0) {
+            queued_super = 0;
+            return;
+        }
+        if (punch_left > 0 || punch_cd > 0 || ultimate_visual_busy() == 1) {
+            queued_super = 1;
+            return;
+        }
+        queued_super = 0;
+        codecracker_super_t = codecracker_super_time;
+        super_cd = codecracker_super_cd;
+        return;
+    }
     if (player_class != 2 && player_class != 3) {
         return;
     }

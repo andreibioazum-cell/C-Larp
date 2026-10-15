@@ -1,11 +1,11 @@
 static void reset_battle(void) {
-    /* Re-check the Astra (Rework) permission once per battle instead of on
-     * every frame that needs the variant. */
-    astra_rw_refresh();
+    /* Refresh the developer permission once when a battle starts. */
+    astra_ability_refresh();
+    codecracker_refresh();
     player->x = screen_w / 2;
     player->y = screen_h / 2;
     player->angle = 0;
-    player->max_hp = astra_rw_max_hp_for(player_class, astra_rw_local());
+    player->max_hp = astra_ability_max_hp_for(player_class, astra_ability_local());
     player->hp = player->max_hp;
     player->size = 25 * player_scale;
     enemy->size = 25 * enemy_scale;
@@ -56,10 +56,6 @@ static void reset_battle(void) {
     gift->active = 0;
     gift->t = 0;
     gift->shot = 0;
-    card_active = 0;
-    card_open = 0;
-    card_code = "";
-    card_t = 0;
     super_cd = 0;
     queued_punch = 0;
     queued_super = 0;
@@ -169,6 +165,15 @@ static void reset_battle(void) {
     ds_gfx_shake(0, 0);
     player_block = 0;
     blk_id = -1;
+    codecracker_touch_cd_left = 0;
+    codecracker_super_t = 0;
+    super_cd = 0;
+    arr_clear(codecracker_touch_cds);
+    double cci = 0;
+    while (cci < max_players * 2) {
+        arr_push(codecracker_touch_cds, 0);
+        cci = cci + 1;
+    }
     enemy_block_left = 0;
     enemy_block_cd = 0;
     joy.x = 130;
@@ -292,7 +297,6 @@ static void init_game(void) {
     enemy->hp = enemy->max_hp;
     spawn_enemy();
     spawn_all_candies();
-    card_roll();
 }
 
 static void init_online(void) {
@@ -401,7 +405,7 @@ static void candy_rand_pos(double i) {
 }
 
 static void spawn_all_candies(void) {
-    if (candy_enabled == 0) {
+    if (candies_on() == 0) {
         return;
     }
     double i = 0;

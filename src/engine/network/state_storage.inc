@@ -80,6 +80,8 @@ typedef struct {
     double grab_x, grab_y, grab_dx, grab_dy, grab;
     double universe_x, universe_y, universe;
     double thud;
+    double block;
+    double ccu;
     double cls, level, skin;
     int online;
     char nick[24];
@@ -173,7 +175,6 @@ typedef struct {
     int bp_level, azum_skin;
 
     int astra, astra_level, astra_levels_unlocked;
-    int astra_rw;
 } Progress;
 static Progress pg = {.lock = DS_MUTEX_INIT};
 #define LEVEL_MAX 3
@@ -182,7 +183,7 @@ static Progress pg = {.lock = DS_MUTEX_INIT};
 
 #define SKIN_FLAGS_MAX 3
 
-#define SKIN_OF_CLASS(flags, cls) (((cls) == 3) ? (((flags) >> 1) & 1) : (((cls) == 4 || (cls) == 5) ? 0 : ((flags) & 1)))
+#define SKIN_OF_CLASS(flags, cls) (((cls) == 3) ? (((flags) >> 1) & 1) : (((cls) == 4 || (cls) == 6) ? 0 : ((flags) & 1)))
 static int pending_cls = 0;
 static int pending_level = 0;
 
@@ -242,7 +243,7 @@ static void progress_write(int cups, int candies, int cls, int azum, int santa, 
                            int levels_unlocked, int ordinary_level, int ordinary_levels_unlocked, int azum_level,
                            int azum_levels_unlocked, int santa_level, int santa_levels_unlocked, int ebuc_level,
                            int ebuc_levels_unlocked, int bp_level, int azum_skin, int astra, int astra_level,
-                           int astra_levels_unlocked, int astra_rw);
+                           int astra_levels_unlocked);
 static void progress_read(void);
 
 typedef struct {

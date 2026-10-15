@@ -37,11 +37,7 @@ static double astra_throw_stun_for(double lv) {
     return astra_throw_stun;
 }
 
-static double astra_final_time(void) { return astra_rw_final_time_for(0); }
-
-static double astra_beats_done(double t) { return astra_rw_beats_done_for(t, 0); }
-
-static double astra_zone_live(double t, double caught) { return astra_rw_zone_live_for(t, caught, 0); }
+static double astra_zone_live(double t, double caught) { return astra_ability_zone_live_for(t, caught, 0); }
 
 static void astra_swing_now(void) { astra_punch_t = astra_hit_show; }
 
@@ -118,24 +114,24 @@ static void grab_cancel_actions(void) {
 }
 
 static void start_grab_now(void) {
-    /* Arms the little forward step (regular Astra: no step, target = here) and
-     * captures the grab origin at the end of it: the body then glides onto
-     * that origin while the hitbox and the published zone are already there. */
-    astra_rw_lunge_start();
+    /* Arms Astra's short forward step and captures the grab origin at its end:
+     * the body then glides onto that origin while the hitbox and published zone
+     * are already there. */
+    astra_ability_lunge_start();
     astra_state = 1;
     astra_t = 0;
     astra_hits_done = 0;
     astra_caught = 0;
-    astra_x = astra_rw_lunge_tx;
-    astra_y = astra_rw_lunge_ty;
+    astra_x = astra_ability_lunge_tx;
+    astra_y = astra_ability_lunge_ty;
     astra_dx = cos(player->angle);
     astra_dy = sin(player->angle);
     astra_seq = astra_seq + 1;
     astra_pub = 0;
     queued_super = 0;
-    /* Regular Astra keeps the cast pose. Rework waits to show a punch until
-     * the lunge has completed and a real beat is due. */
-    if (astra_rw_lunge_time_for(astra_rw_local()) == 0) {
+    /* Astra waits to show a punch until the lunge has completed and a real
+     * beat is due. */
+    if (astra_ability_lunge_time_for(astra_ability_local()) == 0) {
         astra_swing_now();
     } else {
         astra_punch_t = 0;
@@ -289,17 +285,17 @@ static double astra_final_solo(void) {
     if (enemy->hp <= 0) {
         return 1;
     }
-    throw_enemy(astra_dx, astra_dy, astra_rw_throw_dist_for(player_level, astra_rw_local()),
-                astra_rw_throw_stun_for(player_level, astra_rw_local()));
+    throw_enemy(astra_dx, astra_dy, astra_ability_throw_dist_for(player_level, astra_ability_local()),
+                astra_ability_throw_stun_for(player_level, astra_ability_local()));
     ds_log("astra throw");
     return 0;
 }
 
 static void tick_astra(void) {
-    double rw = astra_rw_local();
+    double kit = astra_ability_local();
     astra_cd = tick_down(astra_cd);
     tick_astra_poses();
-    astra_rw_lunge_tick();
+    astra_ability_lunge_tick();
     tick_grab_quiet();
     if (game_state != ST_ONLINE) {
         tick_enemy_throw();
@@ -313,9 +309,9 @@ static void tick_astra(void) {
     }
     astra_t = astra_t + dt;
     if (astra_caught == 0) {
-        if (astra_t >= astra_rw_lunge_time_for(rw) && astra_try_catch() == 1) {
+        if (astra_t >= astra_ability_lunge_time_for(kit) && astra_try_catch() == 1) {
             astra_state = 2;
-        } else if (astra_t > astra_rw_catch_time_for(rw)) {
+        } else if (astra_t > astra_ability_catch_time_for(kit)) {
             astra_release(0);
             return;
         }
@@ -328,10 +324,10 @@ static void tick_astra(void) {
             astra_release(1);
             return;
         }
-        stun_enemy(astra_rw_hit_interval_for(rw));
-        grab_quiet_enemy(astra_rw_hit_interval_for(rw));
+        stun_enemy(astra_ability_hit_interval_for(kit));
+        grab_quiet_enemy(astra_ability_hit_interval_for(kit));
     }
-    double due = astra_rw_beats_done_for(astra_t, rw);
+    double due = astra_ability_beats_done_for(astra_t, kit);
     while (astra_hits_done < due) {
         astra_hits_done = astra_hits_done + 1;
         astra_swing_now();
@@ -340,7 +336,7 @@ static void tick_astra(void) {
             return;
         }
     }
-    if (astra_t >= astra_rw_final_time_for(rw)) {
+    if (astra_t >= astra_ability_final_time_for(kit)) {
         astra_swing_now();
         /* astra_release() clears the active state in this frame. Keep the
          * final damage zone visible while it fades so the finishing hit has

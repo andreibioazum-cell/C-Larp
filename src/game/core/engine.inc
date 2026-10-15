@@ -27,6 +27,11 @@ static void leave_screen(double state) {
 }
 
 static double enter_screen(double state) {
+    if (state == ST_LOBBY && acct_pending == 1) {
+        acct_pending = 0;
+        acct_show(ACCT_MENU);
+        return 1;
+    }
     if (state == ST_SOLO) {
         init_game();
         return 1;

@@ -74,15 +74,10 @@ static double classes_card_w(void) {
     return clamp(w, class_card_min_w, class_card_max_w);
 }
 
-static double classes_total_w(void) {
-    double n = classes_page_items();
-    return classes_card_w() * n + class_gap * (n - 1);
-}
-
 static double classes_top(void) { return back_y + btn_h + title_gap; }
 
 static double classes_card_x(double vi) {
-    return center_x(classes_total_w()) + (vi - classes_page_start()) * (classes_card_w() + class_gap);
+    return classes_row_x() + vi * (classes_card_w() + class_gap);
 }
 
 /* On-screen size (in px) of the shop card render. Bumped up from the old
@@ -135,28 +130,11 @@ static double hit_class_pill(double px, double py, double vi) {
     return hit_button(px, py, classes_card_x(vi) + class_pick_inset(), class_pick_y(), class_pick_w(), class_pick_h);
 }
 
-static double classes_nav_w(void) { return 36; }
-
-static double classes_nav_h(void) { return 48; }
-
-static double classes_nav_y(void) { return classes_top() + (class_card_h - classes_nav_h()) / 2; }
-
-static double classes_prev_x(void) { return 4; }
-
-static double classes_next_x(void) { return screen_w - classes_nav_w() - 4; }
-
-static double hit_classes_prev(double px, double py) {
-    return classes_page > 0 && hit_button(px, py, classes_prev_x(), classes_nav_y(), classes_nav_w(), classes_nav_h());
-}
-
-static double hit_classes_next(double px, double py) {
-    return classes_page < classes_page_count() - 1 &&
-           hit_button(px, py, classes_next_x(), classes_nav_y(), classes_nav_w(), classes_nav_h());
-}
-
 static double classes_swipe_zone(double px, double py) {
-    return classes_page_count() > 1 && py >= classes_top() && py <= classes_top() + class_card_h &&
-           hit_classes_prev(px, py) == 0 && hit_classes_next(px, py) == 0;
+    /* Dragging only exists when the strip is wider than the screen; when
+     * everything fits there is nothing to scroll and touches just pick. */
+    return classes_scroll_needed() == 1 && px >= screen_margin && px <= screen_w - screen_margin &&
+           py >= classes_top() && py <= classes_top() + class_card_h;
 }
 
 static double class_actions_y(void) { return classes_top() + class_card_h + class_gap; }
@@ -192,13 +170,7 @@ static double hit_skins_btn(double px, double py) {
 
 static double class_msg_y(void) { return class_actions_y() + btn_h + 14; }
 
-static double stat_bar_w(void) { return fit_w(520); }
-
-static double stat_star_r(void) { return clamp(stat_bar_w() / 13.6, 4, 26); }
-
-static double stat_stars_y(void) { return screen_h - 138; }
-
-static double stat_motto_y(void) { return stat_stars_y() - 46; }
+static double stat_motto_y(void) { return screen_h - 142; }
 
 static double levels_w(void) { return fit_w(list_w); }
 

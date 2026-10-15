@@ -16,6 +16,7 @@ static void draw_nick_msg(const char *nick, const char *rest, double x, double y
 static void button_face(double x, double y, double w, double h, double col);
 static void button(const char *label, double x, double y, double w, double h);
 static void button_scaled(const char *label, double x, double y, double w, double h, double scale);
+static void button_disabled_scaled(const char *label, double x, double y, double w, double h, double scale);
 static void roundrect_outline(double x, double y, double w, double h, double rad, double t, uint32_t c);
 static void outline_arc(double cx, double cy, double rr, double t, uint32_t c, double mx, double my);
 static void draw_back(void);
@@ -32,7 +33,6 @@ static double squeeze_y(double y, double top, double h, double s);
 static void card_state(double x, double y, double w, double h, double selected, double locked, double k);
 static void panel(double x, double y, double w, double h, double locked);
 static double panel_text(double locked);
-static void draw_star(double cx, double cy, double r, uint32_t c);
 static void hud_bar(double bx, double by, double w, double h, double cur, double max, uint32_t c, double from_right);
 static double tick_down(double t);
 static void draw_msg(const char *label, double y, double t);

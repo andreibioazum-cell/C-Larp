@@ -117,6 +117,13 @@ static void button(const char *label, double x, double y, double w, double h) {
     text_in_box(label, bx, by, bw, bh, shade(text_color, 1 - PRESS_SHADE * p), s);
 }
 
+/* A greyed-out button: flat grey face, dimmed text, and it never takes the
+ * press squeeze - it is visibly (and actually) unavailable. */
+static void button_disabled_scaled(const char *label, double x, double y, double w, double h, double scale) {
+    button_face(x, y, w, h, 0xFF6E6E76);
+    text_in_box(label, x, y, w, h, 0xFFB4B4BC, scale);
+}
+
 static void button_scaled(const char *label, double x, double y, double w, double h, double scale) {
     double p = button_press_k(x, y, w, h);
     double s = 1 - PRESS_SQUEEZE * p;
@@ -255,54 +262,6 @@ static double panel_text(double locked) {
         return locked_text();
     }
     return text_color;
-}
-
-/* A filled five-point star rasterized into short horizontal strokes. This
- * keeps the shop icon crisp and recognizable without a texture or glyph. */
-static void draw_star(double cx, double cy, double r, uint32_t c) {
-    double px[10], py[10], xs[10];
-    double step = r / 10;
-    double y = -r;
-    int i = 0;
-    if (r <= 0) {
-        return;
-    }
-    if (step < 1) {
-        step = 1;
-    }
-    while (i < 10) {
-        double a = -pi / 2 + i * pi / 5;
-        double point_r = i % 2 == 0 ? r : r * 0.45;
-        px[i] = cos(a) * point_r;
-        py[i] = sin(a) * point_r;
-        i++;
-    }
-    while (y <= r) {
-        int count = 0;
-        i = 0;
-        while (i < 10) {
-            int j = (i + 1) % 10;
-            double y1 = py[i];
-            double y2 = py[j];
-            if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) {
-                double x = px[i] + (px[j] - px[i]) * (y - y1) / (y2 - y1);
-                int pos = count;
-                while (pos > 0 && xs[pos - 1] > x) {
-                    xs[pos] = xs[pos - 1];
-                    pos--;
-                }
-                xs[pos] = x;
-                count++;
-            }
-            i++;
-        }
-        i = 0;
-        while (i + 1 < count) {
-            line(cx + xs[i], cy + y, cx + xs[i + 1], cy + y, step + 0.8, c);
-            i = i + 2;
-        }
-        y = y + step;
-    }
 }
 
 static void hud_bar(double bx, double by, double w, double h, double cur, double max, uint32_t c, double from_right) {

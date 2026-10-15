@@ -39,8 +39,7 @@ static void acct_wipe_local(void) {
     ds_mutex_unlock(ach_lock);
     pr_lock();
     pr.loaded = 0;
-    pr.used = 0;
-    pr.code[0] = 0;
+    pr.used2027 = 0;
     pr_unlock();
     settings_set_pd_consent(0);
 }

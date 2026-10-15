@@ -83,7 +83,7 @@ static void tick_hitbox_fades(void) {
 static void tick_astra_fades(void) {
     double live = 0;
     if (astra_state != 0) {
-        live = astra_rw_zone_live_for(astra_t, astra_caught, astra_rw_local());
+        live = astra_ability_zone_live_for(astra_t, astra_caught, astra_ability_local());
     }
     astra_box_a = hb_fade(astra_box_a, hb_live(live), hitbox_fade_in, hitbox_fade_out);
     double elive = 0;
@@ -98,8 +98,8 @@ static void tick_astra_fades(void) {
     while (s < max_players) {
         double rlive = 0;
         if (s != net_slot() && remote_grab_get(s, GRAB_ACTIVE) == 1) {
-            rlive = astra_rw_zone_live_for(remote_grab_get(s, GRAB_T), remote_grab_get(s, GRAB_CAUGHT),
-                                           remote_grab_get(s, GRAB_RW));
+            rlive = astra_ability_zone_live_for(remote_grab_get(s, GRAB_T), remote_grab_get(s, GRAB_CAUGHT),
+                                           remote_grab_get(s, GRAB_ASTRA_KIT));
         }
         arr_set(rgrab_box_a, s, hb_fade(arr_get(rgrab_box_a, s), hb_live(rlive), hitbox_fade_in, hitbox_fade_out));
         s = s + 1;

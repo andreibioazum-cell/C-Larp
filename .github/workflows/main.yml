@@ -63,18 +63,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Prepare debug signing key
+      # One permanent debug key for every build: it is committed at
+      # platform/android/debug.keystore (alias androiddebugkey, password
+      # "android" - a public debug credential, never use it for releases).
+      # Signing every APK with the same key lets new versions install over
+      # old ones instead of failing with a package conflict.
+      - name: Check debug signing key
         run: |
           set -euo pipefail
-          umask 077
-          KEY_DIR="$RUNNER_TEMP/cb4-signing"
-          mkdir -p "$KEY_DIR"
-          keytool -genkeypair -v \
-            -keystore "$KEY_DIR/debug.keystore" -storetype PKCS12 \
-            -storepass android -alias androiddebugkey -keypass android \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=Android Debug,O=Android,C=US"
-          echo "Using a temporary Android debug signing key"
+          test -f platform/android/debug.keystore
+          echo "Using the permanent debug signing key from the repository"
 
       - name: Install Android SDK packages
         run: |
@@ -142,9 +140,8 @@ jobs:
         run: |
           set -euo pipefail
           BT="$ANDROID_HOME/build-tools/34.0.0"
-          KEY_DIR="$RUNNER_TEMP/cb4-signing"
           "$BT/apksigner" sign \
-            --ks "$KEY_DIR/debug.keystore" --ks-type PKCS12 \
+            --ks platform/android/debug.keystore --ks-type PKCS12 \
             --ks-pass pass:android --ks-key-alias androiddebugkey --key-pass pass:android \
             --out Game.apk aligned.apk
 
@@ -154,10 +151,6 @@ jobs:
           BT="$ANDROID_HOME/build-tools/34.0.0"
           "$BT/aapt" dump badging Game.apk | head -n 5
           "$BT/apksigner" verify --verbose --print-certs Game.apk
-
-      - name: Delete temporary signing key
-        if: ${{ always() }}
-        run: rm -rf -- "${RUNNER_TEMP:?}/cb4-signing"
 
       - uses: actions/upload-artifact@v4
         with:

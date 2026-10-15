@@ -1,3 +1,10 @@
+static const char *tr_super_codecracker(void) {
+    if (language == 1) {
+        return "Разгон";
+    }
+    return "Overclock";
+}
+
 static const char *tr_super(void) {
     if (language == 1) {
         return "Снежинка";
@@ -79,8 +86,11 @@ static const char *tr_level_unlock_cost(double cost) {
 }
 
 static const char *tr_class_level_effect(double cls, double n) {
-    if (cls == CLASS_ASTRA_REWORK) {
-        cls = CLASS_ASTRA;
+    if (cls == CLASS_CODECRACKER) {
+        cls = CLASS_ORDINARY;
+    }
+    if (cls == CLASS_CODECRACKER) {
+        cls = CLASS_ORDINARY;
     }
     if (cls == 1 && n == 1) {
         if (language == 1) {
@@ -339,9 +349,9 @@ static const char *tr_promo_need_login(void) {
 
 static const char *tr_promo_enter_ph(void) {
     if (language == 1) {
-        return "Введи код с карточки...";
+        return "Введи промокод...";
     }
-    return "Enter the code from the card...";
+    return "Enter a promo code...";
 }
 
 static const char *tr_promo_submit(void) {
@@ -349,27 +359,6 @@ static const char *tr_promo_submit(void) {
         return "Активировать";
     }
     return "Redeem";
-}
-
-static const char *tr_promo_how1(void) {
-    if (language == 1) {
-        return "Карточка выпадает в начале соло-боя, шанс 5%";
-    }
-    return "A card drops at the start of a solo battle, 5% chance";
-}
-
-static const char *tr_promo_need_card(void) {
-    if (language == 1) {
-        return "Код есть только на карточке из соло-боя";
-    }
-    return "The code is only on a card from a solo battle";
-}
-
-static const char *tr_promo_how2(void) {
-    if (language == 1) {
-        return "Код на ней случайный, награда одна на аккаунт";
-    }
-    return "Its code is random, one reward per account";
 }
 
 static const char *tr_promo_need_code(void) {
@@ -393,28 +382,9 @@ static const char *tr_promo_used_msg(void) {
     return "Promo code already redeemed";
 }
 
-static const char *tr_promo_success(void) {
+static const char *tr_promo_success_2027(void) {
     if (language == 1) {
-        return ds_concat(
-            ds_concat(ds_concat(ds_concat("+", ds_num_to_string((double)(promo_reward_cups))), " кубков и +"),
-                      ds_num_to_string((double)(promo_reward_candies))),
-            " леденцов!");
+        return ds_concat(ds_concat("+", ds_num_to_string((double)(promo_2027_cups))), " кубков!");
     }
-    return ds_concat(ds_concat(ds_concat(ds_concat("+", ds_num_to_string((double)(promo_reward_cups))), " cups and +"),
-                               ds_num_to_string((double)(promo_reward_candies))),
-                     " candies!");
-}
-
-static const char *tr_card_title(void) {
-    if (language == 1) {
-        return "КАРТОЧКА";
-    }
-    return "CARD";
-}
-
-static const char *tr_card_sub(void) {
-    if (language == 1) {
-        return "Запомни код: больше он нигде не покажется";
-    }
-    return "Remember the code: it is not shown anywhere else";
+    return ds_concat(ds_concat("+", ds_num_to_string((double)(promo_2027_cups))), " cups!");
 }

@@ -2,13 +2,17 @@ static void progress_write(int cups, int candies, int cls, int azum, int santa, 
                            int levels_unlocked, int ordinary_level, int ordinary_levels_unlocked, int azum_level,
                            int azum_levels_unlocked, int santa_level, int santa_levels_unlocked, int ebuc_level,
                            int ebuc_levels_unlocked, int bp_level, int azum_skin, int astra, int astra_level,
-                           int astra_levels_unlocked, int astra_rw) {
+                           int astra_levels_unlocked) {
     char path[320], text[512];
+    if (cls == 5) {
+        cls = 4;
+        astra = 1;
+    }
     data_file_path(path, sizeof(path), PROGRESS_FILE);
     snprintf(text, sizeof(text), "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", cups, cls, azum,
              santa, candies, level, levels_unlocked, ordinary_level, ordinary_levels_unlocked, azum_level,
              azum_levels_unlocked, santa_level, santa_levels_unlocked, ebuc_level, ebuc_levels_unlocked, ebuc, bp_level,
-             azum_skin, astra, astra_level, astra_levels_unlocked, astra_rw);
+             azum_skin, astra, astra_level, astra_levels_unlocked, 0);
     file_write_atomic(path, text);
 }
 static void progress_read(void) {
@@ -21,7 +25,8 @@ static void progress_read(void) {
     int ebuc_level = -1, ebuc_levels_unlocked = -1;
     int bp_level = 0, azum_skin = 0;
     int astra = 0, astra_level = -1, astra_levels_unlocked = -1;
-    int astra_rw = 0; /* Legacy Astra skin marker for migration */
+    int legacy_marker = 0; /* Trailing field from old saves; ignored. */
+    int legacy_astra_class = 0;
     pg_lock();
     if (pg.loaded) {
         pg_unlock();
@@ -35,7 +40,8 @@ static void progress_read(void) {
                        &santa, &candies, &level, &levels_unlocked, &ordinary_level, &ordinary_levels_unlocked,
                        &azum_level, &azum_levels_unlocked, &santa_level, &santa_levels_unlocked, &ebuc_level,
                        &ebuc_levels_unlocked, &ebuc, &bp_level, &azum_skin, &astra, &astra_level,
-                       &astra_levels_unlocked, &astra_rw);
+                       &astra_levels_unlocked, &legacy_marker);
+        legacy_astra_class = (cls == 5);
         if (n < 3) {
             cups = 0;
             candies = 0;
@@ -51,7 +57,7 @@ static void progress_read(void) {
             ebuc_level = ebuc_levels_unlocked = 0;
             astra = 0;
             astra_level = astra_levels_unlocked = 0;
-            astra_rw = 0;
+            legacy_marker = 0;
         } else {
             if (n < 6) {
                 level = 0;
@@ -64,7 +70,10 @@ static void progress_read(void) {
                 azum_level = azum_levels_unlocked = 0;
                 santa_level = santa_levels_unlocked = 0;
                 ebuc_level = ebuc_levels_unlocked = 0;
-                if (cls == 1 && azum) {
+                if (legacy_astra_class) {
+                    astra_level = level;
+                    astra_levels_unlocked = levels_unlocked;
+                } else if (cls == 1 && azum) {
                     azum_level = level;
                     azum_levels_unlocked = levels_unlocked;
                 } else if (cls == 2 && santa) {
@@ -90,11 +99,16 @@ static void progress_read(void) {
                 astra = 0;
             }
             if (n < 21) {
-                astra_level = 0;
-                astra_levels_unlocked = 0;
+                if (legacy_astra_class) {
+                    astra_level = level;
+                    astra_levels_unlocked = levels_unlocked;
+                } else {
+                    astra_level = 0;
+                    astra_levels_unlocked = 0;
+                }
             }
             if (n < 22) {
-                astra_rw = 0;
+                legacy_marker = 0;
             }
         }
         fclose(f);
@@ -103,12 +117,16 @@ static void progress_read(void) {
         cups = 0;
     if (candies < 0)
         candies = 0;
-    if (cls != 1 && cls != 2 && cls != 3 && cls != 4 && cls != 5)
+    if (cls == 5)
+        cls = 4;
+    if (cls != 0 && cls != 1 && cls != 2 && cls != 3 && cls != 4 && cls != 6)
         cls = 0;
     azum = azum ? 1 : 0;
     santa = santa ? 1 : 0;
     ebuc = ebuc ? 1 : 0;
     astra = astra ? 1 : 0;
+    if (legacy_astra_class)
+        astra = 1;
     if (cls == 1 && !azum)
         cls = 0;
     if (cls == 2 && !santa)
@@ -123,7 +141,7 @@ static void progress_read(void) {
     normalize_level_pair(&santa_level, &santa_levels_unlocked);
     normalize_level_pair(&ebuc_level, &ebuc_levels_unlocked);
     normalize_level_pair(&astra_level, &astra_levels_unlocked);
-    if (cls == 0) {
+    if (cls == 0 || cls == 6) {
         level = ordinary_level;
         levels_unlocked = ordinary_levels_unlocked;
     } else if (cls == 1) {
@@ -132,7 +150,7 @@ static void progress_read(void) {
     } else if (cls == 2) {
         level = santa_level;
         levels_unlocked = santa_levels_unlocked;
-    } else if (cls == 4 || cls == 5) {
+    } else if (cls == 4) {
         level = astra_level;
         levels_unlocked = astra_levels_unlocked;
     } else {
@@ -169,7 +187,6 @@ static void progress_read(void) {
     pg.astra = astra;
     pg.astra_level = astra_level;
     pg.astra_levels_unlocked = astra_levels_unlocked;
-    pg.astra_rw = astra_rw ? 1 : 0;
     pg.loaded = 1;
     pg_unlock();
 }
@@ -344,7 +361,7 @@ double net_load_astra_levels_unlocked(void) {
 
 void net_save_astra(double owned, double level, double levels_unlocked) {
     int own = owned ? 1 : 0, lv = (int)level, lu = (int)levels_unlocked;
-    int c, cd, k, a, sn, eu, plv, plu, ol, ou, al, au, sl, su, el, eul, bp, sk, arw;
+    int c, cd, k, a, sn, eu, plv, plu, ol, ou, al, au, sl, su, el, eul, bp, sk;
     normalize_level_pair(&lv, &lu);
     progress_read();
     pg_lock();
@@ -365,9 +382,6 @@ void net_save_astra(double owned, double level, double levels_unlocked) {
             pg.level = lv;
             pg.levels_unlocked = lu;
         }
-    } else if (pg.cls == 5) {
-        pg.level = lv;
-        pg.levels_unlocked = lu;
     }
     c = pg.cups;
     cd = pg.candies;
@@ -387,54 +401,12 @@ void net_save_astra(double owned, double level, double levels_unlocked) {
     eul = pg.ebuc_levels_unlocked;
     bp = pg.bp_level;
     sk = pg.azum_skin;
-    arw = pg.astra_rw;
     pg.loaded = 1;
     pg_unlock();
-    if (k == 4 || k == 5) {
+    if (k == 4) {
         pending_cls = k;
         pending_level = plv;
         pending_skin = 0;
     }
-    progress_write(c, cd, k, a, sn, eu, plv, plu, ol, ou, al, au, sl, su, el, eul, bp, sk, own, lv, lu, arw);
-}
-
-/* Obsolete local Astra/Rework skin marker, read only for old-save migration. */
-double net_load_astra_rw(void) {
-    double v;
-    progress_read();
-    pg_lock();
-    v = (double)pg.astra_rw;
-    pg_unlock();
-    return v;
-}
-
-void net_save_astra_rw(double on) {
-    int own, lv, lu, arw = on ? 1 : 0;
-    int c, cd, k, a, sn, eu, plv, plu, ol, ou, al, au, sl, su, el, eul, bp, sk;
-    progress_read();
-    pg_lock();
-    own = pg.astra;
-    lv = pg.astra_level;
-    lu = pg.astra_levels_unlocked;
-    pg.astra_rw = arw;
-    c = pg.cups;
-    cd = pg.candies;
-    k = pg.cls;
-    a = pg.azum;
-    sn = pg.santa;
-    eu = pg.ebuc;
-    plv = pg.level;
-    plu = pg.levels_unlocked;
-    ol = pg.ordinary_level;
-    ou = pg.ordinary_levels_unlocked;
-    al = pg.azum_level;
-    au = pg.azum_levels_unlocked;
-    sl = pg.santa_level;
-    su = pg.santa_levels_unlocked;
-    el = pg.ebuc_level;
-    eul = pg.ebuc_levels_unlocked;
-    bp = pg.bp_level;
-    sk = pg.azum_skin;
-    pg_unlock();
-    progress_write(c, cd, k, a, sn, eu, plv, plu, ol, ou, al, au, sl, su, el, eul, bp, sk, own, lv, lu, arw);
+    progress_write(c, cd, k, a, sn, eu, plv, plu, ol, ou, al, au, sl, su, el, eul, bp, sk, own, lv, lu);
 }

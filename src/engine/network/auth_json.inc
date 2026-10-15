@@ -107,7 +107,9 @@ void net_save_azum_revives(double revives) {
 
 void net_set_class(double cls) {
     int k = (int)cls;
-    if (k < 0 || k > 5)
+    if (k == 5)
+        k = 4;
+    if (k != 0 && k != 1 && k != 2 && k != 3 && k != 4 && k != 6)
         k = 0;
     pending_cls = k;
     lock();

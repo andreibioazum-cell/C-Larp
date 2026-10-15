@@ -32,9 +32,6 @@ static void save_progress(void) {
                           class_level_of(CLASS_SANTA), class_unlocked_of(CLASS_SANTA), class_level_of(CLASS_EBUC),
                           class_unlocked_of(CLASS_EBUC), bp_lv, skin_flags());
     net_save_astra(class_owned_of(CLASS_ASTRA), class_level_of(CLASS_ASTRA), class_unlocked_of(CLASS_ASTRA));
-    /* The old skin marker is kept only so an existing save can be migrated;
-     * new saves clear it. The selected class ID is stored with the profile. */
-    net_save_astra_rw(astra_skin);
     progress_push_to_net();
 }
 
@@ -56,11 +53,12 @@ static void progress_push_to_net(void) {
 }
 
 static void progress_normalize(void) {
-    double legacy_rework = astra_skin == 1;
-    astra_skin = 0;
-    astra_rw_refresh();
-    if (legacy_rework == 1 && astra_rw_allowed() == 1 && player_class == CLASS_ASTRA) {
-        player_class = CLASS_ASTRA_REWORK;
+    astra_ability_refresh();
+    codecracker_refresh();
+    /* ID 5 was the removed Astra variant in older saves. Fold it into the
+     * ordinary Astra class before validating the selected class. */
+    if (player_class == 5) {
+        player_class = CLASS_ASTRA;
     }
     if (azum_skin < SKIN_NORMAL || azum_skin >= SKIN_COUNT) {
         azum_skin = SKIN_NORMAL;
@@ -71,17 +69,22 @@ static void progress_normalize(void) {
     if (azum_skin == SKIN_ZOMBIE && has_achievement(ACH_LEGENDS) == 0) {
         azum_skin = SKIN_NORMAL;
     }
-    double cls = CLASS_ORDINARY;
-    while (cls < class_count) {
+    double order = 0;
+    while (order < class_count) {
+        double cls = class_at_order(order);
         double un = clamp(class_unlocked_of(cls), 0, max_level);
         double lv = class_level_of(cls);
         if (lv < 0 || lv > un) {
             lv = 0;
         }
         set_class_progress(cls, lv, un);
-        cls = cls + 1;
+        order = order + 1;
     }
-    if (player_class < 0 || player_class >= class_count || class_owned_of(player_class) == 0) {
+    if (player_class == CLASS_SANTA && dev_access() == 0) {
+        /* Santa is developer-only for now; the ownership itself is kept. */
+        player_class = CLASS_ORDINARY;
+    }
+    if (class_id_valid(player_class) == 0 || class_owned_of(player_class) == 0) {
         player_class = CLASS_ORDINARY;
     }
     levels_unlocked = clamp(levels_unlocked, 0, max_level);
@@ -107,8 +110,8 @@ static void progress_from_storage(void) {
     set_class_progress(CLASS_SANTA, net_load_santa_level(), net_load_santa_levels_unlocked());
     set_class_progress(CLASS_EBUC, net_load_ebuc_level(), net_load_ebuc_levels_unlocked());
     set_class_progress(CLASS_ASTRA, net_load_astra_level(), net_load_astra_levels_unlocked());
-    astra_skin = net_load_astra_rw() == 1 ? 1 : 0;
-    astra_rw_refresh();
+    astra_ability_refresh();
+    codecracker_refresh();
     double skins = net_load_azum_skin();
     ebuc_skin = SKIN_NORMAL;
     if (skins >= 2) {
@@ -128,7 +131,8 @@ static void progress_from_storage(void) {
 static void settings_from_storage(void) {
     language = net_load_language();
     show_hitboxes = net_load_hitboxes();
-    music_volume = net_load_music_volume();
+    /* There is no music toggle any more: the lobby music always plays at
+     * the fixed default volume (music_volume in the state defaults). */
     winter_theme = net_load_winter_theme();
     new_theme = net_load_new_theme();
     apply_theme();
@@ -138,26 +142,4 @@ static void save_settings(void) {
     net_save_settings(language, show_hitboxes);
     net_save_winter_theme(winter_theme);
     net_save_new_theme(new_theme);
-}
-
-static void music_volume_apply(void) {
-    music_volume = clamp(music_volume, 0, 100);
-    net_save_music_volume(music_volume);
-    if (music_ok == 1) {
-        snd_volume(LOBBY_MUSIC, music_volume / 100 * music_level);
-    }
-    if (newyear_jingle_ok == 1) {
-        snd_volume(WINTER_JINGLE, music_volume / 100 * winter_jingle_volume);
-    }
-}
-
-static void music_volume_cycle(void) {
-    if (music_volume <= 0) {
-        music_volume = 50;
-    } else if (music_volume >= 100) {
-        music_volume = 0;
-    } else {
-        music_volume = 100;
-    }
-    music_volume_apply();
 }

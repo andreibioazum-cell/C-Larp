@@ -218,7 +218,9 @@ static void touch_lobby(double x, double y, double action) {
         /* Вошедший игрок попадает в свой аккаунт (смена пароля, выход,
          * удаление), остальные - на вход. */
         if (net_login_status() == 2) {
-            acct_show(ACCT_MENU);
+            /* Как и остальные экраны: сначала переход, аккаунт - в его конце. */
+            acct_pending = 1;
+            start_transition(ST_LOBBY);
             return;
         }
         login_after = ST_LOBBY;
@@ -236,6 +238,9 @@ static void touch_modes(double x, double y) {
         return;
     }
     if (hit_modes_row(x, y, 4) == 1) {
+        if (dev_access() == 0) {
+            return;
+        }
         winter_theme = 1 - winter_theme;
         apply_winter_theme();
         save_settings();
@@ -280,16 +285,12 @@ static void touch_settings(double x, double y) {
         return;
     }
     if (hit_settings_row(x, y, 4) == 1) {
-        music_volume_cycle();
-        return;
-    }
-    if (hit_settings_row(x, y, 5) == 1) {
         new_theme = 1 - new_theme;
         apply_theme();
         save_settings();
         return;
     }
-    if (hit_settings_row(x, y, 6) == 1) {
+    if (hit_settings_row(x, y, 5) == 1) {
         docs_show(0, 0);
         return;
     }

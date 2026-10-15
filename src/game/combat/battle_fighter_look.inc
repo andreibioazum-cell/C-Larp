@@ -172,10 +172,8 @@ static void draw_fighter_hurt(double x, double y, double ang, double look, doubl
              (((unsigned)(int)fa) << 24) | ((unsigned)(int)hurt_rgb));
 }
 
-/* Flat-colour overlay drawn on top of a fighter silhouette. Astra (Rework)
- * uses it to stay recognisable for every player in online matches without a
- * second sprite sheet: one extra quad, only for a rework fighter. A tint of 0
- * (any other fighter) draws nothing. */
+/* Optional flat-colour overlay for special developer visuals such as
+ * CodeCracker. A tint of 0 draws nothing. */
 static void draw_fighter_tint(double x, double y, double ang, double look, double punching, double scale, double tint) {
     if (tint <= 0 || look == LOOK_NONE) {
         return;

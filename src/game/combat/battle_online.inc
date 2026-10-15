@@ -46,8 +46,11 @@ static void read_remotes(void) {
                  * updated network fields every render frame. */
                 double rcls = finite_or(net_player_class(s), CLASS_ORDINARY);
                 double rskin = finite_or(net_player_skin(s), SKIN_NORMAL);
-                if (rcls < CLASS_ORDINARY || rcls > CLASS_ASTRA_REWORK) {
+                if (rcls < CLASS_ORDINARY || rcls > CLASS_CODECRACKER) {
                     rcls = CLASS_ORDINARY;
+                }
+                if (rcls == 5) {
+                    rcls = CLASS_ASTRA;
                 }
                 if (rskin < SKIN_NORMAL || rskin >= SKIN_COUNT) {
                     rskin = SKIN_NORMAL;
@@ -105,9 +108,9 @@ static void update_remote_punches(void) {
                                                      punch_reach, punch_width);
                 if (target == 0 || (target >= 1 && target <= turret_max)) {
                     double rcls = arr_get(remotes, s * remote_fields + 10);
-                    /* Rework hits softer; its class ID (or legacy Astra/skin
-                     * pair) is the same snapshot used for its appearance. */
-                    double rdmg = astra_rw_punch_damage_net(rcls, net_player_level(s),
+                    /* Apply the attacker's class kit from the same snapshot
+                     * used for its appearance. */
+                    double rdmg = astra_ability_punch_damage_net(rcls, net_player_level(s),
                                                             arr_get(remotes, s * remote_fields + 11));
                     double rlevel = net_player_level(s);
                     if (target == 0) {
@@ -291,6 +294,11 @@ static void push_self(void) {
     }
     progress_push_to_net();
     net_publish(player->x / screen_w, player->y / screen_h, player->angle, player->hp, alive);
+    /* The raised block is part of the synced state: other clients draw the
+     * guard, and the victim-side damage (take_damage_at) already cuts
+     * frontal hits while it is up. */
+    net_publish_block(player_block);
+    net_publish_codecracker_super(codecracker_super_t > 0 ? 1 : 0);
     net_publish_punch(punch->x / screen_w, punch->y / screen_h, punch->dx, punch->dy, punch->shot);
     if (player_class == CLASS_EBUC) {
         double x1 = 0;
@@ -391,6 +399,10 @@ static void update_online(void) {
         }
         read_remotes();
         smooth_remotes();
+        codecracker_tick_online();
+        if (finished != 0) {
+            return;
+        }
         update_remote_punches();
         update_remote_thuds();
         update_remote_snow();

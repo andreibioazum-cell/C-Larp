@@ -8,6 +8,10 @@ static double player_walk_speed(void) {
     } else if (player_class == CLASS_ORDINARY && player_level >= 2) {
         spd = spd * (1 + ordinary_speed_bonus);
     }
+    if (player_class == CLASS_CODECRACKER && codecracker_super_t > 0) {
+        /* The overclock ultimate: about three times the normal pace. */
+        spd = spd * codecracker_speed_mult;
+    }
     spd = spd * admin_cheat_speed_mult();
     if (player_freeze > 0) {
         spd = spd * player_freeze_slow;

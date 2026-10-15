@@ -1,7 +1,9 @@
 DSArray *class_level_tbl;
 DSArray *class_unlocked_tbl;
 DSArray *class_owned_tbl;
-double classes_page;
+double classes_scroll;
+double classes_swipe_last_x;
+double classes_swipe_moved;
 double classes_swipe_id;
 double classes_swipe_start_x;
 double classes_swipe_start_y;
