@@ -3,6 +3,8 @@ static double astra_rw_of_slot(double slot);
 static double astra_rw_is_dev(void);
 static void astra_rw_refresh(void);
 static double astra_rw_allowed(void);
+static double dev_access(void);
+static double candies_on(void);
 static double astra_rw_on(void);
 static double astra_rw_local(void);
 static const char *astra_rw_desc(void);

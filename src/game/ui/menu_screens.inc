@@ -25,7 +25,7 @@ static void draw_lobby_nick(void) {
 
 static void draw_lobby_money(void) {
     const char *cup_s = ds_concat(ds_concat(tr_cups(), ": "), ds_num_to_string((double)(cups)));
-    if (candy_enabled == 0) {
+    if (candies_on() == 0) {
         ctext_scaled(cup_s, lobby_money_y(), text_color, money_scale);
         return;
     }
@@ -61,7 +61,12 @@ static void draw_modes(void) {
     button(tr_solo(), menu_x(), modes_row(1), menu_btn_w(), btn_h);
     button(tr_online(), menu_x(), modes_row(2), menu_btn_w(), btn_h);
     button(tr_top(), menu_x(), modes_row(3), menu_btn_w(), btn_h);
-    button_scaled(tr_winter_toggle(), menu_x(), modes_row(4), menu_btn_w(), btn_h, 0.8);
+    if (dev_access() == 1) {
+        button_scaled(tr_winter_toggle(), menu_x(), modes_row(4), menu_btn_w(), btn_h, 0.8);
+    } else {
+        /* Winter theme is developer-only for now: grey and unavailable. */
+        button_disabled_scaled(tr_winter_toggle(), menu_x(), modes_row(4), menu_btn_w(), btn_h, 0.8);
+    }
     /* The promo code lives in the bottom-right corner, out of the column. */
     button(tr_promo(), promo_corner_x(), promo_corner_y(), promo_corner_w(), btn_h);
 }
@@ -72,9 +77,8 @@ static void draw_settings(void) {
     button("English", menu_x(), settings_row_y(1), menu_btn_w(), settings_btn_h());
     button("Русский", menu_x(), settings_row_y(2), menu_btn_w(), settings_btn_h());
     button(tr_hitboxes_toggle(), menu_x(), settings_row_y(3), menu_btn_w(), settings_btn_h());
-    button(tr_music_state(), menu_x(), settings_row_y(4), menu_btn_w(), settings_btn_h());
-    button(tr_theme_label(), menu_x(), settings_row_y(5), menu_btn_w(), settings_btn_h());
-    button_scaled(tr_legal(), menu_x(), settings_row_y(6), menu_btn_w(), settings_btn_h(),
+    button(tr_theme_label(), menu_x(), settings_row_y(4), menu_btn_w(), settings_btn_h());
+    button_scaled(tr_legal(), menu_x(), settings_row_y(5), menu_btn_w(), settings_btn_h(),
                   fit_text_scale(tr_legal(), menu_btn_w() - 24, 0.8));
 }
 
@@ -154,8 +158,7 @@ static void draw_imbalance_stars(void) {
     while (i < 5) {
         double cx = sx + i * (r * 2 + gap);
         if (i < rating) {
-            draw_star(cx, cy, r * 1.1, stat_star_rim_color);
-            draw_star(cx, cy, r, stat_star_on_color);
+            draw_star(cx, cy, r * 1.1, stat_star_on_color);
         } else {
             draw_star(cx, cy, r, stat_star_off_color);
         }
@@ -171,21 +174,27 @@ static void draw_class_stats(void) {
 
 static void draw_classes(void) {
     screen_fill();
-    classes_page_clamp();
-    double vi = classes_page_start();
-    double last = vi + classes_page_items();
+    classes_scroll_clamp();
+    double vi = 0;
+    double last = classes_visible_count();
     while (vi < last) {
-        draw_class_card(vi);
+        /* Only cards at least partly inside the viewport are drawn. */
+        double cx = classes_card_x(vi);
+        if (cx + classes_card_w() > 0 && cx < screen_w) {
+            draw_class_card(vi);
+        }
         vi = vi + 1;
     }
-    if (classes_page_count() > 1) {
-        if (classes_page > 0) {
-            button_scaled("<", classes_prev_x(), classes_nav_y(), classes_nav_w(), classes_nav_h(), 0.75);
-        }
-        if (classes_page < classes_page_count() - 1) {
-            button_scaled(">", classes_next_x(), classes_nav_y(), classes_nav_w(), classes_nav_h(), 0.75);
-        }
-        ctext_scaled(classes_page_label(), classes_top() - 16, text_color, 0.42);
+    if (classes_scroll_needed() == 1) {
+        /* A slim scrollbar, shown only while the strip actually overflows:
+         * the thumb's share of the track is the visible share of the strip. */
+        double track_x = screen_margin;
+        double track_w = classes_viewport_w();
+        double track_y = classes_top() - 14;
+        roundrect(track_x, track_y, track_w, 5, 2, locked_shade);
+        double thumb_w = track_w * classes_viewport_w() / classes_strip_w();
+        double thumb_x = track_x + (track_w - thumb_w) * classes_scroll / classes_scroll_max();
+        roundrect(thumb_x, track_y, thumb_w, 5, 2, text_color);
     }
     button_scaled(tr_levels(), levels_btn_x(), class_actions_y(), class_action_w(), btn_h, 0.9);
     if (skins_btn_visible() == 1) {

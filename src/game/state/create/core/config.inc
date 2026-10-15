@@ -40,7 +40,7 @@ lobby_rows = 5;
 modes_rows = 5;
 screen_margin = 40;
 class_action_gap = 40;
-class_count = 6;
+class_count = 7;
 class_gap = 14;
 /* 5% taller and 10% narrower than the original 272/150/260 so the shop
  * cards read a bit more portrait and leave more breathing room around the
@@ -92,7 +92,7 @@ cup_win = 5;
 candy_win = 3;
 cup_lose = 1;
 candy_enabled = 1;
-card_chance = 5;
+promo_2027_cups = 27;
 promo_reward_cups = 50;
 promo_reward_candies = 20;
 money_scale = 0.5;
@@ -115,6 +115,7 @@ CLASS_SANTA = 2;
 CLASS_EBUC = 3;
 CLASS_ASTRA = 4;
 CLASS_ASTRA_REWORK = 5;
+CLASS_CODECRACKER = 6;
 player_class = 0;
 azum_revived = 0;
 revive_prot = 0;
@@ -160,7 +161,9 @@ grass_tex_ok = 0;
 snow_tex_ok = 0;
 snow_t = 0;
 candy_tex_ok = 0;
-winter_theme = 1;
+/* The normal (grass) theme is the default; winter starts off for everyone
+ * and is only ever switched on explicitly (and, for now, only by developers). */
+winter_theme = 0;
 show_hitboxes = 1;
 hitbox_rgb = 0x00000000;
 hitbox_zone_alpha = 96;
@@ -308,6 +311,19 @@ azum_dash_damage = 3.0;
 azum_dash_stun = 0.45;
 azum_hp = 13;
 astra_hp = 18;
+/* CodeCracker (admin-only): an ordinary cube with only 9 HP; its ultimate is a
+ * 7-second overclock: x3 speed, half incoming damage absorbed, biting touches. */
+codecracker_hp = 9;
+codecracker_speed_mult = 3;
+codecracker_super_time = 7;
+codecracker_super_cd = 12;
+codecracker_super_absorb = 0.5;
+codecracker_super_t = 0;
+codecracker_touch_damage = 1.6;
+codecracker_touch_heal = 0.75;
+codecracker_touch_cd = 0.35;
+codecracker_touch_cd_left = 0;
+codecracker_ok = 0;
 astra_grab_reach = 135;
 astra_grab_width = 135;
 astra_grab_forward_offset = 19;

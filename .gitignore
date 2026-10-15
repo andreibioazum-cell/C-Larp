@@ -9,6 +9,7 @@ staging/
 aligned.apk
 unsigned.apk
 debug.keystore
+!platform/android/debug.keystore
 
 # Локальные сохранения игры
 auth.dat

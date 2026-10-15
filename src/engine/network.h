@@ -81,6 +81,8 @@ void net_publish_grab(double x, double y, double dx, double dy, double grab);
 void net_publish_universe(double x, double y, double counter);
 
 void net_publish_thud(double counter);
+void net_publish_block(double on);
+void net_publish_codecracker_super(double on);
 void net_set_class(double cls);
 double net_status(void);
 double net_slot(void);
@@ -123,6 +125,8 @@ double net_player_universe_y(double slot);
 double net_player_universe(double slot);
 
 double net_player_thud(double slot);
+double net_player_block(double slot);
+double net_player_codecracker_super(double slot);
 double net_player_dash(double slot);
 double net_player_dash_x(double slot);
 double net_player_dash_y(double slot);
@@ -173,11 +177,8 @@ void net_mark_achievement_flag(double flag);
 double net_load_azum_revives(void);
 void net_save_azum_revives(double revives);
 
-const char *net_promo_code(void);
-const char *net_promo_new_code(void);
-double net_promo_check(const char *code);
-double net_promo_used(void);
-void net_promo_mark_used(void);
+double net_promo_2027_used(void);
+void net_promo_2027_mark_used(void);
 
 
 void net_leaderboard_fetch(const char *url);

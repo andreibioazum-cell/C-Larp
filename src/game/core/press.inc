@@ -71,7 +71,7 @@ static double press_covered(void) {
         return 1;
     }
     if (game_state == ST_SOLO || game_state == ST_ONLINE) {
-        return card_open != 0 || finished != 0 || (game_state == ST_ONLINE && chat_open == 1);
+        return finished != 0 || (game_state == ST_ONLINE && chat_open == 1);
     }
     return 0;
 }

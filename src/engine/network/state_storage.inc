@@ -80,6 +80,8 @@ typedef struct {
     double grab_x, grab_y, grab_dx, grab_dy, grab;
     double universe_x, universe_y, universe;
     double thud;
+    double block;
+    double ccu;
     double cls, level, skin;
     int online;
     char nick[24];

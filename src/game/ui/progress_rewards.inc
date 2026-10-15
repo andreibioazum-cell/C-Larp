@@ -59,6 +59,7 @@ static void progress_normalize(void) {
     double legacy_rework = astra_skin == 1;
     astra_skin = 0;
     astra_rw_refresh();
+    codecracker_refresh();
     if (legacy_rework == 1 && astra_rw_allowed() == 1 && player_class == CLASS_ASTRA) {
         player_class = CLASS_ASTRA_REWORK;
     }
@@ -80,6 +81,10 @@ static void progress_normalize(void) {
         }
         set_class_progress(cls, lv, un);
         cls = cls + 1;
+    }
+    if (player_class == CLASS_SANTA && dev_access() == 0) {
+        /* Santa is developer-only for now; the ownership itself is kept. */
+        player_class = CLASS_ORDINARY;
     }
     if (player_class < 0 || player_class >= class_count || class_owned_of(player_class) == 0) {
         player_class = CLASS_ORDINARY;
@@ -109,6 +114,7 @@ static void progress_from_storage(void) {
     set_class_progress(CLASS_ASTRA, net_load_astra_level(), net_load_astra_levels_unlocked());
     astra_skin = net_load_astra_rw() == 1 ? 1 : 0;
     astra_rw_refresh();
+    codecracker_refresh();
     double skins = net_load_azum_skin();
     ebuc_skin = SKIN_NORMAL;
     if (skins >= 2) {
@@ -128,7 +134,8 @@ static void progress_from_storage(void) {
 static void settings_from_storage(void) {
     language = net_load_language();
     show_hitboxes = net_load_hitboxes();
-    music_volume = net_load_music_volume();
+    /* There is no music toggle any more: the lobby music always plays at
+     * the fixed default volume (music_volume in the state defaults). */
     winter_theme = net_load_winter_theme();
     new_theme = net_load_new_theme();
     apply_theme();
@@ -138,26 +145,4 @@ static void save_settings(void) {
     net_save_settings(language, show_hitboxes);
     net_save_winter_theme(winter_theme);
     net_save_new_theme(new_theme);
-}
-
-static void music_volume_apply(void) {
-    music_volume = clamp(music_volume, 0, 100);
-    net_save_music_volume(music_volume);
-    if (music_ok == 1) {
-        snd_volume(LOBBY_MUSIC, music_volume / 100 * music_level);
-    }
-    if (newyear_jingle_ok == 1) {
-        snd_volume(WINTER_JINGLE, music_volume / 100 * winter_jingle_volume);
-    }
-}
-
-static void music_volume_cycle(void) {
-    if (music_volume <= 0) {
-        music_volume = 50;
-    } else if (music_volume >= 100) {
-        music_volume = 0;
-    } else {
-        music_volume = 100;
-    }
-    music_volume_apply();
 }

@@ -28,6 +28,7 @@
 #include "include/prototypes/combat/battle_enemy_turrets.inc"
 #include "include/prototypes/combat/battle_shield.inc"
 #include "include/prototypes/combat/battle_astra_rework.inc"
+#include "include/prototypes/combat/battle_codecracker.inc"
 #include "include/prototypes/combat/battle_astra.inc"
 #include "include/prototypes/combat/battle_astra_online.inc"
 #include "include/prototypes/combat/battle_astra_bot.inc"

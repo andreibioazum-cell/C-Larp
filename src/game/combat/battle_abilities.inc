@@ -285,7 +285,7 @@ static void tick_dash(void) {
 }
 
 static void tick_candies(void) {
-    if (candy_enabled == 1) {
+    if (candies_on() == 1) {
         double ci = 0;
         while (ci < candy_count) {
             double cp = arr_get(candy_pick, ci);
@@ -310,7 +310,6 @@ static void tick_candies(void) {
 }
 
 static void update_game(void) {
-    card_update();
     tick_alert_hold();
     tick_revive();
     tick_freeze();
@@ -334,6 +333,10 @@ static void update_game(void) {
         }
     }
     move_player();
+    codecracker_tick_solo();
+    if (finished != 0) {
+        return;
+    }
     tick_dash_solo_hit();
     tick_dash();
     tick_candies();

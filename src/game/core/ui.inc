@@ -117,6 +117,13 @@ static void button(const char *label, double x, double y, double w, double h) {
     text_in_box(label, bx, by, bw, bh, shade(text_color, 1 - PRESS_SHADE * p), s);
 }
 
+/* A greyed-out button: flat grey face, dimmed text, and it never takes the
+ * press squeeze - it is visibly (and actually) unavailable. */
+static void button_disabled_scaled(const char *label, double x, double y, double w, double h, double scale) {
+    button_face(x, y, w, h, 0xFF6E6E76);
+    text_in_box(label, x, y, w, h, 0xFFB4B4BC, scale);
+}
+
 static void button_scaled(const char *label, double x, double y, double w, double h, double scale) {
     double p = button_press_k(x, y, w, h);
     double s = 1 - PRESS_SQUEEZE * p;

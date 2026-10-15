@@ -23,6 +23,7 @@ static double acct_done; /* 1 - аккаунт удалён */
 static const char *acct_msg = "";
 static double acct_knob;     /* положение ползунка удаления, 0..1 */
 static double acct_drag = -1; /* палец, который тащит ползунок */
+static double acct_pending;  /* 1 - открыть аккаунт в конце перехода */
 static double acct_grab;     /* где палец взялся за ползунок */
 
 /* --- тексты ------------------------------------------------------------ */
@@ -82,6 +83,7 @@ static void acct_show(double mode) {
 }
 
 static void acct_close(void) {
+    acct_pending = 0;
     acct_clear_fields();
     acct_open = 0;
     acct_drag = -1;

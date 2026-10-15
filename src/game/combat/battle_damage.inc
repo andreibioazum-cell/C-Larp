@@ -42,6 +42,10 @@ static double take_damage(double dmg) {
         real = real * block_guard;
     }
     dmg_from_k = 0;
+    if (player_class == CLASS_CODECRACKER && codecracker_super_t > 0) {
+        /* The running overclock absorbs half of everything that lands. */
+        real = real * (1 - codecracker_super_absorb);
+    }
     if (player_class == CLASS_EBUC) {
         real = player_shield_absorb(real);
     }

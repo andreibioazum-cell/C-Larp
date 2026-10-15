@@ -1,28 +1,3 @@
-static const char *tr_music_state(void) {
-    if (language == 1) {
-        if (music_volume <= 0) {
-            return "Музыка: выкл";
-        }
-        if (music_volume >= 100) {
-            return "Музыка: вкл";
-        }
-        if (music_volume == 50) {
-            return "Музыка: 50%";
-        }
-        return ds_concat(ds_concat("Музыка: ", ds_num_to_string((double)(music_volume))), "%");
-    }
-    if (music_volume <= 0) {
-        return "Music: off";
-    }
-    if (music_volume >= 100) {
-        return "Music: on";
-    }
-    if (music_volume == 50) {
-        return "Music: 50%";
-    }
-    return ds_concat(ds_concat("Music: ", ds_num_to_string((double)(music_volume))), "%");
-}
-
 static const char *tr_hitboxes_toggle(void) {
     if (language == 1) {
         if (show_hitboxes == 1) {

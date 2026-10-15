@@ -19,7 +19,7 @@ static void draw_disco(void) {
 
 static void update_event(void) {
     event_mode = net_event();
-    if (event_mode == 2 && candy_enabled == 0) {
+    if (event_mode == 2 && candies_on() == 0) {
         event_mode = 0;
     }
     event_t = event_t + dt;
@@ -196,6 +196,7 @@ static void draw_online(void) {
     draw_remote_universe();
     draw_station();
     draw_remote_station();
+    draw_codecracker_fx_local();
     draw_player_body_layer();
     double hw = 25 * cube_scale * player_scale;
     const char *myn = net_player_nick(net_slot());
@@ -218,10 +219,16 @@ static void draw_online(void) {
             } else if (remote_grab_punching(i) == 1) {
                 punching = 1;
             }
+            draw_codecracker_fx_slot(i, rx, ry, ra);
             draw_fighter_body(rx, ry, ra, fighter_look_of(FLOOK_REMOTE + i),
                               fighter_pose_of(FLOOK_REMOTE + i, punching));
+            double remote_tint = astra_rw_tint_slot(i);
+            if (remote_tint == 0) {
+                remote_tint = codecracker_tint_slot(i);
+            }
             draw_fighter_tint(rx, ry, ra, fighter_look_of(FLOOK_REMOTE + i),
-                              fighter_pose_of(FLOOK_REMOTE + i, punching), player_scale, astra_rw_tint_slot(i));
+                              fighter_pose_of(FLOOK_REMOTE + i, punching), player_scale, remote_tint);
+            draw_guard(rx, ry, ra, net_player_block(i), player_scale);
             const char *rn = net_player_nick(i);
             if (str_len(rn) > 0) {
                 uint32_t rncol = admin_head_color_of(rn, 0xFFFFFF);
@@ -303,12 +310,6 @@ static void joy_touch(double x, double y, double action, double id) {
 }
 
 static void touch_game(double x, double y, double action, double id) {
-    if (card_open != 0) {
-        if (action == 0) {
-            card_close();
-        }
-        return;
-    }
     if (finished != 0) {
         if (action == 0 && finish_t >= alert_hold) {
             start_transition(0);

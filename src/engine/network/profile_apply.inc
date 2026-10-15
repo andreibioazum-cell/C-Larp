@@ -92,7 +92,7 @@ static void apply_user_json(const char *resp) {
     normalize_level_pair(&santa_level, &santa_levels_unlocked);
     normalize_level_pair(&ebuc_level, &ebuc_levels_unlocked);
     normalize_level_pair(&astra_level, &astra_levels_unlocked);
-    if (cls == 0) {
+    if (cls == 0 || cls == 6) {
         level = ordinary_level;
         levels_unlocked = ordinary_levels_unlocked;
     } else if (cls == 1) {
@@ -178,7 +178,6 @@ static void apply_user_json(const char *resp) {
 
     settings_sync_with_cloud(resp);
 
-    promo_sync_with_cloud(resp);
 }
 
 static void push_pg_to_cloud(void) {
@@ -342,15 +341,15 @@ static int apply_user_json_keep_local(const char *resp) {
             pg.cls = local_cls;
             restored = 1;
         }
-    } else if (dirty && local_cls == 5 && pg.cls != 5) {
-        pg.cls = 5;
+    } else if (dirty && (local_cls == 5 || local_cls == 6) && pg.cls != local_cls) {
+        pg.cls = local_cls;
         restored = 1;
     } else if (dirty && local_cls == 0 && pg.cls != 0) {
         pg.cls = 0;
         restored = 1;
     }
 
-    if (pg.cls == 0) {
+    if (pg.cls == 0 || pg.cls == 6) {
         pg.level = pg.ordinary_level;
         pg.levels_unlocked = pg.ordinary_levels_unlocked;
     } else if (pg.cls == 1) {

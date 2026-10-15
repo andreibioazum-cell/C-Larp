@@ -57,7 +57,9 @@ static void enemy_pick_random_class(void) {
     } else if (roll < ebuc_to) {
         enemy_class = CLASS_EBUC;
     } else if (roll < santa_to) {
-        enemy_class = CLASS_SANTA;
+        /* Santa is developer-only for now, so the bot does not roll him
+         * for anyone else either. */
+        enemy_class = dev_access() == 1 ? CLASS_SANTA : CLASS_ORDINARY;
     } else if (roll < astra_to) {
         enemy_class = CLASS_ASTRA;
     } else {

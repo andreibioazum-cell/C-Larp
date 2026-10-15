@@ -54,6 +54,16 @@ static void astra_rw_refresh(void) { astra_rw_ok = astra_rw_is_dev(); }
 
 static double astra_rw_allowed(void) { return astra_rw_ok; }
 
+/* Developer-only features: for now the winter theme, Santa and candies are
+ * available only to the two administrator accounts (Dimasi4ek229 and
+ * qwertyuiopaj1234 - the same check that unlocks the developer classes).
+ * Everyone else sees the winter button greyed out, no Santa in the shop and
+ * no candies anywhere; when the features open for all, this one function is
+ * the only switch to flip. */
+static double dev_access(void) { return astra_rw_allowed(); }
+
+static double candies_on(void) { return candy_enabled == 1 && dev_access() == 1; }
+
 /* A copied progress file cannot grant the class to a non-administrator. */
 static double astra_rw_on(void) {
     return player_class == CLASS_ASTRA_REWORK && astra_rw_allowed();

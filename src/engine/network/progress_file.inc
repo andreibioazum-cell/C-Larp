@@ -123,7 +123,7 @@ static void progress_read(void) {
     normalize_level_pair(&santa_level, &santa_levels_unlocked);
     normalize_level_pair(&ebuc_level, &ebuc_levels_unlocked);
     normalize_level_pair(&astra_level, &astra_levels_unlocked);
-    if (cls == 0) {
+    if (cls == 0 || cls == 6) {
         level = ordinary_level;
         levels_unlocked = ordinary_levels_unlocked;
     } else if (cls == 1) {

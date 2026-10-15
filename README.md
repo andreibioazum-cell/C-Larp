@@ -17,10 +17,11 @@
 
 Copyright (C) 2026 Дима Густенёв
 
-Лицензировано под GNU General Public License v3.0 (GPL-3.0) или более поздней.
-Полный текст - в файле [LICENSE](LICENSE).
+Все права защищены. Код и материалы проекта нельзя копировать, использовать,
+изменять или распространять без письменного разрешения правообладателя.
+Полные условия - в файле [LICENSE](LICENSE).
 
-SPDX-License-Identifier: GPL-3.0-or-later
+SPDX-License-Identifier: LicenseRef-Proprietary
 
 ## EN
 
@@ -39,7 +40,8 @@ form (in Russian) are in [docs/legal](docs/legal).
 
 Copyright (C) 2026 Дима Густенёв
 
-Licensed under the GNU General Public License v3.0 (GPL-3.0) or later.
-Full text in the [LICENSE](LICENSE) file.
+All rights reserved. The code and materials of this project may not be
+copied, used, modified or distributed without the copyright holder's written
+permission. Full terms in the [LICENSE](LICENSE) file.
 
-SPDX-License-Identifier: GPL-3.0-or-later
+SPDX-License-Identifier: LicenseRef-Proprietary

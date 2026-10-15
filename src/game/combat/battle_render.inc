@@ -1,7 +1,7 @@
 /* Конфета появляется только прозрачностью: она сразу стоит на своём месте в
  * полном размере, меняется лишь альфа - ни роста, ни подлёта к точке. */
 static void draw_candies(void) {
-    if (candy_enabled == 0) {
+    if (candies_on() == 0) {
         return;
     }
     double i = 0;
@@ -76,7 +76,6 @@ static void finish_game(double result) {
     santa_follow = 0;
     drop_joy();
     gift->active = 0;
-    card_active = 0;
     boom_t = 0;
     dash_active = 0;
     dash_t = 0;
@@ -131,7 +130,7 @@ static void award_battle_result(double result) {
             return;
         }
         cups = cups + cup_win;
-        if (candy_enabled == 1) {
+        if (candies_on() == 1) {
             candies = candies + candy_win;
         }
         save_progress();
@@ -205,7 +204,11 @@ static void draw_player_body_layer(void) {
                            cube_scale * player_scale, look_tex(look, punching), sprite_a(player->angle));
     }
     draw_fighter_body(player->x, player->y, player->angle, look, punching);
-    draw_fighter_tint(player->x, player->y, player->angle, look, punching, player_scale, astra_rw_tint_local());
+    double self_tint = astra_rw_tint_local();
+    if (self_tint == 0) {
+        self_tint = codecracker_tint_local();
+    }
+    draw_fighter_tint(player->x, player->y, player->angle, look, punching, player_scale, self_tint);
     draw_fighter_hurt(player->x, player->y, player->angle, look, punching, player_scale, player_hurt_a);
     draw_guard(player->x, player->y, player->angle, player_block, player_scale);
 }
@@ -302,9 +305,15 @@ static void draw_controls(void) {
             sl = tr_super_azum();
         } else if (class_is_astra(player_class) == 1) {
             sl = tr_super_astra();
+        } else if (player_class == CLASS_CODECRACKER) {
+            sl = tr_super_codecracker();
         }
         double sls = 0.55;
         double left = super_cd;
+        if (player_class == CLASS_CODECRACKER && codecracker_super_t > 0) {
+            /* While the overclock runs, the pad counts the ult itself down. */
+            left = codecracker_super_t;
+        }
         if (player_class == CLASS_AZUM) {
             left = dash_cd;
         } else if (class_is_astra(player_class) == 1) {
@@ -353,7 +362,6 @@ static void draw_game(void) {
     draw_enemy_shadow();
     draw_turret_shadows();
     draw_candies();
-    draw_card_item();
     draw_player_hitbox_layer();
     draw_enemy_hitbox();
     draw_ability_hitboxes();
@@ -363,6 +371,7 @@ static void draw_game(void) {
     draw_enemy_boom();
     draw_universe();
     draw_enemy_turrets();
+    draw_codecracker_fx_local();
     draw_player_body_layer();
     draw_status_aura(player->x, player->y, player->size, freeze_rgb, freeze_rim, pfreeze_a);
     draw_status_aura(player->x, player->y, player->size, poison_rgb, poison_rim, ppoison_a);
@@ -388,5 +397,4 @@ static void draw_game(void) {
     } else if (finished == 2) {
         draw_result(tr_defeat());
     }
-    draw_card_open();
 }

@@ -1,5 +1,5 @@
 static double winter_theme_on(void) {
-    return winter_theme == 1;
+    return winter_theme == 1 && dev_access() == 1;
 }
 
 static const char *arena_ground_tex(void) {

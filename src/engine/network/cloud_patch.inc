@@ -263,7 +263,7 @@ void net_save_progress_all(double cups, double candies, double cls, double azum,
     normalize_level_pair(&al, &au);
     normalize_level_pair(&sl, &su);
     normalize_level_pair(&el, &eul);
-    if (k == 0) {
+    if (k == 0 || k == 6) {
         lv = ol;
         lu = ou;
     } else if (k == 1) {

@@ -102,7 +102,8 @@ static const char *class_card_tex(double cls, double skin) {
 static double class_card_render_ready(double cls, double skin) { return tex_ready(class_card_tex(cls, skin)); }
 
 static double class_has_super(double cls) {
-    if (cls == CLASS_AZUM || cls == CLASS_SANTA || cls == CLASS_EBUC || class_is_astra(cls)) {
+    if (cls == CLASS_AZUM || cls == CLASS_SANTA || cls == CLASS_EBUC || cls == CLASS_CODECRACKER ||
+        class_is_astra(cls)) {
         return 1;
     }
     return 0;
@@ -122,6 +123,9 @@ static double class_punch_damage_for(double cls, double lv) {
 }
 
 static double player_max_hp_for(double cls) {
+    if (cls == CLASS_CODECRACKER) {
+        return codecracker_hp;
+    }
     if (cls == CLASS_EBUC) {
         return ebuc_hp;
     }

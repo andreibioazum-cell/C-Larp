@@ -40,7 +40,7 @@ static void settings_read(void) {
     FILE *f;
     /* -1: в файле языка нет, берём язык телефона. */
     int language = -1, hitboxes = 1, musicvol = 70, has_file = 0;
-    int winter = 1, legal = 0, theme = 1, pdc = 0, pdv = 0;
+    int winter = 0, legal = 0, theme = 1, pdc = 0, pdv = 0;
     st_lock();
     if (st.loaded) {
         st_unlock();

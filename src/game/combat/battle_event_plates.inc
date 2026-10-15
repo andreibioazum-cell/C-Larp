@@ -122,7 +122,9 @@ static void plates_collect_candies(void) {
                 }
             } else if (dist(arr_get(plates_candies, b + 4), arr_get(plates_candies, b + 5), player->x, player->y) <
                        player->size * 0.65 + 18) {
-                candies = candies + candy_give;
+                if (candies_on() == 1) {
+                    candies = candies + candy_give;
+                }
                 plates_dirty = 1;
                 arr_set(plates_candies, b, 0);
                 ds_log("event candy picked -> %g", candies);

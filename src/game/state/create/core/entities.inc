@@ -42,6 +42,7 @@ punch_cd = 0;
 aim_a = 0;
 enemy_punch_a = 0;
 rpunch_a = arr_new();
+codecracker_touch_cds = arr_new();
 santa_follow = 0;
 super_cd = 0;
 boom_t = 0;
