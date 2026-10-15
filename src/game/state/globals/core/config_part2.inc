@@ -26,7 +26,6 @@ double plates_collect_time;
 double plates_candy_vanish_time;
 double plates_candy_vanish_stagger;
 double plates_candy_pop_time;
-double plates_candy_pick_time;
 double plates_santa_out_time;
 double plates_charge_time;
 double plates_santa_turn_time;

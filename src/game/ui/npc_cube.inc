@@ -264,9 +264,8 @@ static void draw_lobby_npc_cube(void) {
 }
 
 static double hit_npc_cube(double px, double py) {
-    return hit_rect_pad(px, py, cube_npc_x - cube_npc_hit_r + cube_npc_draw_sz / 2,
-                        cube_npc_y - cube_npc_hit_r + cube_npc_draw_sz / 2,
-                        cube_npc_hit_r * 2, cube_npc_hit_r * 2);
+    return hit_rect(px, py, cube_npc_x - cube_npc_hit_r + cube_npc_draw_sz / 2,
+                    cube_npc_y - cube_npc_hit_r + cube_npc_draw_sz / 2, cube_npc_hit_r * 2, cube_npc_hit_r * 2);
 }
 
 static double hit_npc_panel(double px, double py) {

@@ -3,8 +3,9 @@
 typedef struct {
     DSMutex lock;
     int loaded, has_file;
-    int language, hitboxes, musicvol, winter, gfx;
+    int language, hitboxes, musicvol, winter, theme;
     int legal;
+    int pdc, pdv; /* согласие на обработку ПД: когда дано и на какую редакцию */
 } Settings;
 static Settings st = {.lock = DS_MUTEX_INIT};
 
@@ -15,11 +16,31 @@ static void st_unlock(void) {
     ds_mutex_unlock(st.lock);
 }
 
+static char sys_lang[8]; /* язык телефона ("ru", "en", ...), задаёт платформа */
+
+void net_set_system_language(const char *code) {
+    st_lock();
+    snprintf(sys_lang, sizeof(sys_lang), "%s", code ? code : "");
+    st_unlock();
+}
+
+/* Язык новой установки берётся из телефона: русский телефон - русская игра,
+ * любой другой - английская. Если язык неизвестен, остаётся русский
+ * (168-ФЗ: для российских игроков текст должен быть на русском). */
+static int system_language_default(void) {
+    int ru;
+    st_lock();
+    ru = !sys_lang[0] || (sys_lang[0] == 'r' && sys_lang[1] == 'u');
+    st_unlock();
+    return ru;
+}
+
 static void settings_read(void) {
     char path[320], line[128];
     FILE *f;
-    int language = 0, hitboxes = 1, musicvol = 70, has_file = 0;
-    int winter = 1, legal = 0, gfx = 1;
+    /* -1: в файле языка нет, берём язык телефона. */
+    int language = -1, hitboxes = 1, musicvol = 70, has_file = 0;
+    int winter = 1, legal = 0, theme = 1, pdc = 0, pdv = 0;
     st_lock();
     if (st.loaded) {
         st_unlock();
@@ -48,36 +69,48 @@ static void settings_read(void) {
                 winter = value;
                 continue;
             }
-            if (sscanf(line, "gfx %d", &value) == 1) {
-                gfx = value;
+            if (sscanf(line, "theme %d", &value) == 1) {
+                theme = value;
                 continue;
             }
             if (sscanf(line, "legal %d", &value) == 1) {
                 legal = value;
                 continue;
             }
+            if (sscanf(line, "pdc %d", &value) == 1) {
+                pdc = value;
+                continue;
+            }
+            if (sscanf(line, "pdv %d", &value) == 1) {
+                pdv = value;
+                continue;
+            }
         }
         fclose(f);
     }
+    if (language < 0)
+        language = system_language_default();
     st_lock();
     st.language = language ? 1 : 0;
     st.hitboxes = hitboxes ? 1 : 0;
     st.musicvol = musicvol < 0 ? 0 : (musicvol > 100 ? 100 : musicvol);
     st.winter = winter ? 1 : 0;
-    st.gfx = gfx ? 1 : 0;
+    st.theme = theme ? 1 : 0;
     st.legal = legal;
+    st.pdc = pdc > 0 ? pdc : 0;
+    st.pdv = pdc > 0 && pdv > 0 ? pdv : 0;
     st.has_file = has_file;
     st.loaded = 1;
     st_unlock();
 }
 
 static void settings_write(void) {
-    char path[320], text[192];
+    char path[320], text[256];
     settings_read();
     data_file_path(path, sizeof(path), SETTINGS_FILE);
     st_lock();
-    snprintf(text, sizeof(text), "lang %d\nhitboxes %d\nmusicvol %d\nwinter %d\ngfx %d\nlegal %d\n", st.language,
-             st.hitboxes, st.musicvol, st.winter, st.gfx, st.legal);
+    snprintf(text, sizeof(text), "lang %d\nhitboxes %d\nmusicvol %d\nwinter %d\ntheme %d\nlegal %d\npdc %d\npdv %d\n",
+             st.language, st.hitboxes, st.musicvol, st.winter, st.theme, st.legal, st.pdc, st.pdv);
     st.has_file = 1;
     st_unlock();
     file_write_atomic(path, text);
@@ -169,19 +202,21 @@ void net_save_winter_theme(double on) {
     settings_push_to_cloud();
 }
 
-double net_load_gfx_ultra(void) {
+/* The menu theme stays on this device: it is a matter of taste per screen,
+ * not part of the cloud profile. */
+double net_load_new_theme(void) {
     double v;
     settings_read();
     st_lock();
-    v = (double)st.gfx;
+    v = (double)st.theme;
     st_unlock();
     return v;
 }
 
-void net_save_gfx_ultra(double on) {
+void net_save_new_theme(double on) {
     settings_read();
     st_lock();
-    st.gfx = on ? 1 : 0;
+    st.theme = on ? 1 : 0;
     st.loaded = 1;
     st_unlock();
     settings_write();
@@ -189,6 +224,8 @@ void net_save_gfx_ultra(double on) {
 
 void net_save_settings(double language, double hitboxes) {
     settings_read();
+    if (language < 0)
+        language = system_language_default();
     st_lock();
     st.language = language ? 1 : 0;
     st.hitboxes = hitboxes ? 1 : 0;
@@ -248,4 +285,49 @@ double settings_legal_ts(void) {
     v = (double)st.legal;
     st_unlock();
     return v;
+}
+
+/* Согласие на обработку персональных данных (152-ФЗ, ст. 9). Хранится на
+ * устройстве: когда дано и на какую редакцию документов. version 0 — отзыв. */
+void settings_set_pd_consent(double version) {
+    settings_read();
+    st_lock();
+    st.pdv = version > 0 ? (int)version : 0;
+    st.pdc = version > 0 ? (int)time(NULL) : 0;
+    st.loaded = 1;
+    st_unlock();
+    settings_write();
+}
+
+double settings_pd_consent_version(void) {
+    double v;
+    settings_read();
+    st_lock();
+    v = (double)st.pdv;
+    st_unlock();
+    return v;
+}
+
+/* Копия отметки о согласии в профиле игрока: оператор должен уметь доказать,
+ * что согласие получено (ст. 9 ч. 3). Отдельный запрос: если правила базы ещё
+ * не знают этих полей, сохранение прогресса от этого не страдает. */
+void net_pd_consent_upload(void) {
+    char nick[LOGIN_NICK_MAX + 1] = "", url[URL], body[BODY];
+    int pdc, pdv;
+    settings_read();
+    st_lock();
+    pdc = st.pdc;
+    pdv = st.pdv;
+    st_unlock();
+    if (pdc <= 0 || pdv <= 0)
+        return;
+    lg_lock();
+    if (lg.status == NET_LOGIN_OK && lg.session_nick[0])
+        snprintf(nick, sizeof(nick), "%s", lg.session_nick);
+    lg_unlock();
+    if (!nick[0] || !net.base[0])
+        return;
+    snprintf(url, sizeof(url), "%s/users/%s.json", net.base, nick);
+    snprintf(body, sizeof(body), "{\"pd_consent_ts\":%d,\"pd_consent_ver\":%d}", pdc, pdv);
+    http_patch_async(url, body);
 }

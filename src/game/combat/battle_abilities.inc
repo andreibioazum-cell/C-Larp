@@ -20,10 +20,8 @@ static void tick_universe(void) {
         return;
     }
     universe_t = universe_t + dt;
-    universe_a = clamp(universe_t / ebuc_universe_collapse_time, 0, 1);
     if (universe_t >= ebuc_universe_collapse_time) {
         universe_active = 0;
-        universe_hit = 1;
         universe_collapse(ebuc_universe_damage_for(player_level));
     }
 }

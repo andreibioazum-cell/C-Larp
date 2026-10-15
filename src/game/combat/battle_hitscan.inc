@@ -1,4 +1,3 @@
-static GAME_MAYBE_UNUSED double turret_zone_half(void) { return turret_half(); }
 
 static double punch_resolve_target(double px, double py, double pdx, double pdy, double reach, double width) {
     double best = -1;

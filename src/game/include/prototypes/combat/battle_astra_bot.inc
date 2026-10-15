@@ -1,5 +1,4 @@
 static double enemy_grab_active(void);
-static double enemy_grab_holding(void);
 static void enemy_grab_swing(void);
 static double enemy_grab_punching(void);
 static void enemy_grab_clear(void);

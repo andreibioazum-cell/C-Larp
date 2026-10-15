@@ -13,7 +13,6 @@ static void grab_quiet_enemy(double t);
 static void tick_grab_quiet(void);
 static double astra_beat_damage(double max_hp);
 static double astra_final_damage(double max_hp);
-static double astra_grab_total_fraction(void);
 static double astra_zone_hits_player(double gx, double gy, double gdx, double gdy, double lv);
 static double astra_zone_hits_enemy(double gx, double gy, double gdx, double gdy, double lv);
 static double astra_locked(void);

@@ -36,22 +36,6 @@ static void resolve_fighter_looks(void) {
     resolve_fighter_look(FLOOK_BOT, enemy_class, SKIN_NORMAL);
 }
 
-static GAME_MAYBE_UNUSED const char *fighter_sprite(double cls, double punching, double skin) {
-    double look = drawable_look(cls, skin);
-    if (look == LOOK_NONE) {
-        return "";
-    }
-    return look_tex(look, punching == 1 && look_swing_ready(look) == 1);
-}
-
-static GAME_MAYBE_UNUSED double fighter_sprite_visible(double cls, double punching, double skin) {
-    (void)punching;
-    if (drawable_look(cls, skin) == LOOK_NONE) {
-        return 0;
-    }
-    return 1;
-}
-
 /* Один отступ размытия. Прозрачность 0 в движке означает «совсем
  * непрозрачный», поэтому пустые отступы просто не рисуем. */
 static void shadow_tap_circle(double x, double y, double r, double a) {

@@ -1,11 +1,9 @@
 static void draw_menu_button(double row, const char *label);
-static void draw_gfx_row(void);
 static void draw_lobby_nick(void);
 static void draw_lobby_money(void);
 static void draw_lobby(void);
 static void draw_modes(void);
 static void draw_settings(void);
-static void draw_privacy(void);
 static void draw_card_look(double look, double x, double y, double scale);
 static void draw_class_render(double cls, double skin, double x, double y, double target_px);
 static void draw_class_card(double vi);

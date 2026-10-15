@@ -91,6 +91,11 @@ static int run_write(const char *dir) {
     assert(net_load_language() == 1);
     assert(net_load_hitboxes() == 0);
     assert(net_load_music_volume() == 35);
+
+    assert(net_load_new_theme() == 1);
+    net_save_new_theme(0);
+    assert(net_load_new_theme() == 0);
+    assert(net_load_language() == 1);
     puts("native write: settings.dat created, local wins over cloud");
     return 0;
 }
@@ -100,7 +105,8 @@ static int run_read(const char *dir) {
     assert(net_load_language() == 1);
     assert(net_load_hitboxes() == 0);
     assert(net_load_music_volume() == 35);
-    puts("native read: a fresh process restores language, hitboxes and music volume");
+    assert(net_load_new_theme() == 0);
+    puts("native read: a fresh process restores language, hitboxes, music volume and theme");
     return 0;
 }
 
@@ -122,6 +128,7 @@ static int run_legacy(const char *dir) {
     assert(net_load_hitboxes() == 0);
 
     assert(net_load_music_volume() == 70);
+    assert(net_load_new_theme() == 1); /* files from before the toggle: new theme */
     net_save_settings(0, 1);
     assert(net_load_language() == 0);
     assert(net_load_hitboxes() == 1);
@@ -145,6 +152,119 @@ static int run_legal_read(const char *dir) {
     return 0;
 }
 
+static int run_fresh(const char *dir) {
+    net_set_data_path(dir);
+    assert(net_load_language() == 1); /* phone language unknown: Russian (168-FZ) */
+    assert(settings_pd_consent_version() == 0); /* no consent until the player ticks the box */
+    puts("native fresh: Russian when the phone language is unknown, no data consent until it is given");
+    return 0;
+}
+
+/* A new install follows the phone: Russian phone - Russian game, any other - English.
+ * A language already saved in settings.dat wins over the phone. */
+static int run_phone(const char *dir, const char *code, int expected) {
+    net_set_system_language(code);
+    net_set_data_path(dir);
+    assert(net_load_language() == expected);
+    printf("native phone: phone language '%s' -> game language %d\n", code, expected);
+    return 0;
+}
+
+static int run_consent(const char *dir) {
+    net_set_data_path(dir);
+    settings_set_pd_consent(1);
+    assert(settings_pd_consent_version() == 1);
+    puts("native consent: personal data consent stored with its version and time");
+    return 0;
+}
+
+static void fake_session(const char *nick, const char *pass) {
+    lg_lock();
+    snprintf(lg.session_nick, sizeof(lg.session_nick), "%s", nick);
+    snprintf(lg.session_pass, sizeof(lg.session_pass), "%s", pass);
+    lg.status = NET_LOGIN_OK;
+    lg_unlock();
+    session_save(nick, pass);
+}
+
+static double wait_delete(void) {
+    int spins = 0;
+    double st;
+    while ((st = net_delete_account_status()) == 1 && spins++ < 500)
+        sleep_ms(10);
+    return st;
+}
+
+static double wait_password(void) {
+    int spins = 0;
+    double st;
+    while ((st = net_change_password_status()) == 1 && spins++ < 500)
+        sleep_ms(10);
+    return st;
+}
+
+static int file_exists(const char *dir, const char *name) {
+    char path[512];
+    FILE *f;
+    snprintf(path, sizeof(path), "%s/%s", dir, name);
+    f = fopen(path, "r");
+    if (f)
+        fclose(f);
+    return f != NULL;
+}
+
+static int run_delete(const char *dir) {
+    double st;
+    net_set_data_path(dir);
+    assert(settings_pd_consent_version() == 1);
+    fake_session("tester", "secret1");
+    /* A wrong password deletes nothing. */
+    net_delete_account("secret2");
+    assert(wait_delete() == 4);
+    net_delete_account("");
+    assert(wait_delete() == 4);
+    assert(file_exists(dir, "auth.dat") && file_exists(dir, "progress.dat"));
+    assert(settings_pd_consent_version() == 1);
+    net_delete_account("secret1");
+    st = wait_delete();
+    assert(st == 2);
+    assert(settings_pd_consent_version() == 0);
+    assert(net_load_language() == 0); /* the player's own settings stay */
+    puts("native delete: wrong password refused; with the right one account files wiped, consent withdrawn, settings kept");
+    return 0;
+}
+
+static int run_password(const char *dir) {
+    char text[128] = "";
+    FILE *f;
+    net_set_data_path(dir);
+    net_change_password("secret1", "newpass2");
+    assert(wait_password() == 6); /* not signed in */
+    fake_session("tester", "secret1");
+    net_change_password("secret9", "newpass2");
+    assert(wait_password() == 4); /* wrong current password */
+    net_change_password("secret1", "new pass");
+    assert(wait_password() == 5); /* spaces are not allowed */
+    net_change_password("secret1", "");
+    assert(wait_password() == 5);
+    net_change_password("secret1", "newpass2");
+    assert(wait_password() == 2);
+    assert(strcmp(net_login_pass(), "newpass2") == 0);
+    {
+        char path[512];
+        snprintf(path, sizeof(path), "%s/auth.dat", dir);
+        f = fopen(path, "r");
+        assert(f);
+        assert(fgets(text, sizeof(text), f));
+        fclose(f);
+    }
+    assert(strcmp(text, "tester newpass2\n") == 0); /* autologin keeps working */
+    net_change_password("secret1", "other3");
+    assert(wait_password() == 4); /* the old password no longer works */
+    puts("native password: current password checked, new one validated, session and auth.dat moved over");
+    return 0;
+}
+
 int main(int argc, char **argv) {
     if (argc < 3) { fprintf(stderr, "usage: test <write|read|cloud> <dir>\n"); return 2; }
     if (strcmp(argv[1], "write") == 0) return run_write(argv[2]);
@@ -153,6 +273,11 @@ int main(int argc, char **argv) {
     if (strcmp(argv[1], "legacy") == 0) return run_legacy(argv[2]);
     if (strcmp(argv[1], "legal") == 0) return run_legal(argv[2]);
     if (strcmp(argv[1], "legal-read") == 0) return run_legal_read(argv[2]);
+    if (strcmp(argv[1], "fresh") == 0) return run_fresh(argv[2]);
+    if (strcmp(argv[1], "phone") == 0 && argc >= 5) return run_phone(argv[2], argv[3], atoi(argv[4]));
+    if (strcmp(argv[1], "consent") == 0) return run_consent(argv[2]);
+    if (strcmp(argv[1], "delete") == 0) return run_delete(argv[2]);
+    if (strcmp(argv[1], "password") == 0) return run_password(argv[2]);
     fprintf(stderr, "unknown mode '%s'\n", argv[1]);
     return 2;
 }
@@ -183,6 +308,7 @@ def main():
         saved = (data / "settings.dat").read_text(encoding="utf-8")
         assert "lang 1" in saved and "hitboxes 0" in saved, saved
         assert "musicvol 35" in saved, saved
+        assert "theme 0" in saved, saved
         assert "mod" not in saved, saved
         subprocess.run([*run, "read", str(data)], check=True)
 
@@ -211,6 +337,35 @@ def main():
         stamped = (legal / "settings.dat").read_text(encoding="utf-8")
         assert "legal " in stamped, stamped
         subprocess.run([*run, "legal-read", str(legal)], check=True)
+
+        fresh_install = temp / "fresh-install"
+        fresh_install.mkdir()
+        subprocess.run([*run, "fresh", str(fresh_install)], check=True)
+        for code, expected in (("en", 0), ("de", 0), ("ru", 1)):
+            phone = temp / ("phone-" + code)
+            phone.mkdir()
+            subprocess.run([*run, "phone", str(phone), code, str(expected)], check=True)
+        saved_choice = temp / "phone-saved"
+        saved_choice.mkdir()
+        (saved_choice / "settings.dat").write_text("lang 1\n", encoding="utf-8")
+        subprocess.run([*run, "phone", str(saved_choice), "en", "1"], check=True)
+
+        account = temp / "account-device"
+        account.mkdir()
+        (account / "settings.dat").write_text("lang 0\n", encoding="utf-8")
+        subprocess.run([*run, "consent", str(account)], check=True)
+        consented = (account / "settings.dat").read_text(encoding="utf-8")
+        assert "pdv 1" in consented and "pdc 0" not in consented, consented
+        for name in ("auth.dat", "progress.dat", "achievements.dat", "promo.dat", "progress.dirty"):
+            (account / name).write_text("1\n", encoding="utf-8")
+        subprocess.run([*run, "delete", str(account)], check=True)
+        for name in ("auth.dat", "progress.dat", "achievements.dat", "promo.dat", "progress.dirty"):
+            assert not (account / name).exists(), name
+        withdrawn = (account / "settings.dat").read_text(encoding="utf-8")
+        password_dir = temp / "password-device"
+        password_dir.mkdir()
+        subprocess.run([*run, "password", str(password_dir)], check=True)
+        assert "pdv 0" in withdrawn and "pdc 0" in withdrawn and "lang 0" in withdrawn, withdrawn
     return 0
 
 if __name__ == "__main__":

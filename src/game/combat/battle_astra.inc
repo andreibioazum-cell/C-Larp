@@ -76,10 +76,6 @@ static double astra_beat_damage(double max_hp) { return max_hp * astra_hit_fract
 
 static double astra_final_damage(double max_hp) { return max_hp * astra_final_fraction; }
 
-static GAME_MAYBE_UNUSED double astra_grab_total_fraction(void) {
-    return astra_hit_fraction * astra_hit_count + astra_final_fraction;
-}
-
 static double astra_zone_hits_player(double gx, double gy, double gdx, double gdy, double lv) {
     if (target_is_forward(gx, gy, gdx, gdy, player->x, player->y) == 0) {
         return 0;

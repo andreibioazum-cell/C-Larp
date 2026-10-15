@@ -20,9 +20,6 @@ static int snd_start(const char *name, int loop) {
 int snd_play(const char *name) {
     return snd_start(name, 0);
 }
-int sound_play(const char *name) {
-    return snd_play(name);
-}
 int snd_loop(const char *name) {
     return snd_start(name, 1);
 }
@@ -69,12 +66,6 @@ void snd_volume(const char *name, double volume) {
     SndSound *s = snd_find(base);
     if (s)
         s->volume = volume;
-    snd_lock_drop();
-}
-
-void snd_stop_all(void) {
-    snd_lock_take();
-    for (int i = 0; i < SND_VOICES; i++) snd_voices[i].active = 0;
     snd_lock_drop();
 }
 

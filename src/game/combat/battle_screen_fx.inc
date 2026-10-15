@@ -54,25 +54,22 @@ static void draw_vignette(void) {
     }
 }
 
-/* Полученный урон: экран слегка краснеет, не сильно. Прозрачность 0 в движке
- * означает «совсем непрозрачный», поэтому пустой отлив не рисуем. */
+/* Полученный урон: экран едва заметно краснеет приглушённым, не кислотным
+ * оттенком. Прозрачность 0 в движке означает «совсем непрозрачный», поэтому
+ * пустой отлив не рисуем. */
+#define HURT_FLASH_ALPHA 0.07
+#define HURT_FLASH_RGB 0xB04848
+
 static void draw_hurt_flash(void) {
-    if (gfx_ultra == 0) {
-        return;
-    }
-    unsigned a = (unsigned)(int)(0.22 * player_hurt_a * 255.0 + 0.5);
+    unsigned a = (unsigned)(int)(HURT_FLASH_ALPHA * player_hurt_a * 255.0 + 0.5);
     if (a < 1) {
         return;
     }
-    rect(0, 0, screen_w, screen_h, (((uint32_t)a) << 24) | 0xD81F1F);
+    rect(0, 0, screen_w, screen_h, (((uint32_t)a) << 24) | HURT_FLASH_RGB);
 }
 
-/* Обработка кадра до интерфейса: только на ультра, на низкой её нет.
- * Цветокоррекция считается в самом движке для каждого цвета кадра. */
+/* Обработка кадра до интерфейса: виньетка по краям. */
 static void draw_screen_fx(void) {
-    if (gfx_ultra == 0) {
-        return;
-    }
     draw_vignette();
 }
 

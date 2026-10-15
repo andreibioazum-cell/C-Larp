@@ -113,8 +113,6 @@ static void reset_battle(void) {
     astra_box_a = 0;
     pgrab_active = 0;
     pgrab_slot = -1;
-    pgrab_t = 0;
-    pgrab_hits = 0;
     pthrow_t = 0;
     pthrow_dx = 0;
     pthrow_dy = 0;
@@ -159,9 +157,7 @@ static void reset_battle(void) {
     universe_t = 0;
     universe_x = 0;
     universe_y = 0;
-    universe_hit = 0;
     universe_id = 0;
-    universe_a = 0;
     event_mode = 0;
     event_t = 0;
     disco_t = 0;

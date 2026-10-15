@@ -241,6 +241,7 @@ static void draw_online(void) {
     hud_bar(20, 20, w, 28, player->hp, player->max_hp, 0x7ED321, 0);
     draw_controls();
     draw_hurt_flash();
+    draw_fps_meter();
     draw_chat();
     draw_plates_hud();
     if (finished == 2) {
@@ -343,10 +344,14 @@ static void touch_game(double x, double y, double action, double id) {
      * stays a hold (finger down guards, finger up drops) and the stick keeps
      * following the finger. */
     if (game_state == ST_SOLO || game_state == ST_ONLINE) {
+        /* A pad fires exactly where it is drawn: inside its circle, the same
+         * one that squeezes on the press. The old 96 px reach was wider than
+         * the 60 px pad, so a touch beside it fired with no squeeze at all. */
+        double pr = battle_pad_r();
         double dp = dist(x, y, atk_x, atk_y);
         double dsu = class_has_super(player_class) == 1 ? dist(x, y, atk2_x, atk2_y) : 1e9;
         double db = dist(x, y, blk_x, blk_y);
-        if (action == 0 && db <= 96 && db <= dp && db <= dsu) {
+        if (action == 0 && db <= pr && db <= dp && db <= dsu) {
             blk_id = id;
             player_block = 1;
             return;
@@ -359,14 +364,14 @@ static void touch_game(double x, double y, double action, double id) {
             return;
         }
         if (class_has_super(player_class) == 1) {
-            if (action == 0 && dsu <= 96 && dsu <= dp) {
+            if (action == 0 && dsu <= pr && dsu <= dp) {
                 if (game_state == ST_SOLO || online_ready == 1) {
                     fire_super();
                 }
                 return;
             }
         }
-        if (action == 0 && dp <= 96) {
+        if (action == 0 && dp <= pr) {
             if (game_state == ST_SOLO || online_ready == 1) {
                 fire_punch();
             }

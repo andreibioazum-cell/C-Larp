@@ -92,7 +92,6 @@ static void finish_game(double result) {
     enemy_grab_clear();
     turret_heal_t = 0;
     universe_active = 0;
-    universe_a = 0;
     keyboard_hide();
     double i = 0;
     while (i < max_players) {
@@ -201,7 +200,7 @@ static void draw_guard(double x, double y, double angle, double on, double scale
 static void draw_player_body_layer(void) {
     double punching = fighter_pose_of(FLOOK_ME, player_punching_now());
     double look = fighter_look_of(FLOOK_ME);
-    if (gfx_ultra == 1 && look != LOOK_NONE) {
+    if (look != LOOK_NONE) {
         draw_motion_ghosts(player->x, player->y, mb_dx, mb_dy, 25 * cube_scale * player_scale,
                            cube_scale * player_scale, look_tex(look, punching), sprite_a(player->angle));
     }
@@ -222,17 +221,6 @@ static double enemy_punching_now(void) {
         return 1;
     }
     return 0;
-}
-
-static GAME_MAYBE_UNUSED const char *enemy_battle_tex(void) {
-    return look_tex(fighter_look_of(FLOOK_BOT), fighter_pose_of(FLOOK_BOT, enemy_punching_now()));
-}
-
-static GAME_MAYBE_UNUSED double enemy_battle_tex_visible(void) {
-    if (fighter_look_of(FLOOK_BOT) == LOOK_NONE) {
-        return 0;
-    }
-    return 1;
 }
 
 static void draw_enemy_shadow(void) {
@@ -264,7 +252,7 @@ static void draw_enemy_body(void) {
     double es = cube_scale * enemy_scale;
     double punching = fighter_pose_of(FLOOK_BOT, enemy_punching_now());
     double look = fighter_look_of(FLOOK_BOT);
-    if (gfx_ultra == 1 && look != LOOK_NONE) {
+    if (look != LOOK_NONE) {
         draw_motion_ghosts(enemy->x, enemy->y, mb_edx, mb_edy, ehw, es, look_tex(look, punching),
                            sprite_a(enemy->angle));
     }
@@ -286,7 +274,9 @@ static double battle_pad_r(void) {
     return 60;
 }
 static void draw_pad(double cx, double cy, double r, uint32_t col, const char *label, double scale) {
-    double p = button_press_k(cx - r, cy - r, r * 2, r * 2);
+    /* The squeeze is claimed by the circle itself - the same circle the
+     * touch handler fires on - not by its square bounding box. */
+    double p = button_press_k_round(cx - r, cy - r, r * 2, r * 2, r);
     double s = 1 - PRESS_SQUEEZE * p;
     double rr = r * s;
     circle(cx, cy, rr, shade(col, 1 - PRESS_SHADE * p));
@@ -359,12 +349,9 @@ static void draw_game(void) {
     draw_arena_background();
     draw_field();
     draw_dust();
-    /* Тени рисуем только на ультра: на низкой графике их нет. */
-    if (gfx_ultra == 1) {
-        draw_player_shadow_layer();
-        draw_enemy_shadow();
-        draw_turret_shadows();
-    }
+    draw_player_shadow_layer();
+    draw_enemy_shadow();
+    draw_turret_shadows();
     draw_candies();
     draw_card_item();
     draw_player_hitbox_layer();
@@ -395,6 +382,7 @@ static void draw_game(void) {
     draw_controls();
     /* Красный отлив при уроне - поверх всего, но очень слабый. */
     draw_hurt_flash();
+    draw_fps_meter();
     if (finished == 1) {
         draw_result(tr_victory());
     } else if (finished == 2) {

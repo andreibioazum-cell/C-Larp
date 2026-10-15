@@ -1,11 +1,3 @@
-double net_set_nick(const char *nick) {
-    if (!nick || !nick_valid(nick))
-        return 0.0;
-
-    if (fb_enabled())
-        return 0.0;
-    return net_auth(net.base, nick, "123456") == (double)NET_LOGIN_OK ? 1.0 : 0.0;
-}
 
 void net_logout(void) {
     char path[320];

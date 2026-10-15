@@ -115,14 +115,17 @@ static double menu_button_hit(double x, double y) {
         return 0;
     }
     if (game_state == ST_MODES) {
-        while (i <= 6) {
+        /* Rows 0..4 and the promo button in the corner. */
+        while (i <= 4) {
             if (hit_modes_row(x, y, i) == 1) return 1;
             i = i + 1;
         }
-        return 0;
+        return hit_promo_corner(x, y);
     }
     if (game_state == ST_SETTINGS) {
-        while (i <= 7) {
+        /* Only the seven rows that are drawn (0..6) click; row 7 used to click
+         * on empty space below the list. */
+        while (i <= 6) {
             if (hit_settings_row(x, y, i) == 1) return 1;
             i = i + 1;
         }
@@ -157,14 +160,15 @@ static double menu_button_hit(double x, double y) {
         return 0;
     }
     if (game_state == ST_LOGIN) {
-        return hit_login_btn(x, y) == 1 || back_hit(x, y) == 1;
+        return hit_login_btn(x, y) == 1 || back_hit(x, y) == 1 || hit_login_more(x, y) == 1 ||
+               hit_login_consent(x, y) == 1;
     }
     if (game_state == ST_PROMO) {
         double w = fit_w(560);
         double fx = center_x(w);
-        return back_hit(x, y) == 1 || hit_rect_pad(x, y, fx, promo_btn_y(), w, btn_h) == 1;
+        return back_hit(x, y) == 1 || hit_button(x, y, fx, promo_btn_y(), w, btn_h) == 1;
     }
-    if (game_state == ST_ACHIEVEMENTS || game_state == ST_LEADERBOARD || game_state == ST_PRIVACY) {
+    if (game_state == ST_ACHIEVEMENTS || game_state == ST_LEADERBOARD) {
         return back_hit(x, y);
     }
     return 0;
@@ -208,11 +212,5 @@ static void touch_menu(double x, double y, double action, double id) {
     }
     if (game_state == ST_PROMO) {
         touch_promo(x, y, action);
-        return;
-    }
-    if (game_state == ST_PRIVACY) {
-        if (back_hit(x, y) == 1) {
-            start_transition(ST_SETTINGS);
-        }
     }
 }

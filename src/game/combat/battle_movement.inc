@@ -1,3 +1,24 @@
+/* Walking speed with every bonus and slow applied - the same number move_player
+ * moves by, so anything that has to beat a walk (Astra's grab lunge) can read
+ * it. */
+static double player_walk_speed(void) {
+    double spd = joy_speed;
+    if (player_class == CLASS_AZUM && player_level >= 2) {
+        spd = spd * (1 + azum_speed_bonus);
+    } else if (player_class == CLASS_ORDINARY && player_level >= 2) {
+        spd = spd * (1 + ordinary_speed_bonus);
+    }
+    spd = spd * admin_cheat_speed_mult();
+    if (player_freeze > 0) {
+        spd = spd * player_freeze_slow;
+    }
+    if (player_block == 1) {
+        /* Holding the guard plants the feet: heavy movement, no dashing. */
+        spd = spd * block_speed_k;
+    }
+    return spd;
+}
+
 static void move_player(void) {
     if (pthrow_t > 0) {
         tick_player_throw();
@@ -44,20 +65,7 @@ static void move_player(void) {
         tick_dust(dash_dx, dash_dy, 1);
         return;
     }
-    double spd = joy_speed;
-    if (player_class == CLASS_AZUM && player_level >= 2) {
-        spd = spd * (1 + azum_speed_bonus);
-    } else if (player_class == CLASS_ORDINARY && player_level >= 2) {
-        spd = spd * (1 + ordinary_speed_bonus);
-    }
-    spd = spd * admin_cheat_speed_mult();
-    if (player_freeze > 0) {
-        spd = spd * player_freeze_slow;
-    }
-    if (player_block == 1) {
-        /* Holding the guard plants the feet: heavy movement, no dashing. */
-        spd = spd * block_speed_k;
-    }
+    double spd = player_walk_speed();
     player->x = player->x + joy.dx * spd * dt;
     player->y = player->y + joy.dy * spd * dt;
     double jm = sqrt(joy.dx * joy.dx + joy.dy * joy.dy);

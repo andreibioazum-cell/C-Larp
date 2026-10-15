@@ -179,8 +179,6 @@ static void apply_user_json(const char *resp) {
     settings_sync_with_cloud(resp);
 
     promo_sync_with_cloud(resp);
-
-    playtime_sync_with_cloud(resp);
 }
 
 static void push_pg_to_cloud(void) {

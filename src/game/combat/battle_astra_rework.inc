@@ -177,13 +177,14 @@ static double astra_rw_self_damage(void) {
     return astra_rw_punch_damage_for(player_class, player_level, astra_rw_local());
 }
 
-/* The tiny forward step Astra (Rework) takes when the ultimate is pressed.
+/* The forward step Astra (Rework) takes when the ultimate is pressed.
  *
- * It is small and smooth: the body glides to the target over
- * astra_rw_lunge_time with a smoothstep ease instead of jumping there in one
- * frame. The grab origin - the hitbox and the zone published to the other
- * clients - is the end of the step, captured at cast time, exactly where the
- * old instant hop put it, so the grab stays identical for everyone and no
+ * It is short and smooth: the body bursts off and glides to the target over
+ * astra_rw_lunge_time with an ease-out instead of jumping there in one
+ * frame. On the move the step is lengthened by the ground the walk would
+ * have covered, so it always reads as a dash. The grab origin - the hitbox
+ * and the zone published to the other clients - is the end of the step,
+ * captured at cast time, so the grab stays identical for everyone and no
  * extra network write is needed. The glide itself is ordinary local movement
  * (a few pixels per frame, movement is locked during the grab anyway). */
 static void astra_rw_lunge_start(void) {
@@ -197,8 +198,17 @@ static void astra_rw_lunge_start(void) {
     }
     double dx = cos(player->angle);
     double dy = sin(player->angle);
-    astra_rw_lunge_tx = clamp(player->x + dx * astra_rw_lunge_dist, player->size, screen_w - player->size);
-    astra_rw_lunge_ty = clamp(player->y + dy * astra_rw_lunge_dist, player->size, screen_h - player->size);
+    /* On the move the step has to beat the walk, or it is no dash at all:
+     * 37 px in 0.16 s is just about walking pace, so a walking Astra used to
+     * simply stop and ease forward. The ground the walk would have covered
+     * in that time is added on top, so the lunge always carries her
+     * astra_rw_lunge_dist further than walking would. */
+    double dist = astra_rw_lunge_dist;
+    if (sqrt(joy.dx * joy.dx + joy.dy * joy.dy) > 0.15) {
+        dist = dist + player_walk_speed() * astra_rw_lunge_time;
+    }
+    astra_rw_lunge_tx = clamp(player->x + dx * dist, player->size, screen_w - player->size);
+    astra_rw_lunge_ty = clamp(player->y + dy * dist, player->size, screen_h - player->size);
     dust_trail(astra_rw_lunge_tx, astra_rw_lunge_ty, dx, dy);
 }
 
@@ -215,8 +225,11 @@ static void astra_rw_lunge_tick(void) {
         player->y = astra_rw_lunge_ty;
         return;
     }
-    double p = astra_rw_lunge_t / astra_rw_lunge_time;
-    p = p * p * (3 - 2 * p);
+    /* Ease-out: the lunge bursts off at three times its average speed and
+     * settles onto the grab origin. The old smoothstep started from a dead
+     * stop, which on the move read as braking rather than a dash. */
+    double p = 1 - astra_rw_lunge_t / astra_rw_lunge_time;
+    p = 1 - p * p * p;
     player->x = astra_rw_lunge_fx + (astra_rw_lunge_tx - astra_rw_lunge_fx) * p;
     player->y = astra_rw_lunge_fy + (astra_rw_lunge_ty - astra_rw_lunge_fy) * p;
 }

@@ -47,7 +47,9 @@ static void draw_lobby(void) {
     draw_menu_button(4, tr_achievements());
     draw_lobby_nick();
     draw_lobby_money();
-    draw_lobby_npc_cube();
+    if (new_theme == 1) {
+        draw_lobby_npc_cube(); /* the NPC cube belongs to the new theme */
+    }
     if (str_len(banned_msg) > 0) {
         ctext(banned_msg, lobby_msg_y(), text_color);
     }
@@ -59,23 +61,9 @@ static void draw_modes(void) {
     button(tr_solo(), menu_x(), modes_row(1), menu_btn_w(), btn_h);
     button(tr_online(), menu_x(), modes_row(2), menu_btn_w(), btn_h);
     button(tr_top(), menu_x(), modes_row(3), menu_btn_w(), btn_h);
-    button(tr_promo(), menu_x(), modes_row(4), menu_btn_w(), btn_h);
-    button_scaled(tr_winter_toggle(), menu_x(), modes_row(5), menu_btn_w(), btn_h, 0.8);
-    draw_gfx_row();
-}
-
-/* Две кнопки графики в одном ряду; выбранная обведена по контуру. */
-static void draw_gfx_row(void) {
-    double w = gfx_btn_w();
-    double y = modes_row(6);
-    double lw = fit_text_scale(tr_gfx_low(), w - 16, 1);
-    double uw = fit_text_scale(tr_gfx_ultra(), w - 16, 1);
-    button_scaled(tr_gfx_low(), gfx_low_x(), y, w, btn_h, lw);
-    button_scaled(tr_gfx_ultra(), gfx_ultra_x(), y, w, btn_h, uw);
-    double gx = gfx_ultra == 1 ? gfx_ultra_x() : gfx_low_x();
-    double p = button_press_k(gx, y, w, btn_h);
-    double s = 1 - PRESS_SQUEEZE * p;
-    roundrect_outline(squeeze_x(gx, w, s), squeeze_y(y, y, btn_h, s), w * s, btn_h * s, btn_radius, 3, text_color);
+    button_scaled(tr_winter_toggle(), menu_x(), modes_row(4), menu_btn_w(), btn_h, 0.8);
+    /* The promo code lives in the bottom-right corner, out of the column. */
+    button(tr_promo(), promo_corner_x(), promo_corner_y(), promo_corner_w(), btn_h);
 }
 
 static void draw_settings(void) {
@@ -85,28 +73,9 @@ static void draw_settings(void) {
     button("Русский", menu_x(), settings_row_y(2), menu_btn_w(), settings_btn_h());
     button(tr_hitboxes_toggle(), menu_x(), settings_row_y(3), menu_btn_w(), settings_btn_h());
     button(tr_music_state(), menu_x(), settings_row_y(4), menu_btn_w(), settings_btn_h());
-    button_scaled(tr_privacy(), menu_x(), settings_row_y(5), menu_btn_w(), settings_btn_h(), 0.8);
-}
-
-static void draw_privacy(void) {
-    screen_fill();
-    draw_back();
-    double top = screen_h / 2 - 160;
-    if (top < 96) {
-        top = 96;
-    }
-    ctext_scaled(tr_privacy_title(), top, text_color, 0.9);
-    double y = top + 54;
-    ctext_scaled(tr_privacy_line1(), y, text_color, 0.5);
-    ctext_scaled(tr_privacy_line2(), y + 26, text_color, 0.5);
-    ctext_scaled(tr_privacy_line3(), y + 52, text_color, 0.5);
-    ctext_scaled(tr_privacy_line4(), y + 78, text_color, 0.5);
-    ctext_scaled(tr_privacy_line5(), y + 104, text_color, 0.5);
-    ctext_scaled(tr_privacy_line6(), y + 130, text_color, 0.5);
-    ctext_scaled(tr_privacy_line7(), y + 156, text_color, 0.5);
-    ctext_scaled(tr_privacy_line8(), y + 182, text_color, 0.5);
-    ctext_scaled(tr_privacy_line9(), y + 208, text_color, 0.5);
-    ctext_scaled(tr_privacy_line10(), y + 234, text_color, 0.5);
+    button(tr_theme_label(), menu_x(), settings_row_y(5), menu_btn_w(), settings_btn_h());
+    button_scaled(tr_legal(), menu_x(), settings_row_y(6), menu_btn_w(), settings_btn_h(),
+                  fit_text_scale(tr_legal(), menu_btn_w() - 24, 0.8));
 }
 
 static void draw_card_look(double look, double x, double y, double scale) {

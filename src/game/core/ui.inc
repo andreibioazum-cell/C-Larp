@@ -41,10 +41,6 @@ static double hit_rect(double px, double py, double x, double y, double w, doubl
     return 0;
 }
 
-static double hit_rect_pad(double px, double py, double x, double y, double w, double h) {
-    return hit_rect(px, py, x - touch_pad_x, y - touch_pad_y, w + 2 * touch_pad_x, h + 2 * touch_pad_y);
-}
-
 static void ctext(const char *s, double y, uint32_t c) { text(s, (screen_w - text_ink_width(s)) / 2, y, c); }
 
 static void ctext_scaled(const char *s, double y, uint32_t c, double scale) {
@@ -85,12 +81,6 @@ static void centered_text(const char *label, double x, double w, double y, uint3
     text_scaled(label, x + (w - tw) / 2, y, c, scale);
 }
 
-static GAME_MAYBE_UNUSED void rtext_in_box(const char *label, double x, double y, double w, double pad, uint32_t c,
-                                           double scale) {
-    double tw = text_ink_width(label) * scale;
-    text_scaled(label, x + w - pad - tw, y, c, scale);
-}
-
 static void money_pair(const char *left, const char *right, double y, double scale, double gap) {
     double lw = text_ink_width(left) * scale;
     double rw = text_ink_width(right) * scale;
@@ -105,70 +95,14 @@ static void draw_nick_msg(const char *nick, const char *rest, double x, double y
     text_scaled(rest, x + nw, y, base, scale);
 }
 
-/* Press feedback: a button answers the touch itself, not the release. The
- * press squeezes it by 5% and darkens it by 25%, and the squeeze then springs
- * back on its own - the finger does not have to lift, stay put or be let go
- * gently, the pulse always runs to the end. That is what makes a press feel
- * like a press instead of a hold.
- *
- * The pulse is owned by the control the finger landed on (press_btn_*): the
- * first one drawn under the touch claims it, so a card claims it before the
- * pill inside it. press_k ramps 0 -> 1 -> 0 (update_button_press), and every
- * edge is smoothstepped, so the squeeze eases in and eases back out. */
-#define PRESS_IN_TIME 0.06
-#define PRESS_OUT_TIME 0.13
-#define PRESS_SQUEEZE 0.05
-#define PRESS_SHADE 0.25
-
-static double press_btn_live;
-static double press_btn_x;
-static double press_btn_y;
-static double press_btn_w;
-static double press_btn_h;
-static double press_btn_gen;
-
-static double button_press_k(double x, double y, double w, double h) {
-    if (press_new == 1 && press_phase == 0 && hit_rect(press_x, press_y, x, y, w, h) == 1) {
-        /* A fresh touch: this control owns the pulse. */
-        press_new = 0;
-        press_btn_live = 1;
-        press_btn_x = x;
-        press_btn_y = y;
-        press_btn_w = w;
-        press_btn_h = h;
-        press_btn_gen = ui_nav_gen;
-        press_k = 0;
-        press_phase = 1;
-    }
-    /* Пульс принадлежит тому экрану, где его взяли: на следующем экране в тех
-     * же координатах часто стоит своя кнопка (ряды меню и настроек совпадают),
-     * и на низком fps недосжавшийся пульс мигал бы уже на ней. */
-    if (press_btn_live == 1 && press_phase != 0 && press_btn_gen == ui_nav_gen && x == press_btn_x &&
-        y == press_btn_y && w == press_btn_w && h == press_btn_h) {
-        /* Smoothstep: the squeeze eases in and the spring back eases out. */
-        return press_k * press_k * (3 - 2 * press_k);
-    }
-    return 0;
-}
-
-static void update_button_press(void) {
-    if (press_phase == 1) {
-        press_k = press_k + dt / PRESS_IN_TIME;
-        if (press_k >= 1) {
-            press_k = 1;
-            press_phase = 2;
-        }
+/* The face of a button: the new theme paints the glossy gradient, the old
+ * one a flat rounded slab. */
+static void button_face(double x, double y, double w, double h, double col) {
+    if (new_theme == 1) {
+        cb_button_gradient(x, y, w, h, btn_radius, col);
         return;
     }
-    if (press_phase == 2) {
-        press_k = press_k - dt / PRESS_OUT_TIME;
-        if (press_k <= 0) {
-            /* Back to rest: the next touch may claim any control again. */
-            press_k = 0;
-            press_phase = 0;
-            press_btn_live = 0;
-        }
-    }
+    roundrect(x, y, w, h, btn_radius, col);
 }
 
 static void button(const char *label, double x, double y, double w, double h) {
@@ -179,7 +113,7 @@ static void button(const char *label, double x, double y, double w, double h) {
     double bw = w * s;
     double bh = h * s;
     double col = shade(ui_purple, 1 - PRESS_SHADE * p);
-    cb_button_gradient(bx, by, bw, bh, btn_radius, col);
+    button_face(bx, by, bw, bh, col);
     text_in_box(label, bx, by, bw, bh, shade(text_color, 1 - PRESS_SHADE * p), s);
 }
 
@@ -191,7 +125,7 @@ static void button_scaled(const char *label, double x, double y, double w, doubl
     double bw = w * s;
     double bh = h * s;
     double col = shade(ui_purple, 1 - PRESS_SHADE * p);
-    cb_button_gradient(bx, by, bw, bh, btn_radius, col);
+    button_face(bx, by, bw, bh, col);
     text_in_box(label, bx, by, bw, bh, shade(text_color, 1 - PRESS_SHADE * p), scale * s);
 }
 
@@ -224,10 +158,17 @@ static void outline_arc(double cx, double cy, double rr, double t, uint32_t c, d
     line(cx + mx * 0.3827 * rr, cy + my * 0.9239 * rr, cx, cy + my * rr, t, c);
 }
 
+/* Two looks, switched in the settings. The new theme is purple with a
+ * gradient backdrop and glossy buttons; the old one is the rose theme the
+ * game had before: rose buttons on a flat burgundy background. */
 static void apply_theme(void) {
-    /* The old pink theme is gone; these are the only look now. */
-    ui_purple = 0xFF5F10A0;
-    bg_screen = 0x1A1A2E;
+    if (new_theme == 1) {
+        ui_purple = 0xFF5F10A0;
+        bg_screen = 0x1A1A2E;
+    } else {
+        ui_purple = 0xFFD4508A;
+        bg_screen = 0xFF3A1530;
+    }
     transition_duration = 0.10;
 }
 
@@ -235,7 +176,7 @@ static void draw_back(void) {
     button(tr_back(), (screen_w - btn_w) / 2, back_y, btn_w, btn_h);
 }
 
-static double back_hit(double x, double y) { return hit_rect_pad(x, y, (screen_w - btn_w) / 2, back_y, btn_w, btn_h); }
+static double back_hit(double x, double y) { return hit_button(x, y, (screen_w - btn_w) / 2, back_y, btn_w, btn_h); }
 
 static double battle_back_x(void) { return (screen_w - btn_w) / 2; }
 
@@ -243,17 +184,22 @@ static double battle_back_y(void) { return back_y; }
 
 static void draw_battle_back(void) { button(tr_back(), battle_back_x(), battle_back_y(), btn_w, btn_h); }
 
-static double battle_back_hit(double x, double y) { return hit_rect_pad(x, y, battle_back_x(), battle_back_y(), btn_w, btn_h); }
+static double battle_back_hit(double x, double y) { return hit_button(x, y, battle_back_x(), battle_back_y(), btn_w, btn_h); }
 
 static void screen_fill(void) {
-    double top = bg_screen;
-    double bottom = bg_gradient_bottom;
-    if (newyear_active() == 1) {
-        top = newyear_bg_top;
-        bottom = newyear_bg_bottom;
+    if (new_theme == 0) {
+        /* The old theme is flat: one burgundy fill, no gradient. */
+        rect(0, 0, screen_w, screen_h, bg_screen);
+    } else {
+        double top = bg_screen;
+        double bottom = bg_gradient_bottom;
+        if (newyear_active() == 1) {
+            top = newyear_bg_top;
+            bottom = newyear_bg_bottom;
+        }
+        rect(0, 0, screen_w, screen_h, top);
+        draw_bottom_gradient(top, bottom);
     }
-    rect(0, 0, screen_w, screen_h, top);
-    draw_bottom_gradient(top, bottom);
     /* Winter snow is part of the backdrop: every menu screen paints its
      * background here first, so flakes fall across the whole width - buttons
      * included - yet never on top of a button or the dialogue. */

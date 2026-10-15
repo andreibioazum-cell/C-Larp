@@ -153,6 +153,8 @@ static void update_music(void) {
 
 static void logic_update(void) {
     update_warning();
+    docs_tick();
+    acct_tick();
     update_studio();
     update_alpha_notice();
     update_transition();
@@ -178,16 +180,13 @@ static void logic_update(void) {
         update_game();
     } else if (game_state == ST_ONLINE) {
         update_online();
-    } else if (game_state == ST_LOGIN) {
+    } else if (game_state == ST_LOGIN && acct_open == 0) {
         update_login();
     } else if (game_state == ST_PROMO) {
         update_promo();
     }
     update_newyear();
     update_weather();
-    /* Цветокоррекция работает только в бою: лобби, меню и магазин остаются с
-     * настоящими цветами. Переключаем её здесь, до отрисовки кадра. */
-    ds_gfx_grade(gfx_ultra == 1 && (game_state == ST_SOLO || game_state == ST_ONLINE));
 }
 
 static void draw_screen(void) {
@@ -213,8 +212,6 @@ static void draw_screen(void) {
         draw_achievements();
     } else if (game_state == ST_PROMO) {
         draw_promo();
-    } else if (game_state == ST_PRIVACY) {
-        draw_privacy();
     } else {
         draw_online();
     }
@@ -243,6 +240,14 @@ static void logic_draw(void) {
     /* Snow above the studio splash, but never above the curtain or the
      * epilepsy warning. */
     draw_newyear_over_notices();
+    /* The documents window covers everything but the admin orb: it opens
+     * over the epilepsy warning and over the login screen alike. */
+    if (docs_open == 1) {
+        draw_docs();
+    }
+    if (acct_open != 0) {
+        draw_account();
+    }
     draw_achievement_toast();
     /* Last of all: the admin orb and its panel are never covered, not by the
      * transition curtain, not by the epilepsy warning or the splash. */
@@ -286,6 +291,14 @@ static double logic_back(void) {
         admin_panel_close();
         return 1;
     }
+    if (acct_open != 0) {
+        acct_back();
+        return 1;
+    }
+    if (docs_open == 1) {
+        docs_close();
+        return 1;
+    }
     if (warn_open == 1) {
         return 0;
     }
@@ -314,10 +327,6 @@ static double logic_back(void) {
         start_transition(ST_MODES);
         return 1;
     }
-    if (game_state == ST_PRIVACY) {
-        start_transition(ST_SETTINGS);
-        return 1;
-    }
     if (game_state == ST_LOGIN) {
         keyboard_hide();
         keyboard_clear();
@@ -343,15 +352,19 @@ static void logic_touch(double x, double y, double action, double id) {
      * press pulse (press_new): the next control drawn under it takes the
      * squeeze, so a button always shows its feedback on the touch itself. */
     if (action == 0) {
-        press_down = 1;
         press_x = x;
         press_y = y;
         press_new = 1;
+        press_id = id;
     } else if (action == 2) {
-        press_x = x;
-        press_y = y;
+        /* Only the finger that armed the pulse moves it: in a fight the stick
+         * finger keeps sliding and used to drag the press point off the pad
+         * that was just hit, so the punch went off without its squeeze. */
+        if (id == press_id && press_new == 1) {
+            press_x = x;
+            press_y = y;
+        }
     } else if (action == 1 || action == 3) {
-        press_down = 0;
         if (action == 3) {
             /* The gesture was taken away: no press feedback for it. */
             press_new = 0;
@@ -361,20 +374,40 @@ static void logic_touch(double x, double y, double action, double id) {
      * transition curtain and the epilepsy warning - and consume their own
      * touches before anything else, so they never disappear mid-transition. */
     if (admin_touch(x, y, action, id) == 1) {
+        if (action == 0) {
+            press_new = 0;
+        }
         return;
     }
     if (t_dir != 0) {
+        /* A touch that lands mid-transition is ignored, so it may not squeeze
+         * anything either (a move of the finger that started the transition
+         * keeps its squeeze). */
+        if (action == 0) {
+            press_new = 0;
+        }
         classes_swipe_reset();
         return;
     }
-    if (game_state != ST_CLASSES || warn_open == 1 || studio_open == 1) {
+    if (game_state != ST_CLASSES || acct_open != 0 || docs_open == 1 || warn_open == 1 || studio_open == 1) {
         classes_swipe_reset();
+    }
+    if (acct_open != 0) {
+        touch_account(x, y, action, id);
+        return;
+    }
+    if (docs_open == 1) {
+        touch_docs(x, y, action);
+        return;
     }
     if (warn_open == 1) {
         touch_warn(x, y, action);
         return;
     }
     if (studio_open == 1) {
+        if (action == 0) {
+            press_new = 0;
+        }
         return;
     }
     /* Battles keep raw touches - the joysticks and the block pad must react
@@ -400,7 +433,7 @@ static void logic_touch(double x, double y, double action, double id) {
     }
     /* An open dialogue consumes the press as its skip action, so the menu
      * rows behind it never fire. */
-    double dialog_skip = game_state == ST_LOBBY && cube_npc_dialogue_active == 1;
+    double dialog_skip = game_state == ST_LOBBY && new_theme == 1 && cube_npc_dialogue_active == 1;
     if (menu_button_hit(x, y) == 1 && dialog_skip == 0) {
         play_button_click();
     }

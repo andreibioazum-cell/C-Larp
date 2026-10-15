@@ -128,9 +128,8 @@ static double promo_msg_y(void) {
     return promo_btn_y() + btn_h + 16;
 }
 
-static void promo_set_msg(const char *text, double kind) {
+static void promo_set_msg(const char *text) {
     promo_msg_text = text;
-    promo_msg_kind = kind;
     promo_msg_t = 4.0;
 }
 
@@ -178,24 +177,24 @@ static void promo_submit(void) {
     }
     const char *code = str_upper(str_trim(promo_input));
     if (str_len(code) == 0) {
-        promo_set_msg(tr_promo_need_code(), 0);
+        promo_set_msg(tr_promo_need_code());
         return;
     }
     if (net_login_status() != 2) {
-        promo_set_msg(tr_promo_need_login(), 0);
+        promo_set_msg(tr_promo_need_login());
         promo_leave();
         return;
     }
     if (promo_code_valid(code) == 0) {
-        promo_set_msg(tr_promo_bad(), 0);
+        promo_set_msg(tr_promo_bad());
         return;
     }
     if (net_promo_used() == 1) {
-        promo_set_msg(tr_promo_used_msg(), 0);
+        promo_set_msg(tr_promo_used_msg());
         return;
     }
     if (net_promo_check(code) == 0) {
-        promo_set_msg(tr_promo_bad(), 0);
+        promo_set_msg(tr_promo_bad());
         return;
     }
     cups = cups + promo_reward_cups;
@@ -204,7 +203,7 @@ static void promo_submit(void) {
     save_progress();
     ds_log("promo redeemed: +%g cups +%g candies", promo_reward_cups, promo_reward_candies);
     promo_leave();
-    promo_set_msg(tr_promo_success(), 1);
+    promo_set_msg(tr_promo_success());
 }
 
 static void update_promo(void) {
@@ -270,7 +269,7 @@ static void touch_promo(double x, double y, double action) {
         keyboard_show();
         return;
     }
-    if (hit_rect_pad(x, y, fx, promo_btn_y(), w, btn_h) == 1) {
+    if (hit_button(x, y, fx, promo_btn_y(), w, btn_h) == 1) {
         promo_submit();
         return;
     }

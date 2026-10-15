@@ -181,13 +181,6 @@ void keyboard_get_text_to(char *dst, size_t cap) {
     pthread_mutex_unlock(&kb_mutex);
 }
 
-const char *keyboard_get_raw(void) {
-    pthread_mutex_lock(&kb_mutex);
-    snprintf(kb_raw_snapshot, sizeof(kb_raw_snapshot), "%s", kb_text);
-    pthread_mutex_unlock(&kb_mutex);
-    return kb_raw_snapshot;
-}
-
 void keyboard_clear(void) {
     pthread_mutex_lock(&kb_mutex);
     kb_text[0] = '\0';
@@ -403,8 +396,6 @@ int keyboard_handle_key(int keycode, int action, int meta) {
     }
     return 0;
 }
-
-void keyboard_commit_utf8(const char *utf8) { keyboard_type(utf8); }
 
 JNIEXPORT void JNICALL Java_com_cb4_GameActivity_nativeReplaceText(JNIEnv *env, jobject self, jstring value) {
     (void)self;

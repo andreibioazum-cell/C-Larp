@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <time.h>
+#include <android/configuration.h>
 #include <android/input.h>
 #include <android/keycodes.h>
 #include <android/native_activity.h>
@@ -346,6 +347,12 @@ void android_main(struct android_app *app) {
     net_set_java_vm(app->activity->vm);
     ds_sound_set_java_vm((void *)app->activity->vm);
     net_set_data_path(app->activity->internalDataPath);
+    {
+        char lang[3] = {0};
+        if (app->config)
+            AConfiguration_getLanguage(app->config, lang);
+        net_set_system_language(lang);
+    }
     ds_set_activity(app->activity);
     ds_log("Cubic Battle 4: C + Vulkan");
     for (;;) {

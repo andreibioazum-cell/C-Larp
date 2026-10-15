@@ -49,21 +49,6 @@ static const char *tr_winter_toggle(void) {
     return "Winter theme: OFF";
 }
 
-/* Графика: две кнопки в одном ряду экрана «Играть». */
-static const char *tr_gfx_low(void) {
-    if (language == 1) {
-        return "Низкая";
-    }
-    return "Low";
-}
-
-static const char *tr_gfx_ultra(void) {
-    if (language == 1) {
-        return "Ультра";
-    }
-    return "Ultra";
-}
-
 static const char *tr_newyear_banner(void) {
     if (language == 1) {
         return "С Новым годом!";
@@ -71,3 +56,9 @@ static const char *tr_newyear_banner(void) {
     return "Happy New Year!";
 }
 
+static const char *tr_theme_label(void) {
+    if (language == 1) {
+        return new_theme == 1 ? "Тема: Новая" : "Тема: Старая";
+    }
+    return new_theme == 1 ? "Theme: New" : "Theme: Old";
+}

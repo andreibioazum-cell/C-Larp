@@ -11,8 +11,6 @@ static void draw_player_shadow_layer(void);
 static void draw_player_hitbox_layer(void);
 static void draw_player_body_layer(void);
 static double enemy_punching_now(void);
-static const char *enemy_battle_tex(void);
-static double enemy_battle_tex_visible(void);
 static void draw_enemy_shadow(void);
 static void draw_enemy_hitbox(void);
 static void draw_enemy_body(void);

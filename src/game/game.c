@@ -4,12 +4,6 @@
 #include "engine/network.h"
 #include <math.h>
 
-#if defined(__GNUC__) || defined(__clang__)
-#define GAME_MAYBE_UNUSED __attribute__((unused))
-#else
-#define GAME_MAYBE_UNUSED
-#endif
-
 #include "types.inc"
 #include "state.inc"
 #include "functions.inc"
@@ -20,11 +14,16 @@
 #include "ui/locale_progress.inc"
 #include "ui/locale_progress_part2.inc"
 #include "ui/locale_extra.inc"
+#include "ui/legal_text.inc"
+#include "ui/chat_filter.inc"
+#include "core/press.inc"
 #include "core/ui.inc"
 #include "ui/progress_classes.inc"
 #include "ui/progress_rewards.inc"
 #include "ui/promo.inc"
 #include "ui/layout.inc"
+#include "ui/account.inc"
+#include "ui/legal.inc"
 #include "ui/chat.inc"
 #include "ui/npc_cube.inc"
 #include "ui/menu_screens.inc"

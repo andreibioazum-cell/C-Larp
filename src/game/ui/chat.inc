@@ -59,30 +59,30 @@ static double admin_handle(const char *msg) {
         double cur = net_event();
         if (cur == 0) {
             net_event_set(1);
-            net_chat_send(ds_concat(ds_concat("DISCO EVENT by ", by), "!"));
+            net_chat_send(ds_concat(ds_concat("ДИСКО-СОБЫТИЕ от ", by), "!"));
             ds_log("admin: event 0 -> disco ON");
         } else {
             net_event_set(0);
-            net_chat_send(ds_concat("EVENT OFF by ", by));
+            net_chat_send(ds_concat("СОБЫТИЕ ВЫКЛЮЧИЛ ", by));
             ds_log("admin: event 0 -> OFF");
         }
         return 1;
     }
     if (str_eq(msg, "event 1") == 1) {
         net_event_set(1);
-        net_chat_send(ds_concat(ds_concat("DISCO EVENT by ", by), "!"));
+        net_chat_send(ds_concat(ds_concat("ДИСКО-СОБЫТИЕ от ", by), "!"));
         ds_log("admin: event 1 disco");
         return 1;
     }
     if (str_eq(msg, "event 2") == 1 || str_eq(msg, "event 3") == 1) {
         net_event_set(2);
-        net_chat_send(ds_concat("PLATES EVENT by ", by));
+        net_chat_send(ds_concat("СОБЫТИЕ «ПЛИТЫ» от ", by));
         ds_log("admin: event 2 plates");
         return 1;
     }
     if (str_eq(msg, "event 4") == 1) {
         net_event_set(4);
-        net_chat_send(ds_concat(ds_concat("INFECTION EVENT by ", by), "!"));
+        net_chat_send(ds_concat(ds_concat("СОБЫТИЕ «ЗАРАЖЕНИЕ» от ", by), "!"));
         ds_log("admin: event 4 infection");
         return 1;
     }
@@ -95,7 +95,7 @@ static double admin_handle(const char *msg) {
                 return 1;
             }
             net_ban_set(t1, 1);
-            net_chat_send(ds_concat(ds_concat(t1, " BANNED by "), by));
+            net_chat_send(ds_concat(ds_concat(t1, " ЗАБЛОКИРОВАН, админ "), by));
             ds_log("admin ban %s", t1);
             return 1;
         }
@@ -104,7 +104,7 @@ static double admin_handle(const char *msg) {
         const char *t2 = net_chat_unban_target(msg);
         if (str_len(t2) > 0) {
             net_ban_set(t2, 0);
-            net_chat_send(ds_concat(ds_concat(t2, " UNBANNED by "), by));
+            net_chat_send(ds_concat(ds_concat(t2, " РАЗБЛОКИРОВАН, админ "), by));
             ds_log("admin unban %s", t2);
             return 1;
         }
@@ -149,7 +149,8 @@ static void chat_send(void) {
             return;
         }
     }
-    net_chat_send(chat_input);
+    /* Мат, ругань и ссылки уходят в чат звёздочками (игра 12+). */
+    net_chat_send(chat_clean(chat_input));
     ds_log("chat: %s", chat_input);
     chat_input = "";
     keyboard_clear();
@@ -284,6 +285,8 @@ static void draw_chat(void) {
     }
     screen_fill();
     double cx = chat_close_x();
+    /* The open chat covers the fight, so its own buttons claim the press. */
+    press_overlay = 1;
     button(tr_close(), cx, chat_top_y(), btn_w, btn_h);
     double lx = 16;
     double lw = screen_w - 32;
@@ -314,7 +317,7 @@ static void draw_chat(void) {
                 if (str_len(st) > 0) {
                     tex(lx + 8, yy + (line_h - 24) / 2, st, 0, 0.24);
                 } else {
-                    draw_nick_msg(uid, ds_concat(": ", net_chat_text(idx)), lx, yy, text_color, 0.5);
+                    draw_nick_msg(uid, ds_concat(": ", chat_clean(net_chat_text(idx))), lx, yy, text_color, 0.5);
                 }
                 yy = yy + line_h;
                 idx = idx + 1;
@@ -335,6 +338,7 @@ static void draw_chat(void) {
         text_in_field(shown, lx + 10, iy, ih, text_color, 0.55);
     }
     button_scaled(tr_send(), lx + lw - 112, iy, 112, ih, 0.5);
+    press_overlay = 0;
     roundrect(sticker_btn_x(), iy, STICKER_BTN, ih, 10, ui_purple);
     draw_sticker_face(sticker_btn_x() + STICKER_BTN / 2, iy + ih / 2);
     if (sticker_menu_open == 1) {
@@ -352,13 +356,13 @@ static double touch_chat(double x, double y, double action) {
         return 0;
     }
     if (chat_open == 0) {
-        if (hit_rect(x, y, chat_btn_x(), chat_btn_y(), chat_btn_w(), chat_btn_h()) == 1) {
+        if (hit_button(x, y, chat_btn_x(), chat_btn_y(), chat_btn_w(), chat_btn_h()) == 1) {
             chat_set_open(1);
             return 1;
         }
         return 0;
     }
-    if (hit_rect(x, y, chat_close_x(), chat_top_y(), btn_w, btn_h) == 1) {
+    if (hit_button(x, y, chat_close_x(), chat_top_y(), btn_w, btn_h) == 1) {
         chat_set_open(0);
         return 1;
     }
@@ -366,7 +370,7 @@ static double touch_chat(double x, double y, double action) {
     double lw = screen_w - 32;
     double iy = chat_input_y();
     double ih = 52;
-    if (hit_rect(x, y, sticker_btn_x(), iy, STICKER_BTN, ih) == 1) {
+    if (hit_round(x, y, sticker_btn_x(), iy, STICKER_BTN, ih, 10) == 1) {
         if (sticker_menu_open == 1) {
             sticker_menu_open = 0;
         } else {
@@ -395,7 +399,7 @@ static double touch_chat(double x, double y, double action) {
         }
         return 1;
     }
-    if (hit_rect(x, y, lx + lw - 112, iy, 112, ih) == 1) {
+    if (hit_button(x, y, lx + lw - 112, iy, 112, ih) == 1) {
         chat_send();
         keyboard_hide();
         return 1;
@@ -412,11 +416,11 @@ static double chat_button_hit(double x, double y) {
     double iy = chat_input_y();
     double ih = 52;
     if (chat_open == 0) {
-        return hit_rect(x, y, chat_btn_x(), chat_btn_y(), chat_btn_w(), chat_btn_h());
+        return hit_button(x, y, chat_btn_x(), chat_btn_y(), chat_btn_w(), chat_btn_h());
     }
-    if (hit_rect(x, y, chat_close_x(), chat_top_y(), btn_w, btn_h) == 1 ||
-        hit_rect(x, y, sticker_btn_x(), iy, STICKER_BTN, ih) == 1 ||
-        hit_rect(x, y, lx + lw - 112, iy, 112, ih) == 1) {
+    if (hit_button(x, y, chat_close_x(), chat_top_y(), btn_w, btn_h) == 1 ||
+        hit_round(x, y, sticker_btn_x(), iy, STICKER_BTN, ih, 10) == 1 ||
+        hit_button(x, y, lx + lw - 112, iy, 112, ih) == 1) {
         return 1;
     }
     if (sticker_menu_open == 1) {

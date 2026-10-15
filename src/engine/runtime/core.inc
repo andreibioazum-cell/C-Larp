@@ -69,12 +69,6 @@ const char *console_line(int index) {
     console_unlock();
     return slot;
 }
-void console_clear(void) {
-    console_lock();
-    ds_console_count = 0;
-    ds_console_head = 0;
-    console_unlock();
-}
 Joy joy = {0};
 int screen_w = 0;
 int screen_h = 0;

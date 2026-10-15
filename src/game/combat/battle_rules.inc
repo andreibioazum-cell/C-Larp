@@ -43,8 +43,6 @@ static double look_ready(double look) {
     return tex_ready(pair.idle) == 1 && tex_ready(pair.punch) == 1;
 }
 
-static double look_swing_ready(double look) { return look_ready(look); }
-
 static double class_is_astra(double cls) { return cls == CLASS_ASTRA || cls == CLASS_ASTRA_REWORK; }
 
 static double class_look(double cls, double skin) {
@@ -64,17 +62,6 @@ static double class_look(double cls, double skin) {
         return LOOK_EBUC;
     }
     return LOOK_ORDINARY;
-}
-
-static double drawable_look(double cls, double skin) {
-    double want = class_look(cls, skin);
-    /* Never substitute another class/skin while assets are uploading. A
-     * fallback cube is preferable to briefly drawing Azum for a zombie or
-     * Ebuc for an elf. */
-    if (look_ready(want) == 1) {
-        return want;
-    }
-    return LOOK_NONE;
 }
 
 static double card_look(double cls, double skin) {
@@ -113,16 +100,6 @@ static const char *class_card_tex(double cls, double skin) {
 }
 
 static double class_card_render_ready(double cls, double skin) { return tex_ready(class_card_tex(cls, skin)); }
-
-static GAME_MAYBE_UNUSED const char *class_idle_tex(double cls) { return look_idle_tex(class_look(cls, SKIN_NORMAL)); }
-
-static GAME_MAYBE_UNUSED const char *class_punch_tex(double cls) {
-    return look_punch_tex(class_look(cls, SKIN_NORMAL));
-}
-
-static GAME_MAYBE_UNUSED const char *skin_idle_tex_for(double cls, double skin) {
-    return look_idle_tex(class_look(cls, skin));
-}
 
 static double class_has_super(double cls) {
     if (cls == CLASS_AZUM || cls == CLASS_SANTA || cls == CLASS_EBUC || class_is_astra(cls)) {
