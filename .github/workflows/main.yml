@@ -157,3 +157,68 @@ jobs:
           name: Cubic-Battle-4-Full-C-APK
           path: Game.apk
           if-no-files-found: error
+
+  build-web:
+    name: Build WebAssembly (web + телефоны)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Emscripten SDK
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.70
+          actions-cache-folder: emsdk-cache
+
+      - name: Verify emcc
+        run: emcc --version
+
+      - name: Build Web (desktop) WASM
+        run: |
+          set -euo pipefail
+          mkdir -p build/web
+          emcc src/platform/web/web_main.c \
+            -Isrc -I. \
+            -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=1 \
+            -s "EXPORTED_RUNTIME_METHODS=['UTF8ToString','HEAP8','ccall','cwrap']" \
+            -s INVOKE_RUN=1 \
+            --shell-file build/web/shell.html \
+            --preload-file assets@/assets \
+            -o build/web/cb4_web.html -O2
+
+      - name: Build Phone (PWA) WASM
+        run: |
+          set -euo pipefail
+          mkdir -p build/phone
+          emcc src/platform/web/web_main.c \
+            -Isrc -I. \
+            -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=1 \
+            -s "EXPORTED_RUNTIME_METHODS=['UTF8ToString','HEAP8','ccall','cwrap']" \
+            -s INVOKE_RUN=1 \
+            --shell-file build/phone/shell.html \
+            --preload-file assets@/assets \
+            -o build/phone/cb4_phone.html -O2
+
+      - name: List outputs
+        run: |
+          ls -la build/web/ build/phone/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Cubic-Battle-4-Web
+          path: |
+            build/web/cb4_web.html
+            build/web/cb4_web.js
+            build/web/cb4_web.wasm
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Cubic-Battle-4-Phone
+          path: |
+            build/phone/cb4_phone.html
+            build/phone/cb4_phone.js
+            build/phone/cb4_phone.wasm
+            build/phone/manifest.json
+          if-no-files-found: error
