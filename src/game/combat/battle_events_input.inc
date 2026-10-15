@@ -222,10 +222,7 @@ static void draw_online(void) {
             draw_codecracker_fx_slot(i, rx, ry, ra);
             draw_fighter_body(rx, ry, ra, fighter_look_of(FLOOK_REMOTE + i),
                               fighter_pose_of(FLOOK_REMOTE + i, punching));
-            double remote_tint = astra_rw_tint_slot(i);
-            if (remote_tint == 0) {
-                remote_tint = codecracker_tint_slot(i);
-            }
+            double remote_tint = codecracker_tint_slot(i);
             draw_fighter_tint(rx, ry, ra, fighter_look_of(FLOOK_REMOTE + i),
                               fighter_pose_of(FLOOK_REMOTE + i, punching), player_scale, remote_tint);
             draw_guard(rx, ry, ra, net_player_block(i), player_scale);

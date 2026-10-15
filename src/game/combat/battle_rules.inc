@@ -43,7 +43,7 @@ static double look_ready(double look) {
     return tex_ready(pair.idle) == 1 && tex_ready(pair.punch) == 1;
 }
 
-static double class_is_astra(double cls) { return cls == CLASS_ASTRA || cls == CLASS_ASTRA_REWORK; }
+static double class_is_astra(double cls) { return cls == CLASS_ASTRA; }
 
 static double class_look(double cls, double skin) {
     if (skin_is_active(cls, skin) == 1) {
@@ -72,8 +72,7 @@ static double card_look(double cls, double skin) {
     return LOOK_NONE;
 }
 
-/* High-resolution shop/lobby render. Rework deliberately uses Ordinary's
- * cube icon; regular Astra keeps its dedicated card art. */
+/* High-resolution shop/lobby render. Astra uses its ordinary Astra card art. */
 static const char *class_card_tex(double cls, double skin) {
     if (cls == CLASS_AZUM) {
         if (skin_is_active(cls, skin) == 1) {
@@ -89,9 +88,6 @@ static const char *class_card_tex(double cls, double skin) {
             return EBUC_ELF_CARD_TEX;
         }
         return EBUC_CARD_TEX;
-    }
-    if (cls == CLASS_ASTRA_REWORK) {
-        return ORDINARY_CARD_TEX;
     }
     if (cls == CLASS_ASTRA) {
         return ASTRA_CARD_TEX;

@@ -1,8 +1,9 @@
 static void apply_user_json(const char *resp) {
-    int astra_rw;
+    int legacy_astra_class = 0;
     int cups = (int)num(resp, "cups", 0);
     int candies = (int)num(resp, "candies", 0);
     int cls = (int)num(resp, "cls", 0);
+    legacy_astra_class = cls == 5;
     int azum = (int)num(resp, "azum", 0);
     int santa = (int)num(resp, "santa", 0);
     int ebuc = (int)num(resp, "ebuc", 0);
@@ -28,12 +29,16 @@ static void apply_user_json(const char *resp) {
         cups = 0;
     if (candies < 0)
         candies = 0;
-    if (cls != 1 && cls != 2 && cls != 3 && cls != 4 && cls != 5)
+    if (cls == 5)
+        cls = 4;
+    if (cls != 0 && cls != 1 && cls != 2 && cls != 3 && cls != 4 && cls != 6)
         cls = 0;
     azum = azum ? 1 : 0;
     santa = santa ? 1 : 0;
     ebuc = ebuc ? 1 : 0;
     astra = astra ? 1 : 0;
+    if (legacy_astra_class)
+        astra = 1;
     if (cls == 1 && !azum)
         cls = 0;
     if (cls == 2 && !santa)
@@ -52,7 +57,10 @@ static void apply_user_json(const char *resp) {
         azum_level = azum_levels_unlocked = 0;
         santa_level = santa_levels_unlocked = 0;
         ebuc_level = ebuc_levels_unlocked = 0;
-        if (cls == 1 && azum) {
+        if (legacy_astra_class) {
+            astra_level = level;
+            astra_levels_unlocked = levels_unlocked;
+        } else if (cls == 1 && azum) {
             azum_level = level;
             azum_levels_unlocked = levels_unlocked;
         } else if (cls == 2 && santa) {
@@ -61,7 +69,7 @@ static void apply_user_json(const char *resp) {
         } else if (cls == 3 && ebuc) {
             ebuc_level = level;
             ebuc_levels_unlocked = levels_unlocked;
-        } else if ((cls == 4 || cls == 5) && (cls == 5 || astra)) {
+        } else if (cls == 4 && astra) {
             astra_level = level;
             astra_levels_unlocked = levels_unlocked;
         } else {
@@ -101,7 +109,7 @@ static void apply_user_json(const char *resp) {
     } else if (cls == 2) {
         level = santa_level;
         levels_unlocked = santa_levels_unlocked;
-    } else if (cls == 4 || cls == 5) {
+    } else if (cls == 4) {
         level = astra_level;
         levels_unlocked = astra_levels_unlocked;
     } else {
@@ -116,9 +124,6 @@ static void apply_user_json(const char *resp) {
         azum_skin = 0;
     if (azum_skin > SKIN_FLAGS_MAX)
         azum_skin = SKIN_FLAGS_MAX;
-    /* This obsolete field exists only to migrate old local saves; never accept
-     * it from a cloud profile. */
-    astra_rw = (int)net_load_astra_rw();
     pg_lock();
     pg.cups = cups;
     pg.candies = candies;
@@ -148,8 +153,7 @@ static void apply_user_json(const char *resp) {
     pending_skin = SKIN_OF_CLASS(azum_skin, cls);
     progress_write(cups, candies, cls, azum, santa, ebuc, level, levels_unlocked, ordinary_level,
                    ordinary_levels_unlocked, azum_level, azum_levels_unlocked, santa_level, santa_levels_unlocked,
-                   ebuc_level, ebuc_levels_unlocked, bp_level, azum_skin, astra, astra_level, astra_levels_unlocked,
-                   astra_rw);
+                   ebuc_level, ebuc_levels_unlocked, bp_level, azum_skin, astra, astra_level, astra_levels_unlocked);
 
     int cloud_ach_flags = (int)num(resp, "ach_flags", -1);
     int cloud_ach_revives = (int)num(resp, "ach_revives", -1);
@@ -341,7 +345,7 @@ static int apply_user_json_keep_local(const char *resp) {
             pg.cls = local_cls;
             restored = 1;
         }
-    } else if (dirty && (local_cls == 5 || local_cls == 6) && pg.cls != local_cls) {
+    } else if (dirty && local_cls == 6 && pg.cls != local_cls) {
         pg.cls = local_cls;
         restored = 1;
     } else if (dirty && local_cls == 0 && pg.cls != 0) {
@@ -358,7 +362,7 @@ static int apply_user_json_keep_local(const char *resp) {
     } else if (pg.cls == 2) {
         pg.level = pg.santa_level;
         pg.levels_unlocked = pg.santa_levels_unlocked;
-    } else if (pg.cls == 4 || pg.cls == 5) {
+    } else if (pg.cls == 4) {
         pg.level = pg.astra_level;
         pg.levels_unlocked = pg.astra_levels_unlocked;
     } else {
@@ -372,14 +376,14 @@ static int apply_user_json_keep_local(const char *resp) {
     int al = pg.azum_level, au = pg.azum_levels_unlocked;
     int sl = pg.santa_level, su = pg.santa_levels_unlocked;
     int el = pg.ebuc_level, eul = pg.ebuc_levels_unlocked;
-    int bp = pg.bp_level, sk = pg.azum_skin, arw = pg.astra_rw;
+    int bp = pg.bp_level, sk = pg.azum_skin;
     pg_unlock();
     if (restored) {
         pending_cls = cls;
         pending_level = lv;
         pending_skin = SKIN_OF_CLASS(sk, cls);
         progress_write(cups, candies, cls, azum, santa, ebuc, lv, lu, ol, ou, al, au, sl, su, el, eul, bp, sk, at, atl,
-                       atu, arw);
+                       atu);
         LOG("restored locally bought progress over cloud (azum=%d santa=%d ebuc=%d astra=%d cls=%d)", azum, santa, ebuc,
             at, cls);
         return 1;

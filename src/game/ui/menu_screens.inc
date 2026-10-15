@@ -144,32 +144,9 @@ static void draw_class_card(double vi) {
                   squeeze_y(class_pick_y(), top, class_card_h, s), class_pick_w() * s, class_pick_h * s, 0.55 * s);
 }
 
-/* Five steady, filled five-point stars replace the raw HP / power numbers.
- * Unfilled slots are just a flat dark star - no rim; the count comes from
- * class_imbalance_of(). */
-static void draw_imbalance_stars(void) {
-    double rating = class_imbalance_of(player_class);
-    double r = stat_star_r();
-    double w = stat_bar_w();
-    double gap = r * 0.9;
-    double sx = center_x(w) + (w - (5 * r * 2 + 4 * gap)) / 2 + r;
-    double cy = stat_stars_y() + r;
-    double i = 0;
-    while (i < 5) {
-        double cx = sx + i * (r * 2 + gap);
-        if (i < rating) {
-            draw_star(cx, cy, r * 1.1, stat_star_on_color);
-        } else {
-            draw_star(cx, cy, r, stat_star_off_color);
-        }
-        i = i + 1;
-    }
-}
-
 static void draw_class_stats(void) {
     const char *smotto = class_desc_of(player_class);
     ctext_scaled(smotto, stat_motto_y(), text_color, fit_text_scale(smotto, screen_w - 2 * screen_margin, 0.8));
-    draw_imbalance_stars();
 }
 
 static void draw_classes(void) {

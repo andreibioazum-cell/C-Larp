@@ -1,12 +1,11 @@
 static void reset_battle(void) {
-    /* Re-check the Astra (Rework) permission once per battle instead of on
-     * every frame that needs the variant. */
-    astra_rw_refresh();
+    /* Refresh the developer permission once when a battle starts. */
+    astra_ability_refresh();
     codecracker_refresh();
     player->x = screen_w / 2;
     player->y = screen_h / 2;
     player->angle = 0;
-    player->max_hp = astra_rw_max_hp_for(player_class, astra_rw_local());
+    player->max_hp = astra_ability_max_hp_for(player_class, astra_ability_local());
     player->hp = player->max_hp;
     player->size = 25 * player_scale;
     enemy->size = 25 * enemy_scale;

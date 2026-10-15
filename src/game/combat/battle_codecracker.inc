@@ -1,5 +1,5 @@
 /* CodeCracker is a separate, administrator-only class (ID 6), gated by the
- * very same administrator check as Astra (Rework): it is visible and
+ * very same administrator check as Astra: it is visible and
  * selectable only for the admin accounts, and that permission is re-checked
  * whenever the account or the battle changes, so a copied progress file
  * cannot grant it. Online it travels as its own class ID (see the room-slot
@@ -30,9 +30,9 @@
 static const double codecracker_tint_rgb = 0x00E676;
 static const double codecracker_tint_a = 0.35;
 
-/* Cached permission bit, refreshed together with the Rework one when the
+/* Cached permission bit, refreshed together with the developer permission when the
  * account changes (login, profile load, battle start), never per frame. */
-static void codecracker_refresh(void) { codecracker_ok = astra_rw_is_dev(); }
+static void codecracker_refresh(void) { codecracker_ok = astra_ability_is_dev(); }
 
 static double codecracker_allowed(void) { return codecracker_ok; }
 

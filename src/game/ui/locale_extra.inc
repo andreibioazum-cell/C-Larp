@@ -5,13 +5,6 @@ static const char *tr_top(void) {
     return "Top";
 }
 
-static const char *tr_class_astra_rework(void) {
-    if (language == 1) {
-        return "Астра (Rework)";
-    }
-    return "Astra (Rework)";
-}
-
 /* Admin panel tabs and the Players actions. */
 /* The panel calls itself a content-creator tool, and the orb wears the
  * short version of the same name. */

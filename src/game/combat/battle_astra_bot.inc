@@ -54,8 +54,9 @@ static void tick_enemy_grab(void) {
         return;
     }
     egrab_t = egrab_t + dt;
+    double kit = astra_ability_of(enemy_class, SKIN_NORMAL);
     if (egrab_state == 1) {
-        if (egrab_t <= astra_catch_time) {
+        if (egrab_t <= astra_ability_catch_time_for(kit)) {
             if (pgrab_active == 0 && revive_prot <= 0 && player->hp > 0) {
                 if (astra_zone_hits_player(egrab_x, egrab_y, egrab_dx, egrab_dy, enemy_level) == 1) {
                     egrab_state = 2;
@@ -73,8 +74,8 @@ static void tick_enemy_grab(void) {
     if (egrab_state != 2) {
         return;
     }
-    grab_quiet_player(astra_hit_interval);
-    double due = astra_beats_done(egrab_t);
+    grab_quiet_player(astra_ability_hit_interval_for(kit));
+    double due = astra_ability_beats_done_for(egrab_t, kit);
     while (egrab_hits < due) {
         egrab_hits = egrab_hits + 1;
         enemy_grab_swing();
@@ -87,7 +88,7 @@ static void tick_enemy_grab(void) {
             return;
         }
     }
-    if (egrab_t >= astra_final_time()) {
+    if (egrab_t >= astra_ability_final_time_for(kit)) {
         enemy_grab_swing();
         /* enemy_grab_stop() clears the grab immediately, so explicitly pulse
          * the final damage zone and let the normal fade-out render it. */
@@ -98,7 +99,8 @@ static void tick_enemy_grab(void) {
             return;
         }
         if (player->hp > 0 && finished == 0 && revive_prot <= 0) {
-            throw_player(egrab_dx, egrab_dy, astra_throw_dist_for(enemy_level), astra_throw_stun_for(enemy_level));
+            throw_player(egrab_dx, egrab_dy, astra_ability_throw_dist_for(enemy_level, kit),
+                         astra_ability_throw_stun_for(enemy_level, kit));
             ds_log("thrown by the bot astra");
         }
     }

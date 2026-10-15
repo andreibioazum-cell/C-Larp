@@ -170,13 +170,7 @@ static double hit_skins_btn(double px, double py) {
 
 static double class_msg_y(void) { return class_actions_y() + btn_h + 14; }
 
-static double stat_bar_w(void) { return fit_w(520); }
-
-static double stat_star_r(void) { return clamp(stat_bar_w() / 13.6, 4, 26); }
-
-static double stat_stars_y(void) { return screen_h - 138; }
-
-static double stat_motto_y(void) { return stat_stars_y() - 46; }
+static double stat_motto_y(void) { return screen_h - 142; }
 
 static double levels_w(void) { return fit_w(list_w); }
 

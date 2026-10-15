@@ -204,10 +204,7 @@ static void draw_player_body_layer(void) {
                            cube_scale * player_scale, look_tex(look, punching), sprite_a(player->angle));
     }
     draw_fighter_body(player->x, player->y, player->angle, look, punching);
-    double self_tint = astra_rw_tint_local();
-    if (self_tint == 0) {
-        self_tint = codecracker_tint_local();
-    }
+    double self_tint = codecracker_tint_local();
     draw_fighter_tint(player->x, player->y, player->angle, look, punching, player_scale, self_tint);
     draw_fighter_hurt(player->x, player->y, player->angle, look, punching, player_scale, player_hurt_a);
     draw_guard(player->x, player->y, player->angle, player_block, player_scale);

@@ -86,8 +86,8 @@ static const char *tr_level_unlock_cost(double cost) {
 }
 
 static const char *tr_class_level_effect(double cls, double n) {
-    if (cls == CLASS_ASTRA_REWORK) {
-        cls = CLASS_ASTRA;
+    if (cls == CLASS_CODECRACKER) {
+        cls = CLASS_ORDINARY;
     }
     if (cls == CLASS_CODECRACKER) {
         cls = CLASS_ORDINARY;

@@ -49,6 +49,9 @@ static void read_remotes(void) {
                 if (rcls < CLASS_ORDINARY || rcls > CLASS_CODECRACKER) {
                     rcls = CLASS_ORDINARY;
                 }
+                if (rcls == 5) {
+                    rcls = CLASS_ASTRA;
+                }
                 if (rskin < SKIN_NORMAL || rskin >= SKIN_COUNT) {
                     rskin = SKIN_NORMAL;
                 }
@@ -105,9 +108,9 @@ static void update_remote_punches(void) {
                                                      punch_reach, punch_width);
                 if (target == 0 || (target >= 1 && target <= turret_max)) {
                     double rcls = arr_get(remotes, s * remote_fields + 10);
-                    /* Rework hits softer; its class ID (or legacy Astra/skin
-                     * pair) is the same snapshot used for its appearance. */
-                    double rdmg = astra_rw_punch_damage_net(rcls, net_player_level(s),
+                    /* Apply the attacker's class kit from the same snapshot
+                     * used for its appearance. */
+                    double rdmg = astra_ability_punch_damage_net(rcls, net_player_level(s),
                                                             arr_get(remotes, s * remote_fields + 11));
                     double rlevel = net_player_level(s);
                     if (target == 0) {

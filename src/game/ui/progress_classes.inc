@@ -1,7 +1,4 @@
 static double class_level_of(double cls) {
-    if (cls == CLASS_ASTRA_REWORK) {
-        cls = CLASS_ASTRA;
-    }
     if (cls == CLASS_CODECRACKER) {
         /* CodeCracker shares the ordinary cube's progression. */
         cls = CLASS_ORDINARY;
@@ -10,21 +7,20 @@ static double class_level_of(double cls) {
 }
 
 static double class_unlocked_of(double cls) {
-    if (cls == CLASS_ASTRA_REWORK) {
-        cls = CLASS_ASTRA;
-    }
     if (cls == CLASS_CODECRACKER) {
         cls = CLASS_ORDINARY;
     }
     return arr_get(class_unlocked_tbl, cls);
 }
 
+static double class_id_valid(double cls) {
+    return cls == CLASS_ORDINARY || cls == CLASS_AZUM || cls == CLASS_SANTA || cls == CLASS_EBUC ||
+           cls == CLASS_ASTRA || cls == CLASS_CODECRACKER;
+}
+
 static double class_owned_of(double cls) {
     if (cls == CLASS_ORDINARY) {
         return 1;
-    }
-    if (cls == CLASS_ASTRA_REWORK) {
-        return astra_rw_allowed();
     }
     if (cls == CLASS_CODECRACKER) {
         return codecracker_allowed();
@@ -33,15 +29,12 @@ static double class_owned_of(double cls) {
 }
 
 static void set_class_owned(double cls, double owned) {
-    if (cls != CLASS_ASTRA_REWORK && cls != CLASS_CODECRACKER) {
+    if (cls != CLASS_CODECRACKER) {
         arr_set(class_owned_tbl, cls, owned);
     }
 }
 
 static void set_class_progress(double cls, double lv, double un) {
-    if (cls == CLASS_ASTRA_REWORK) {
-        cls = CLASS_ASTRA;
-    }
     if (cls == CLASS_CODECRACKER) {
         cls = CLASS_ORDINARY;
     }
@@ -86,9 +79,6 @@ static const char *class_name_of(double cls) {
     if (cls == CLASS_ASTRA) {
         return tr_class_astra();
     }
-    if (cls == CLASS_ASTRA_REWORK) {
-        return tr_class_astra_rework();
-    }
     if (cls == CLASS_SANTA) {
         return tr_class_santa();
     }
@@ -105,9 +95,6 @@ static const char *class_desc_of(double cls) {
     if (cls == CLASS_AZUM) {
         return tr_class_azum_desc();
     }
-    if (cls == CLASS_ASTRA_REWORK) {
-        return astra_rw_desc();
-    }
     if (cls == CLASS_ASTRA) {
         return tr_class_astra_desc();
     }
@@ -121,26 +108,6 @@ static const char *class_desc_of(double cls) {
         return tr_class_codecracker_desc();
     }
     return tr_class_ordinary_desc();
-}
-
-/* How imbalanced (overpowered) each class is judged to be, 0..5 - the five
- * stars under the class cards. Astra (Rework) is the deliberately broken
- * developer-only class, so it tops the scale while plain Astra is already a
- * strong class. Tune the numbers here and nothing else has to change. */
-static double class_imbalance_of(double cls) {
-    if (cls == CLASS_ASTRA_REWORK || cls == CLASS_CODECRACKER) {
-        return 5;
-    }
-    if (cls == CLASS_ASTRA) {
-        return 4;
-    }
-    if (cls == CLASS_AZUM || cls == CLASS_EBUC) {
-        return 3;
-    }
-    if (cls == CLASS_SANTA) {
-        return 2;
-    }
-    return 1;
 }
 
 static const char *class_pick_label(double cls) {
@@ -236,9 +203,6 @@ static void pick_skin(double skin) {
 }
 
 static double class_visible(double cls) {
-    if (cls == CLASS_ASTRA_REWORK) {
-        return astra_rw_allowed();
-    }
     if (cls == CLASS_CODECRACKER) {
         return codecracker_allowed();
     }
@@ -259,9 +223,6 @@ static double class_at_order(double i) {
         return CLASS_ASTRA;
     }
     if (i == 5) {
-        return CLASS_ASTRA_REWORK;
-    }
-    if (i == 6) {
         return CLASS_CODECRACKER;
     }
     return i;
@@ -413,7 +374,7 @@ static const char *level_msg_text(void) {
 }
 
 static void select_class(double cls) {
-    if (cls < 0 || cls >= class_count || class_visible(cls) == 0 || class_owned_of(cls) == 0) {
+    if (class_id_valid(cls) == 0 || class_visible(cls) == 0 || class_owned_of(cls) == 0) {
         return;
     }
     player_class = cls;
@@ -422,7 +383,7 @@ static void select_class(double cls) {
 }
 
 static void pick_class(double cls) {
-    if (cls < 0 || cls >= class_count || class_visible(cls) == 0) {
+    if (class_id_valid(cls) == 0 || class_visible(cls) == 0) {
         return;
     }
     if (class_owned_of(cls) == 1) {

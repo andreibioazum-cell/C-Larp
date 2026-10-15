@@ -352,7 +352,7 @@ static void update_game(void) {
         double enemy_turret_target = enemy_punch_turret_target(punch->x, punch->y, punch->dx, punch->dy);
         if (enemy_turret_target >= 1) {
             punch->hit = 1;
-            enemy_damage_turret(enemy_turret_target - 1, astra_rw_self_damage());
+            enemy_damage_turret(enemy_turret_target - 1, astra_ability_self_damage());
             if (revive_prot <= 0) {
                 if (take_damage(turret_counter_damage) == 1) {
                     return;
@@ -379,7 +379,7 @@ static void update_game(void) {
                     }
                 }
                 heal_after_attack();
-                if (enemy_apply_damage_at(astra_rw_self_damage(), player->x, player->y) == 1) {
+                if (enemy_apply_damage_at(astra_ability_self_damage(), player->x, player->y) == 1) {
                     return;
                 }
             }

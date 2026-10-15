@@ -26,9 +26,6 @@ double card_ring_pad;
 double text_color;
 double locked_shade;
 double locked_text_alpha;
-double stat_star_on_color;
-double stat_star_off_color;
-double stat_star_rim_color;
 double btn_w;
 double btn_h;
 double btn_gap;
@@ -109,7 +106,6 @@ double CLASS_AZUM;
 double CLASS_SANTA;
 double CLASS_EBUC;
 double CLASS_ASTRA;
-double CLASS_ASTRA_REWORK;
 double CLASS_CODECRACKER;
 double player_class;
 double azum_revived;
@@ -340,9 +336,9 @@ double GRAB_DY;
 double GRAB_T;
 double GRAB_CAUGHT;
 double GRAB_HITS;
-/* Cached Rework bit of a remote attacker, resolved once per grab from the
+/* Cached Astra ability bit of a remote attacker, resolved once per grab from the
  * synced class ID (or the legacy Astra/skin pair). */
-double GRAB_RW;
+double GRAB_ASTRA_KIT;
 double grab_fields;
 double grab_slot_bot;
 double shadow_off;

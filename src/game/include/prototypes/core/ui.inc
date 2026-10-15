@@ -33,7 +33,6 @@ static double squeeze_y(double y, double top, double h, double s);
 static void card_state(double x, double y, double w, double h, double selected, double locked, double k);
 static void panel(double x, double y, double w, double h, double locked);
 static double panel_text(double locked);
-static void draw_star(double cx, double cy, double r, uint32_t c);
 static void hud_bar(double bx, double by, double w, double h, double cur, double max, uint32_t c, double from_right);
 static double tick_down(double t);
 static void draw_msg(const char *label, double y, double t);
