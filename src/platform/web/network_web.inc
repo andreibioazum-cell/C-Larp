@@ -1,14 +1,17 @@
 /* Сеть на вебе: полная заглушка (offline-режим, без Java VM, без JNI).
- * Сгенерирована как минимальный набор no-op, чтобы линковка прошла. */
+ * Макросы для быстрого определения no-op'ов, чтобы компоновка прошла. */
+#include <stdarg.h>
 #include <stddef.h>
 #define W0(name) void name(void){}
-#define W0v(name) void name(double v){(void)v;}
-#define W0s(name) void name(const char *s){(void)s;}
 #define W1(name) void name(double a){(void)a;}
 #define W2(name) void name(double a,double b){(void)a;(void)b;}
 #define W2s(name) void name(const char*a,const char*b){(void)a;(void)b;}
+#define W3s(name) void name(const char*a,const char*b,const char*c){(void)a;(void)b;(void)c;}
 #define W5(name) void name(double a,double b,double c,double d,double e){(void)a;(void)b;(void)c;(void)d;(void)e;}
 #define W9(name) void name(double a,double b,double c,double d,double e,double f,double g,double h,double i){(void)a;(void)b;(void)c;(void)d;(void)e;(void)f;(void)g;(void)h;(void)i;}
+#define W8(name) void name(double a,double b,double c,double d,double e,double f,double g,double h){(void)a;(void)b;(void)c;(void)d;(void)e;(void)f;(void)g;(void)h;}
+static void net_save_progress_all_dummy(double a,...){(void)a;}
+#define net_save_progress_all(...) net_save_progress_all_dummy(0.0,##__VA_ARGS__)
 #define D0(name) double name(void){return 0;}
 #define D1(name) double name(double a){(void)a;return 0;}
 #define D1s(name) double name(const char*a){(void)a;return 0;}
@@ -49,13 +52,11 @@ D1(net_player_dash_x) D1(net_player_dash_y) D1(net_player_dash_dx) D1(net_player
 D1(net_player_grab_x) D1(net_player_grab_y) D1(net_player_grab_dx) D1(net_player_grab_dy) D1(net_player_grab)
 D0(net_universe_x) D0(net_universe_y) D0(net_universe_counter) D0(net_thud_counter)
 D0(net_block) D0(net_codecracker_super) D1(net_class)
-W0(net_snow_reset) W0s(net_send_chat)
+W0(net_snow_reset)
 D0(net_chat_count) S1(net_chat_line) D1(net_chat_system)
 D1s(net_ban_check)
 D0(net_leaderboard_entry_count) S1(net_leaderboard_name) D1(net_leaderboard_score)
 S0(net_error_message)
-void net_account_delete(const char *p){(void)p;}
-void net_account_password(const char *o,const char *n){(void)o;(void)n;}
 W0s(net_room_create) W0s(net_room_join) W0(net_room_leave)
 D0(net_room_count) S1(net_room_name) D1(net_room_players) S1(net_room_id)
 D0(net_in_room) S0(net_my_room) S0(net_moderation_message) D0(net_banned)
@@ -63,13 +64,15 @@ D0(net_in_room) S0(net_my_room) S0(net_moderation_message) D0(net_banned)
 /* Прогресс и настройки */
 D0(net_load_cups) D0(net_load_candies) D0(net_load_class) W1(net_save_class)
 D0(net_load_azum_skin) W1(net_save_azum_skin)
+D0(net_load_santa)
 D0(net_load_santa_level) D0(net_load_santa_levels_unlocked) W2(net_save_santa_level)
+D0(net_load_ebuc)
 D0(net_load_ebuc_level) D0(net_load_ebuc_levels_unlocked) W2(net_save_ebuc_level)
-D0(net_load_bp_level) D0(net_load_azum_revives) W1(net_save_azum_revives)
+D0(net_load_bp_level)
+D0(net_load_azum_revives) W1(net_save_azum_revives)
 D0(net_load_astra) D0(net_load_astra_level) D0(net_load_astra_levels_unlocked)
 void net_save_astra(double o,double l,double lu){(void)o;(void)l;(void)lu;}
-void net_save_progress_all(double a,double b,double c,double d,double e,double f,double g,double h)
-    {(void)a;(void)b;(void)c;(void)d;(void)e;(void)f;(void)g;(void)h;}
+/* net_save_progress_all — variadic, отдельная реализация выше */
 D0(net_load_achievement_flags) W1(net_mark_achievement_flag)
 D0(net_promo_2027_used) W0(net_promo_2027_mark_used)
 W0s(net_leaderboard_fetch) D0(net_leaderboard_status) D0(net_leaderboard_count)
@@ -81,25 +84,17 @@ D0(net_load_new_theme) W1(net_save_new_theme)
 W0(settings_mark_legal) D0(settings_legal_ts)
 W1(settings_set_pd_consent) D0(settings_pd_consent_version) W0(net_pd_consent_upload)
 W0s(net_delete_account) D0(net_delete_account_status)
-void net_change_password(const char*o,const char*n){(void)o;(void)n;}
+W2s(net_change_password)
 D0(net_change_password_status)
-D1s(net_is_banned) void net_ban_set(const char*n,double b){(void)n;(void)b;}
+D1s(net_is_banned) W2s(net_ban_set)
 D1s(net_chat_is_ban) D1s(net_chat_is_unban) S1s(net_chat_ban_target) S1s(net_chat_unban_target)
 D1s(net_chat_is_text_cmd) S1s(net_chat_text_cmd_text) S1s(net_chat_text_cmd_color)
-void net_banner_send(const char*t,const char*c){(void)t;(void)c;}
+W2s(net_banner_send)
 W0(net_banner_clear) D0(net_banner_ts) S0(net_banner_text) S0(net_banner_color)
 W0s(net_chat_send) W1(net_chat_trim) D1(net_chat_count) S1(net_chat_text) S1(net_chat_uid) S1(net_chat_key)
-
-/* Дополнительные no-op'ы для компоновки */
 D1(net_player_universe_x) D1(net_player_universe_y) D1(net_player_universe)
 D1(net_player_thud) D1(net_player_block) D1(net_player_codecracker_super)
 D1(net_player_class) D1(net_player_level) W1(net_set_level) W1(net_set_skin) D1(net_player_skin)
-D0(net_load_azum) D0(net_load_santa) D0(net_load_ebuc)
 D0(net_load_level) D0(net_load_levels_unlocked)
 D0(net_load_ordinary_level) D0(net_load_ordinary_levels_unlocked)
-void net_save_santa_level(double level, double unlocked){(void)level;(void)unlocked;}
-void net_save_ebuc_level(double level, double unlocked){(void)level;(void)unlocked;}
-D0(net_load_azum_level) D0(net_load_azum_levels_unlocked)
-D0(net_load_azum_skin) D1(net_save_azum_skin)
-void net_save_class(double cls){(void)cls;}
-D0(net_load_class)
+D0(net_load_azum) D0(net_load_azum_level) D0(net_load_azum_levels_unlocked)

@@ -8,43 +8,22 @@ set(CMAKE_C_EXTENSIONS OFF)
 set(CB_SOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 if(EMSCRIPTEN)
-    # --- WebAssembly сборка: выдаёт 2 файла (.js + .wasm) ---
-    #     - графика: Canvas 2D (проще всего, вместо WebGPU/Vulkan)
-    #     - клавиатура/алерты: на чистом JS (вместо Java)
-    #     - без JNI, без Android SDK — «всё от джавы убрано»
-    add_executable(cb4_web
-        "${CB_SOURCE_ROOT}/platform/web/web_main.c"
-    )
+    # --- WebAssembly сборка: один output = index.html (+ .js + .wasm + .data)
+    #     Работает и на десктопе, и на телефонах (viewport-fit=cover, PWA manifest).
+    #     - графика: Canvas 2D (самый простой вариант)
+    #     - клавиатура/алерты: чисто JS (без Java/JNI)
+    add_executable(cb4_web "${CB_SOURCE_ROOT}/platform/web/web_main.c")
     set_target_properties(cb4_web PROPERTIES
-        SUFFIX ".js"
+        SUFFIX ".html"
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build/web"
-        OUTPUT_NAME "cb4_web"
+        OUTPUT_NAME "cb4"
         LINK_FLAGS "-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=1 \
--s EXPORTED_RUNTIME_METHODS=['UTF8ToString','HEAP8'] \
--s INVOKE_RUN=1 -s ASYNCIFY=0 --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/build/web/shell.html \
+-s EXPORTED_RUNTIME_METHODS=['UTF8ToString','HEAP8','ccall','cwrap'] \
+-s INVOKE_RUN=1 \
+--shell-file ${CMAKE_CURRENT_SOURCE_DIR}/build/web/shell.html \
 --preload-file ${CMAKE_CURRENT_SOURCE_DIR}/assets@/assets -O2"
     )
-    target_include_directories(cb4_web PRIVATE
-        "${CB_SOURCE_ROOT}"
-        "${CMAKE_CURRENT_SOURCE_DIR}"
-    )
-    # Отдельная сборка для телефонов (PWA, fullscreen, тот же WASM-код)
-    add_executable(cb4_phone
-        "${CB_SOURCE_ROOT}/platform/web/web_main.c"
-    )
-    set_target_properties(cb4_phone PROPERTIES
-        SUFFIX ".js"
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build/phone"
-        OUTPUT_NAME "cb4_phone"
-        LINK_FLAGS "-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=1 \
--s EXPORTED_RUNTIME_METHODS=['UTF8ToString','HEAP8'] \
--s INVOKE_RUN=1 --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/build/phone/shell.html \
---preload-file ${CMAKE_CURRENT_SOURCE_DIR}/assets@/assets -O2"
-    )
-    target_include_directories(cb4_phone PRIVATE
-        "${CB_SOURCE_ROOT}"
-        "${CMAKE_CURRENT_SOURCE_DIR}"
-    )
+    target_include_directories(cb4_web PRIVATE "${CB_SOURCE_ROOT}" "${CMAKE_CURRENT_SOURCE_DIR}")
 else()
     if(NOT CMAKE_C_COMPILER_ID MATCHES "^(Apple)?Clang$")
         message(FATAL_ERROR "Android build requires Clang.")

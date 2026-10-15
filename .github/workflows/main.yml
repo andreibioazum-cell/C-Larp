@@ -159,7 +159,7 @@ jobs:
           if-no-files-found: error
 
   build-web:
-    name: Build WebAssembly (web + телефоны)
+    name: Build WebAssembly (desktop + телефоны, один index.html)
     runs-on: ubuntu-latest
 
     steps:
@@ -174,7 +174,7 @@ jobs:
       - name: Verify emcc
         run: emcc --version
 
-      - name: Build Web (desktop) WASM
+      - name: Build WASM (одна сборка, один index.html — работает и на десктопе, и на телефонах)
         run: |
           set -euo pipefail
           mkdir -p build/web
@@ -185,40 +185,19 @@ jobs:
             -s INVOKE_RUN=1 \
             --shell-file build/web/shell.html \
             --preload-file assets@/assets \
-            -o build/web/cb4_web.html -O2
-
-      - name: Build Phone (PWA) WASM
-        run: |
-          set -euo pipefail
-          mkdir -p build/phone
-          emcc src/platform/web/web_main.c \
-            -Isrc -I. \
-            -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=1 \
-            -s "EXPORTED_RUNTIME_METHODS=['UTF8ToString','HEAP8','ccall','cwrap']" \
-            -s INVOKE_RUN=1 \
-            --shell-file build/phone/shell.html \
-            --preload-file assets@/assets \
-            -o build/phone/cb4_phone.html -O2
+            -o build/web/cb4.html -O2
+          cp build/web/cb4.html build/web/index.html
 
       - name: List outputs
-        run: |
-          ls -la build/web/ build/phone/
+        run: ls -la build/web/
 
       - uses: actions/upload-artifact@v4
         with:
           name: Cubic-Battle-4-Web
           path: |
-            build/web/cb4_web.html
-            build/web/cb4_web.js
-            build/web/cb4_web.wasm
-          if-no-files-found: error
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Cubic-Battle-4-Phone
-          path: |
-            build/phone/cb4_phone.html
-            build/phone/cb4_phone.js
-            build/phone/cb4_phone.wasm
-            build/phone/manifest.json
+            build/web/index.html
+            build/web/cb4.js
+            build/web/cb4.wasm
+            build/web/cb4.data
+            build/web/manifest.json
           if-no-files-found: error
