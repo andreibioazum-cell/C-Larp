@@ -152,6 +152,5 @@ double settings_legal_ts(){return 0.0;}
 void settings_mark_legal(){}
 double settings_pd_consent_version(){return 0.0;}
 void settings_set_pd_consent(double a0){(void)a0;}
-typedef void(*DSProtectedFunction)(void*a0){(void)a0;}
 
 #endif
