@@ -1,8 +1,29 @@
 #include "engine/runtime.h"
 #include <stdarg.h>
 #include <stdio.h>
+#ifdef __EMSCRIPTEN__
+/* Однопоточный WASM: pthread/android/nanosleep — no-op,
+ * чтобы не требовать -s USE_PTHREADS и liblog (Emscripten не даёт nanosleep без pthreads). */
+typedef int pthread_mutex_t;
+typedef int pthread_t;
+#define PTHREAD_MUTEX_INITIALIZER 0
+typedef struct { int dummy; } pthread_attr_t;
+struct timespec;
+static inline int _cb4_mtx_lock(pthread_mutex_t *m){(void)m;return 0;}
+static inline int _cb4_mtx_unlock(pthread_mutex_t *m){(void)m;return 0;}
+#define pthread_mutex_lock _cb4_mtx_lock
+#define pthread_mutex_unlock _cb4_mtx_unlock
+static inline int pthread_create(pthread_t *t,const void*a,void*(*f)(void*),void*arg){(void)a;(void)arg;if(t)*t=0;f(arg);return 0;}
+static inline int pthread_detach(pthread_t t){(void)t;return 0;}
+static inline int __android_log_print(int p,const char*t,const char*f,...){(void)p;(void)t;(void)f;return 0;}
+static inline int nanosleep(const struct timespec *r,struct timespec*rem){(void)r;(void)rem;return 0;}
+#define ANDROID_LOG_INFO 4
+#define ANDROID_LOG_ERROR 6
+#else
 #include <pthread.h>
+#endif
 #include <time.h>
+#include <math.h>
 #define DS_ERROR_MESSAGE_SIZE 1024
 #define DS_CONSOLE_MAX 256
 #define DS_CONSOLE_LINE_MAX 192

@@ -11,10 +11,8 @@
 #include <math.h>
 
 /* --- Замена Android-заголовков (на вебе нет NDK, никакой Java) --- */
-/* AAssetManager и ANativeWindow уже forward-declared в runtime.h; здесь только пустой экземпляр. */
-struct AAssetManager { int web_dummy; };
-struct ANativeWindow { int dummy; };
-#define __android_log_print(...) ((void)0)
+/* Определения AAssetManager/ANativeWindow и __android_log_print даются в
+ * engine/runtime/core.inc (используется одинаково на всём web-пути). */
 #ifndef EM_TRUE
 #define EM_TRUE 1
 #define EM_FALSE 0
