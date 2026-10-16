@@ -85,7 +85,10 @@ static int flatten(const DSPoint *p, int n, DSFC *flat) {
 }
 
 static void raster_glyph(DSFont *f, const DSFC *flat, int fc, int mnx, int mxy, int ax, int ay, int w, int h) {
-    int *accum = (int *)calloc((size_t)w * h, sizeof(int));
+    if (!f || !f->alpha || !flat || fc < 0 || w <= 0 || h <= 0 || ax < 0 || ay < 0 || ax > f->aw ||
+        ay > f->ah || w > f->aw - ax || h > f->ah - ay)
+        return;
+    int *accum = (int *)calloc((size_t)w * (size_t)h, sizeof(int));
     float xs[128];
     if (!accum)
         return;
@@ -144,10 +147,15 @@ static int g_metrics(const DSFont *f, int g, int *adv, int *lsb) {
     return 1;
 }
 static int cmap4_lk(const DSFont *f, uint32_t cp) {
-    if (!f->cmap4 || cp > 0xFFFF)
+    if (!f->cmap4 || cp > 0xFFFF || f->cmap4_len < 16)
         return 0;
-    size_t b = f->cmap4;
-    uint16_t sc = bu16(f, b + 6) / 2;
+    size_t b = f->cmap4, end = (size_t)f->cmap4 + f->cmap4_len;
+    uint16_t seg_count_x2 = bu16(f, b + 6);
+    if (seg_count_x2 == 0 || (seg_count_x2 & 1) != 0)
+        return 0;
+    uint16_t sc = seg_count_x2 / 2;
+    if (16u + (uint64_t)sc * 8u > f->cmap4_len)
+        return 0;
     for (uint16_t i = 0; i < sc; i++) {
         uint16_t en = bu16(f, b + 14 + i * 2);
         uint16_t st = bu16(f, b + 16 + sc * 2 + i * 2);
@@ -157,17 +165,22 @@ static int cmap4_lk(const DSFont *f, uint32_t cp) {
         uint16_t rng = bu16(f, b + 16 + sc * 6 + i * 2);
         if (rng == 0)
             return ((int)cp + dlt) & 0xFFFF;
-        size_t ga = b + 16 + sc * 6 + i * 2 + rng + (cp - st) * 2;
+        size_t range_word = b + 16 + (size_t)sc * 6 + (size_t)i * 2;
+        size_t ga = range_word + rng + (size_t)(cp - st) * 2;
+        if (!in_span(f, b, end, ga, 2))
+            return 0;
         uint16_t g = bu16(f, ga);
         return g ? ((int)g + dlt) & 0xFFFF : 0;
     }
     return 0;
 }
 static int cmap12_lk(const DSFont *f, uint32_t cp) {
-    if (!f->cmap12)
+    if (!f->cmap12 || f->cmap12_len < 16)
         return 0;
     size_t b = f->cmap12;
     uint32_t n = bu32(f, b + 12);
+    if ((uint64_t)n > ((uint64_t)f->cmap12_len - 16u) / 12u)
+        return 0;
     for (uint32_t i = 0; i < n; i++) {
         size_t at = b + 16 + i * 12;
         uint32_t f1 = bu32(f, at), l1 = bu32(f, at + 4);
@@ -184,6 +197,17 @@ static int g_for(const DSFont *f, uint32_t cp) {
         g = 0;
     return g;
 }
+static int font_coord_int(float value, int *out) {
+    if (!out || !isfinite(value) || (double)value < (double)INT_MIN / 2.0 ||
+        (double)value > (double)INT_MAX / 2.0)
+        return 0;
+    long rounded = lrintf(value);
+    if (rounded < INT_MIN || rounded > INT_MAX)
+        return 0;
+    *out = (int)rounded;
+    return 1;
+}
+
 static int bake_glyph(DSFont *f, DSFontGlyph *g, int ax, int ay, int rh) {
     int gi = g_for(f, g->codepoint);
     int adv_u = 0;
@@ -210,8 +234,11 @@ static int bake_glyph(DSFont *f, DSFontGlyph *g, int ax, int ay, int rh) {
     for (int cn = 0; cn < ol.cc; cn++) {
         int en = ol.ends[cn];
         for (int p = st; p <= en; p++) {
-            int x = (int)lrintf(ol.points[p].x);
-            int y = (int)lrintf(ol.points[p].y);
+            int x, y;
+            if (!font_coord_int(ol.points[p].x, &x) || !font_coord_int(ol.points[p].y, &y)) {
+                ol_free(&ol);
+                return rh;
+            }
             if (!has || x < mnx)
                 mnx = x;
             if (!has || x > mxx)
@@ -228,12 +255,19 @@ static int bake_glyph(DSFont *f, DSFontGlyph *g, int ax, int ay, int rh) {
         ol_free(&ol);
         return rh;
     }
-    w = (int)ceilf((mxx - mnx) * s) + 2;
-    h = (int)ceilf((mxy - mny) * s) + 2;
-    if (w < 1)
-        w = 1;
-    if (h < 1)
-        h = 1;
+    double glyph_w = ceil(((double)mxx - (double)mnx) * (double)s) + 2.0;
+    double glyph_h = ceil(((double)mxy - (double)mny) * (double)s) + 2.0;
+    if (!isfinite(glyph_w) || !isfinite(glyph_h) || glyph_w < 1.0 || glyph_h < 1.0 || glyph_w > f->aw ||
+        glyph_h > f->ah || ax < 0 || ay < 0 || ax > f->aw || ay > f->ah) {
+        ol_free(&ol);
+        return rh;
+    }
+    w = (int)glyph_w;
+    h = (int)glyph_h;
+    if (w > f->aw - ax || h > f->ah - ay) {
+        ol_free(&ol);
+        return rh;
+    }
     g->bearing_x = mnx * s;
     g->bearing_top = mxy * s;
     g->width = w;
@@ -266,12 +300,14 @@ static int bake_glyph(DSFont *f, DSFontGlyph *g, int ax, int ay, int rh) {
     return h > rh ? h : rh;
 }
 static int init_tables(DSFont *f) {
-    uint32_t l;
-    if (!tbound(f, TAG('h', 'e', 'a', 'd'), &f->head, &l) || l < 54 ||
-        !tbound(f, TAG('h', 'h', 'e', 'a'), &f->hhea, &l) || l < 36 ||
-        !tbound(f, TAG('h', 'm', 't', 'x'), &f->hmtx, &l) || !tbound(f, TAG('m', 'a', 'x', 'p'), &f->maxp, &l) ||
-        l < 6 || !tbound(f, TAG('l', 'o', 'c', 'a'), &f->loca, &l) ||
-        !tbound(f, TAG('g', 'l', 'y', 'f'), &f->glyf, &l) || !tbound(f, TAG('c', 'm', 'a', 'p'), &f->cmap, &l) || l < 4)
+    uint32_t head_len, hhea_len, maxp_len;
+    if (!tbound(f, TAG('h', 'e', 'a', 'd'), &f->head, &head_len) || head_len < 54 ||
+        !tbound(f, TAG('h', 'h', 'e', 'a'), &f->hhea, &hhea_len) || hhea_len < 36 ||
+        !tbound(f, TAG('h', 'm', 't', 'x'), &f->hmtx, &f->hmtx_len) ||
+        !tbound(f, TAG('m', 'a', 'x', 'p'), &f->maxp, &maxp_len) || maxp_len < 6 ||
+        !tbound(f, TAG('l', 'o', 'c', 'a'), &f->loca, &f->loca_len) ||
+        !tbound(f, TAG('g', 'l', 'y', 'f'), &f->glyf, &f->glyf_len) ||
+        !tbound(f, TAG('c', 'm', 'a', 'p'), &f->cmap, &f->cmap_len) || f->cmap_len < 4)
         return 0;
     f->upem = bu16(f, f->head + 18);
     f->loc_format = bs16(f, f->head + 50);
@@ -280,20 +316,51 @@ static int init_tables(DSFont *f) {
     f->asc_u = bs16(f, f->hhea + 4);
     f->desc_u = bs16(f, f->hhea + 6);
     f->lg_u = bs16(f, f->hhea + 8);
-    if (f->upem <= 0 || f->ng <= 0 || f->nhm <= 0)
+    if (f->upem <= 0 || f->ng <= 0 || f->nhm <= 0 || f->nhm > f->ng ||
+        (f->loc_format != 0 && f->loc_format != 1))
+        return 0;
+    uint64_t loca_need = ((uint64_t)f->ng + 1) * (f->loc_format == 0 ? 2u : 4u);
+    uint64_t hmtx_need = (uint64_t)f->nhm * 4u + ((uint64_t)f->ng - (uint64_t)f->nhm) * 2u;
+    if (loca_need > f->loca_len || hmtx_need > f->hmtx_len)
         return 0;
     uint16_t n = bu16(f, f->cmap + 2);
+    if ((size_t)n > (f->cmap_len - 4) / 8)
+        return 0;
     for (uint16_t i = 0; i < n; i++) {
-        size_t r = f->cmap + 4 + (size_t)i * 8;
+        size_t r = (size_t)f->cmap + 4 + (size_t)i * 8;
         uint16_t p = bu16(f, r), e = bu16(f, r + 2);
-        uint32_t sub = f->cmap + bu32(f, r + 4);
+        uint32_t rel = bu32(f, r + 4);
+        if (rel > f->cmap_len || f->cmap_len - rel < 2)
+            continue;
+        size_t sub = (size_t)f->cmap + rel;
         uint16_t fmt = bu16(f, sub);
         if (fmt == 12 && (p == 3 || p == 0)) {
-            if (!f->cmap12 || (p == 3 && e == 10))
-                f->cmap12 = sub;
+            if (rel > f->cmap_len || f->cmap_len - rel < 16)
+                continue;
+            uint32_t len = bu32(f, sub + 4);
+            if (len < 16 || len > f->cmap_len - rel)
+                continue;
+            uint32_t groups = bu32(f, sub + 12);
+            if ((uint64_t)groups > ((uint64_t)len - 16u) / 12u)
+                continue;
+            if (!f->cmap12 || (p == 3 && e == 10)) {
+                f->cmap12 = (uint32_t)sub;
+                f->cmap12_len = len;
+            }
         } else if (fmt == 4 && (p == 3 || p == 0)) {
-            if (!f->cmap4 || (p == 3 && e == 1))
-                f->cmap4 = sub;
+            if (rel > f->cmap_len || f->cmap_len - rel < 4)
+                continue;
+            uint16_t len = bu16(f, sub + 2);
+            if (len < 16 || len > f->cmap_len - rel)
+                continue;
+            uint16_t seg_count_x2 = bu16(f, sub + 6);
+            if (seg_count_x2 == 0 || (seg_count_x2 & 1) != 0 ||
+                16u + (uint64_t)(seg_count_x2 / 2) * 8u > len)
+                continue;
+            if (!f->cmap4 || (p == 3 && e == 1)) {
+                f->cmap4 = (uint32_t)sub;
+                f->cmap4_len = len;
+            }
         }
     }
     return f->cmap4 || f->cmap12;

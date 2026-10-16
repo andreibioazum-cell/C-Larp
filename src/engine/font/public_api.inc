@@ -109,12 +109,16 @@ DSFont *ds_font_create(const uint8_t *data, size_t size, int ph) {
         int gi = g_for(f, gl->codepoint);
         DSOutline ol;
         ol_init(&ol);
-        int st = 0, mnx = 0, mxx = 0, has = 0;
+        int st = 0, mnx = 0, mxx = 0, has = 0, invalid = 0;
         if (read_outline(f, gi, 0, 1, 0, 0, 1, 0, 0, &ol)) {
-            for (int cn = 0; cn < ol.cc; cn++) {
+            for (int cn = 0; cn < ol.cc && !invalid; cn++) {
                 int en = ol.ends[cn];
                 for (int p = st; p <= en; p++) {
-                    int x = (int)lrintf(ol.points[p].x);
+                    int x;
+                    if (!font_coord_int(ol.points[p].x, &x)) {
+                        invalid = 1;
+                        break;
+                    }
                     if (!has || x < mnx)
                         mnx = x;
                     if (!has || x > mxx)
@@ -123,8 +127,12 @@ DSFont *ds_font_create(const uint8_t *data, size_t size, int ph) {
                 }
                 st = en + 1;
             }
-            if (has)
-                gw = (int)ceilf((mxx - mnx) * f->scale) + 2;
+            if (invalid) {
+                gw = f->aw;
+            } else if (has) {
+                double width = ceil(((double)mxx - (double)mnx) * (double)f->scale) + 2.0;
+                gw = !isfinite(width) || width > f->aw ? f->aw : (int)width;
+            }
         }
         ol_free(&ol);
         if (gw < 1)
