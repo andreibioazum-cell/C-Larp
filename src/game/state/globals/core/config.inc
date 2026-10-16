@@ -14,6 +14,7 @@ double game_state;
 double language;
 double t_dir;
 double t_target;
+void (*t_action)(void);
 double t_fade;
 double t_hold;
 double transition_duration;

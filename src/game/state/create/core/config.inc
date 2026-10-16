@@ -14,6 +14,7 @@ game_state = 0;
 language = 1;
 t_dir = 0;
 t_target = 0;
+t_action = NULL;
 t_fade = 0;
 t_hold = 0;
 transition_duration = 0.10;

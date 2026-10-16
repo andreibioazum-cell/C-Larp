@@ -146,6 +146,7 @@ static void draw_class_card(double vi) {
 }
 
 static void draw_class_stats(void) {
+    draw_imbalance_stars();
     const char *smotto = class_desc_of(player_class);
     ctext_scaled(smotto, stat_motto_y(), text_color, fit_text_scale(smotto, screen_w - 2 * screen_margin, 0.8));
 }

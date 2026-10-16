@@ -55,8 +55,8 @@ static double press_btn_y;
 static double press_btn_w;
 static double press_btn_h;
 static double press_btn_gen;
-/* 1 while an overlay (the consent warning, the open chat) offers the press
- * to its own buttons; the screen drawn beneath never claims that touch. */
+/* Input layer of the control being drawn: 0 screen, 1 warning/chat,
+ * 2 documents, 3 account. Hidden overlays must not steal the press either. */
 static double press_overlay;
 
 /* A control hidden under something drawn later never takes the squeeze: the
@@ -64,11 +64,17 @@ static double press_overlay;
  * intro card or the results). An overlay that has buttons of its own raises
  * press_overlay while it draws them. */
 static double press_covered(void) {
+    if (acct_open != 0) {
+        return press_overlay != 3;
+    }
+    if (docs_open == 1) {
+        return press_overlay != 2;
+    }
+    if (warn_open == 1) {
+        return press_overlay != 1;
+    }
     if (press_overlay == 1) {
         return 0;
-    }
-    if (acct_open != 0 || docs_open == 1 || warn_open == 1) {
-        return 1;
     }
     if (game_state == ST_SOLO || game_state == ST_ONLINE) {
         return finished != 0 || (game_state == ST_ONLINE && chat_open == 1);

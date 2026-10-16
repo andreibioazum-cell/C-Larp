@@ -130,6 +130,9 @@ static void login_do(void) {
 }
 
 static void update_login(void) {
+    if (t_dir != 0) {
+        return;
+    }
     if (keyboard_visible() == 1) {
         login_sync_field();
     }
@@ -167,7 +170,7 @@ static void open_online(void) {
     }
     /* Онлайн-бой и чат - обработка данных: без согласия туда не пускаем. */
     if (consent_ok() == 0) {
-        docs_show(LEGAL_PAGE_CONSENT, 1);
+        docs_transition(LEGAL_PAGE_CONSENT, 1);
         return;
     }
     if (net_is_banned(net_login_nick()) == 1) {
@@ -291,7 +294,7 @@ static void touch_settings(double x, double y) {
         return;
     }
     if (hit_settings_row(x, y, 5) == 1) {
-        docs_show(0, 0);
+        docs_transition(0, 0);
         return;
     }
 }
@@ -369,7 +372,7 @@ static void touch_login(double x, double y, double action) {
     }
     if (hit_login_more(x, y) == 1) {
         login_sync_field();
-        docs_show(LEGAL_PAGE_CONSENT - 2, 0);
+        docs_transition(LEGAL_PAGE_CONSENT - 2, 0);
         return;
     }
     if (hit_login_consent(x, y) == 1) {

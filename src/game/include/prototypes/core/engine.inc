@@ -1,4 +1,5 @@
 static void start_transition(double target);
+static void start_action_transition(void (*action)(void));
 static void leave_screen(double state);
 static double enter_screen(double state);
 static void update_transition(void);
