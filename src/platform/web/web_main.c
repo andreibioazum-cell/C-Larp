@@ -33,6 +33,12 @@ static double prev_frame_t = 0;
 
 static double map_x(double cx) { return js_map_x(cx); }
 static double map_y(double cy) { return js_map_y(cy); }
+static int audio_resumed = 0;
+static void resume_audio_on_first_gesture(void) {
+    if (audio_resumed) return;
+    audio_resumed = 1;
+    ds_sound_resume();
+}
 
 static double now_sec(void) { return js_now(); }
 
@@ -134,14 +140,6 @@ static void do_frame(void) {
         }
     }
 }
-
-EM_JS(void, js_on_resize, (), {
-    if (Module._cb4_or) return;
-    Module._cb4_or = 1;
-    var h = function(){ Module.__cb4_resize = 1; };
-    window.addEventListener("resize", h);
-    window.addEventListener("orientationchange", h);
-});
 
 int main(void) {
     srand((unsigned)(time(0)^0x9E3779B9u));

@@ -87,39 +87,58 @@ EM_JS(void, js_gfx_init, (const char *cid), {
     document.body.style.background="#000";
     document.documentElement.style.touchAction="none";
     document.body.style.touchAction="none";
-    Module._canvas.style.display="block";
-    Module._canvas.style.width="100vw";
-    Module._canvas.style.height="100vh";
-    Module._canvas.style.margin="0"; Module._canvas.style.padding="0";
-    Module._canvas.style.position="fixed";
+    document.body.style.overscrollBehavior="none";
+    Module._canvas.style.position="absolute";
     Module._canvas.style.left="0"; Module._canvas.style.top="0";
+    Module._canvas.style.margin="0"; Module._canvas.style.padding="0";
+    Module._canvas.style.transformOrigin="top left";
     Module._canvas.style.imageRendering="pixelated";
+    Module._canvas.style.imageRendering="-webkit-crisp-edges";
+    Module._canvas.style.imageRendering="crisp-edges";
     Module._canvas.style.touchAction="none";
     Module._canvas.style.webkitTapHighlightColor="transparent";
+    Module._canvas.style.outline="none"; Module._canvas.style.border="none";
+    Module._canvas.style.display="block";
     Module._canvas.oncontextmenu = function(e){ e.preventDefault(); return false; };
-    /* preventDefault для touch-событий на canvas, чтобы не было скролла/зума */
     var opts = { passive:false };
     Module._canvas.addEventListener("touchstart", function(e){ e.preventDefault(); }, opts);
     Module._canvas.addEventListener("touchmove",  function(e){ e.preventDefault(); }, opts);
     Module._canvas.addEventListener("touchend",   function(e){ e.preventDefault(); }, opts);
+    Module._canvas.addEventListener("touchcancel",function(e){ e.preventDefault(); }, opts);
 });
 
 EM_JS(void, js_gfx_resize, (int w, int h), {
     if (!Module._canvas) return;
-    Module._canvas.width = w; Module._canvas.height = h;
+    var c = Module._canvas;
+    c.width = w; c.height = h;
     Module._cw = w; Module._ch = h;
+    /* Вписать канвас во viewport letterbox-ом с сохранением соотношения.
+     * Используем CSS transform: scale + offset, чтобы координаты
+     * getBoundingClientRect() автоматически учитывали масштаб и сдвиг,
+     * а js_map_x/y просто умножал canvasX на (width / rect.width). */
+    var vw = window.innerWidth  || document.documentElement.clientWidth;
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    var sx = vw / w, sy = vh / h;
+    var s  = sx < sy ? sx : sy;
+    var cw = w*s, ch = h*s;
+    var ox = (vw - cw) / 2;
+    var oy = (vh - ch) / 2;
+    c.style.width  = w+"px";
+    c.style.height = h+"px";
+    c.style.transform = "translate("+ox+"px,"+oy+"px) scale("+s+")";
+    Module._cb4_scale = s;
 });
 
 EM_JS(double, js_map_x, (double cx), {
     var c = Module._canvas; if (!c) return cx;
     var r = c.getBoundingClientRect();
-    var cw = r.width  || c.clientWidth  || 1;
+    var cw = r.width  || 1;
     return cx * (c.width  / cw);
 });
 EM_JS(double, js_map_y, (double cy), {
     var c = Module._canvas; if (!c) return cy;
     var r = c.getBoundingClientRect();
-    var ch = r.height || c.clientHeight || 1;
+    var ch = r.height || 1;
     return cy * (c.height / ch);
 });
 
@@ -168,11 +187,22 @@ EM_JS(int, js_poll_resize, (), {
     return r;
 });
 
-/* ---- Полноэкранный режим по первому нажатию (один раз) ----
+EM_JS(void, js_on_resize, (), {
+    if (Module._cb4_or) return;
+    Module._cb4_or = 1;
+    var h = function(){ Module.__cb4_resize = 1; };
+    window.addEventListener("resize", h);
+    window.addEventListener("orientationchange", h);
+    /* visualViewport точнее ловит появление/скрытие адресной строки на мобильных */
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", h);
+});
+
+/* ---- Полноэкранный режим по первому нажатию (один раз).
  * Вешаем один слушатель прямо в JS на document (capture), чтобы он сработал
  * на ЛЮБОЙ первый тап/клик, независимо от того, куда Emscripten повесил
  * свои callback'и и показан ли alert(). requestFullscreen обязательно
- * должен вызываться из user-gesture, поэтому прямо в обработчике. */
+ * должен вызываться из user-gesture, поэтому прямо в обработчике.
+ * Сюда же — resume Web Audio (браузеры блокируют autoplay до жеста). */
 EM_JS(void, js_arm_fullscreen_on_first_tap, (), {
     if (Module._cb4_fs_armed) return;
     Module._cb4_fs_armed = 1;
@@ -184,6 +214,7 @@ EM_JS(void, js_arm_fullscreen_on_first_tap, (), {
         document.removeEventListener("touchstart", go, true);
         document.removeEventListener("mousedown", go, true);
         document.removeEventListener("keydown", go, true);
+        try { if (Module._audioCtx && Module._audioCtx.state === "suspended") Module._audioCtx.resume(); } catch(ex){}
         var el = document.documentElement;
         var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
         if (fn) { try { fn.call(el); } catch(ex){} }
