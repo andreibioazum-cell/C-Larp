@@ -178,6 +178,7 @@ jobs:
         run: |
           set -uo pipefail
           mkdir -p build/web
+          set +e
           emcc src/platform/web/web_main.c \
             -Isrc -Isrc/platform/web/sysroot -I. \
             -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=1 \
@@ -186,8 +187,15 @@ jobs:
             --shell-file build/web/shell.html \
             --preload-file assets@/assets \
             -o build/web/cb4.html -O2 2>&1 | tee build/web/build.log
-          if [ ! -f build/web/cb4.html ]; then
-            echo "::group::build log"; cat build/web/build.log; echo "::endgroup::"; exit 1;
+          rc=${PIPESTATUS[0]}
+          set -e
+          # Выдать каждую error-строку как аннотацию GitHub Actions, чтобы видно было без Azure-логов.
+          if [ $rc -ne 0 ]; then
+            grep -E "error:|wasm-ld" build/web/build.log | head -40 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            tail -100 build/web/build.log
+            exit $rc
           fi
           cp build/web/cb4.html build/web/index.html
 
