@@ -148,7 +148,7 @@ static void *reader_thread(void *arg) {
         }
         if (start >= next_event) {
             if (pull_event(event_resp, sizeof(event_resp)) && net_gen_ok(gen)) {
-                int ev = (int)num(event_resp, "", 0);
+                int ev = num_int(event_resp, "", 0);
                 if (ev < 0)
                     ev = 0;
                 lock();

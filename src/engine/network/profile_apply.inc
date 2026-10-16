@@ -1,28 +1,28 @@
 static void apply_user_json(const char *resp) {
     int legacy_astra_class = 0;
-    int cups = (int)num(resp, "cups", 0);
-    int candies = (int)num(resp, "candies", 0);
-    int cls = (int)num(resp, "cls", 0);
+    int cups = num_int(resp, "cups", 0);
+    int candies = num_int(resp, "candies", 0);
+    int cls = num_int(resp, "cls", 0);
     legacy_astra_class = cls == 5;
-    int azum = (int)num(resp, "azum", 0);
-    int santa = (int)num(resp, "santa", 0);
-    int ebuc = (int)num(resp, "ebuc", 0);
-    int level = (int)num(resp, "level", 0);
-    int levels_unlocked = (int)num(resp, "levels", -1);
-    int ordinary_level = (int)num(resp, "ordinary_level", -1);
-    int ordinary_levels_unlocked = (int)num(resp, "ordinary_levels", -1);
-    int azum_level = (int)num(resp, "azum_level", -1);
-    int azum_levels_unlocked = (int)num(resp, "azum_levels", -1);
-    int santa_level = (int)num(resp, "santa_level", -1);
-    int santa_levels_unlocked = (int)num(resp, "santa_levels", -1);
-    int ebuc_level = (int)num(resp, "ebuc_level", -1);
-    int ebuc_levels_unlocked = (int)num(resp, "ebuc_levels", -1);
+    int azum = num_int(resp, "azum", 0);
+    int santa = num_int(resp, "santa", 0);
+    int ebuc = num_int(resp, "ebuc", 0);
+    int level = num_int(resp, "level", 0);
+    int levels_unlocked = num_int(resp, "levels", -1);
+    int ordinary_level = num_int(resp, "ordinary_level", -1);
+    int ordinary_levels_unlocked = num_int(resp, "ordinary_levels", -1);
+    int azum_level = num_int(resp, "azum_level", -1);
+    int azum_levels_unlocked = num_int(resp, "azum_levels", -1);
+    int santa_level = num_int(resp, "santa_level", -1);
+    int santa_levels_unlocked = num_int(resp, "santa_levels", -1);
+    int ebuc_level = num_int(resp, "ebuc_level", -1);
+    int ebuc_levels_unlocked = num_int(resp, "ebuc_levels", -1);
 
-    int astra = (int)num(resp, "astra", 0);
-    int astra_level = (int)num(resp, "astra_level", -1);
-    int astra_levels_unlocked = (int)num(resp, "astra_levels", -1);
-    int bp_level = (int)num(resp, "bp", 0);
-    int azum_skin = (int)num(resp, "azum_skin", 0);
+    int astra = num_int(resp, "astra", 0);
+    int astra_level = num_int(resp, "astra_level", -1);
+    int astra_levels_unlocked = num_int(resp, "astra_levels", -1);
+    int bp_level = num_int(resp, "bp", 0);
+    int azum_skin = num_int(resp, "azum_skin", 0);
     if (levels_unlocked < 0)
         levels_unlocked = level;
     if (cups < 0)
@@ -155,8 +155,8 @@ static void apply_user_json(const char *resp) {
                    ordinary_levels_unlocked, azum_level, azum_levels_unlocked, santa_level, santa_levels_unlocked,
                    ebuc_level, ebuc_levels_unlocked, bp_level, azum_skin, astra, astra_level, astra_levels_unlocked);
 
-    int cloud_ach_flags = (int)num(resp, "ach_flags", -1);
-    int cloud_ach_revives = (int)num(resp, "ach_revives", -1);
+    int cloud_ach_flags = num_int(resp, "ach_flags", -1);
+    int cloud_ach_revives = num_int(resp, "ach_revives", -1);
     if (cloud_ach_flags >= 0) {
         ds_mutex_lock(ach_lock);
 

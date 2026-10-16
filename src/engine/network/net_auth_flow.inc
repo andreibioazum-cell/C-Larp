@@ -56,7 +56,7 @@ double net_auth(const char *url, const char *nick, const char *pass) {
             session_save(nick, pass);
             if (restored)
                 push_pg_to_cloud();
-            LOG("logged in: '%s' (cups=%d, candies=%d)", nick, (int)num(resp, "cups", 0), (int)num(resp, "candies", 0));
+            LOG("logged in: '%s' (cups=%d, candies=%d)", nick, num_int(resp, "cups", 0), num_int(resp, "candies", 0));
             return (double)NET_LOGIN_OK;
         }
         return (double)NET_ERROR;
@@ -95,7 +95,7 @@ double net_auth(const char *url, const char *nick, const char *pass) {
             session_save(nick, pass);
             if (restored)
                 push_pg_to_cloud();
-            LOG("logged in: '%s' (cups=%d, candies=%d)", nick, (int)num(resp, "cups", 0), (int)num(resp, "candies", 0));
+            LOG("logged in: '%s' (cups=%d, candies=%d)", nick, num_int(resp, "cups", 0), num_int(resp, "candies", 0));
             return (double)NET_LOGIN_OK;
         } else {
             if (net_log_ok())

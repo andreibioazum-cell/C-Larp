@@ -201,8 +201,9 @@ const char *net_chat_uid(double idx) {
     return s_chat_uid_ret;
 }
 static int sidx(double slot) {
-    int i = (int)slot;
-    return i >= 0 && i < NET_SLOTS ? i : -1;
+    if (!isfinite(slot) || slot < 0 || slot >= NET_SLOTS)
+        return -1;
+    return (int)slot;
 }
 double net_status(void) {
     double v;
