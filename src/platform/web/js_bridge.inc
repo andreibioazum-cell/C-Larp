@@ -71,18 +71,37 @@ EM_JS(void, js_gfx_init, (const char *cid), {
     Module._canvas = document.getElementById(UTF8ToString(cid));
     if (!Module._canvas) { Module._canvas = document.createElement("canvas"); document.body.appendChild(Module._canvas); }
     Module._ctx = Module._canvas.getContext("2d");
-    Module._canvas.style.width="100vw"; Module._canvas.style.height="100vh";
-    Module._canvas.style.display="block";
     document.documentElement.style.margin=0; document.body.style.margin=0;
     document.body.style.overflow="hidden";
     document.body.style.background="#000";
+    document.body.style.touchAction="none";
+    Module._canvas.style.display="block";
+    Module._canvas.style.margin="auto";
+    Module._canvas.style.position="fixed";
+    Module._canvas.style.top="0"; Module._canvas.style.left="0";
+    Module._canvas.style.right="0"; Module._canvas.style.bottom="0";
+    Module._canvas.style.maxWidth="100vw"; Module._canvas.style.maxHeight="100vh";
+    Module._canvas.style.imageRendering="pixelated";
+    Module._canvas.style.touchAction="none";
+    Module._canvas.oncontextmenu = function(e){ e.preventDefault(); return false; };
+    /* preventDefault для touch-событий на canvas, чтобы не было скролла/зума */
+    var opts = { passive:false };
+    Module._canvas.addEventListener("touchstart", function(e){ e.preventDefault(); }, opts);
+    Module._canvas.addEventListener("touchmove",  function(e){ e.preventDefault(); }, opts);
+    Module._canvas.addEventListener("touchend",   function(e){ e.preventDefault(); }, opts);
 });
 
 EM_JS(void, js_gfx_resize, (int w, int h), {
     if (!Module._canvas) return;
-    var dpr = window.devicePixelRatio || 1;
     Module._canvas.width = w; Module._canvas.height = h;
     Module._cw = w; Module._ch = h;
+    /* Вписать канвас во viewport с сохранением соотношения (letterbox),
+     * чтобы не растягивалось на телефонах с другим соотношением. */
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var scale = Math.min(vw/w, vh/h);
+    var cw = w*scale, ch = h*scale;
+    Module._canvas.style.width  = cw+"px";
+    Module._canvas.style.height = ch+"px";
 });
 
 EM_JS(void, js_gfx_begin, (), {
@@ -115,8 +134,32 @@ EM_JS(void, js_gfx_end, (), {
 
 EM_JS(double, js_now, (), { return performance.now()/1000.0; });
 
+EM_JS(int, js_poll_resize, (), {
+    var r = Module.__cb4_resize ? 1 : 0;
+    Module.__cb4_resize = 0;
+    return r;
+});
+
+/* ---- Полноэкранный режим (запускается при первом нажатии) ---- */
 EM_JS(void, js_request_fullscreen, (), {
-    var c = Module._canvas; if (c && c.requestFullscreen) c.requestFullscreen().catch(function(){});
+    var el = document.documentElement;
+    var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (fn) { try { fn.call(el); } catch(e){} }
+});
+
+/* ---- Преобразование координат нажатия из CSS-пикселей canvas в игровые.
+ * Эмулятор отдаёт canvasX/canvasY в координатах DOM-элемента (CSS), а игра
+ * работает во внутренних пикселях canvas (900x1600). Масштабируем через
+ * getBoundingClientRect(). */
+EM_JS(double, js_map_x, (double cx), {
+    var c = Module._canvas; if (!c) return cx; var r = c.getBoundingClientRect();
+    var cw = r.width || c.clientWidth || 1;
+    return cx * (c.width / cw);
+});
+EM_JS(double, js_map_y, (double cy), {
+    var c = Module._canvas; if (!c) return cy; var r = c.getBoundingClientRect();
+    var ch = r.height || c.clientHeight || 1;
+    return cy * (c.height / ch);
 });
 
 EM_JS(int, js_is_mobile, (), {
