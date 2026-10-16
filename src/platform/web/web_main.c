@@ -28,15 +28,8 @@ static AAssetManager web_amgr = {0};
 static int game_active = 0;
 static int init_done = 0;
 static int game_started_once = 0;
-static int first_tap_fullscreen_done = 0;
 static Buffer frame = {0};
 static double prev_frame_t = 0;
-
-static void on_first_tap(void) {
-    if (first_tap_fullscreen_done) return;
-    first_tap_fullscreen_done = 1;
-    js_request_fullscreen();
-}
 
 static double map_x(double cx) { return js_map_x(cx); }
 static double map_y(double cy) { return js_map_y(cy); }
@@ -76,7 +69,6 @@ static int start_game(int reset) {
 /* --- Обработчики ввода с DOM --- */
 static EM_BOOL on_mouse(int type, const EmscriptenMouseEvent *e, void *ud) {
     (void)ud;
-    if (type == EMSCRIPTEN_EVENT_MOUSEDOWN) on_first_tap();
     if (!game_active) return EM_FALSE;
     float mx = (float)map_x((double)e->canvasX);
     float my = (float)map_y((double)e->canvasY);
@@ -90,7 +82,6 @@ static EM_BOOL on_mouse(int type, const EmscriptenMouseEvent *e, void *ud) {
 
 static EM_BOOL on_touch(int type, const EmscriptenTouchEvent *e, void *ud) {
     (void)ud;
-    if (type == EMSCRIPTEN_EVENT_TOUCHSTART) on_first_tap();
     if (!game_active || e->numTouches==0) return EM_FALSE;
     for (int i=0;i<e->numTouches;i++) {
         float mx = (float)map_x((double)e->touches[i].canvasX);
@@ -155,11 +146,14 @@ EM_JS(void, js_on_resize, (), {
 int main(void) {
     srand((unsigned)(time(0)^0x9E3779B9u));
     js_gfx_init("gameCanvas");
+    /* Fullscreen при первом же жесте пользователя (даже по закрытию alert-а). */
+    js_arm_fullscreen_on_first_tap();
     js_on_resize();
-    /* Фиксированный размер canvas (внутренний); CSS-размер подгоняется letterbox-ом
-     * в js_gfx_resize, чтобы на любом телефоне соотношение сохранялось. */
+    /* Фиксированный размер canvas (внутренние пиксели). CSS уже стоит 100vw/100vh
+     * в js_gfx_init. НЕ используем emscripten_set_canvas_element_size — он
+     * перезаписывает CSS-размер пиксельными значениями и ломает маппинг
+     * координат на телефонах. */
     int w = 900, h = 1600;
-    emscripten_set_canvas_element_size("gameCanvas", w, h);
     js_gfx_resize(w, h);
     screen_w = w; screen_h = h;
 

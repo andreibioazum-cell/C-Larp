@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
-void alpha_notice_show(double a0){(void)a0;}
+/* alpha_notice_show() — в notice_web.inc (чтобы один алерт в начале). */
 void bye_notice_show(const char*a0){(void)a0;}
 double net_auth(const char*a0, const char*a1, const char*a2){(void)a0;(void)a1;(void)a2;return 0.0;}
 void net_autologin(const char*a0){(void)a0;}

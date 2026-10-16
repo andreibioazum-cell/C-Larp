@@ -8,6 +8,16 @@ EM_JS(void, js_alert, (const char *msg), {
     if (typeof alert !== "undefined") alert(UTF8ToString(msg));
 });
 
+/* alert с заголовком. В стандартном alert() нет заголовка, поэтому компонуем
+ * его как «TITLE\n\nBODY» — ровно как выглядит системный диалог на Android,
+ * который и так показывает title жирным отдельной строкой (на десктопе
+ * заголовок будет просто первой строкой в жирном стиле нельзя, но всё
+ * равно выглядит как обычная альфа-табличка). */
+EM_JS(void, js_alert_title, (const char *title, const char *body), {
+    var t = UTF8ToString(title), b = UTF8ToString(body);
+    if (typeof alert !== "undefined") alert(t + "\n\n" + b);
+});
+
 EM_JS(void, js_console_log, (int err, const char *s), {
     var t = UTF8ToString(s);
     if (err) console.error(t); else console.log(t);
@@ -73,16 +83,19 @@ EM_JS(void, js_gfx_init, (const char *cid), {
     Module._ctx = Module._canvas.getContext("2d");
     document.documentElement.style.margin=0; document.body.style.margin=0;
     document.body.style.overflow="hidden";
+    document.body.style.width="100%"; document.body.style.height="100%";
     document.body.style.background="#000";
+    document.documentElement.style.touchAction="none";
     document.body.style.touchAction="none";
     Module._canvas.style.display="block";
-    Module._canvas.style.margin="auto";
+    Module._canvas.style.width="100vw";
+    Module._canvas.style.height="100vh";
+    Module._canvas.style.margin="0"; Module._canvas.style.padding="0";
     Module._canvas.style.position="fixed";
-    Module._canvas.style.top="0"; Module._canvas.style.left="0";
-    Module._canvas.style.right="0"; Module._canvas.style.bottom="0";
-    Module._canvas.style.maxWidth="100vw"; Module._canvas.style.maxHeight="100vh";
+    Module._canvas.style.left="0"; Module._canvas.style.top="0";
     Module._canvas.style.imageRendering="pixelated";
     Module._canvas.style.touchAction="none";
+    Module._canvas.style.webkitTapHighlightColor="transparent";
     Module._canvas.oncontextmenu = function(e){ e.preventDefault(); return false; };
     /* preventDefault для touch-событий на canvas, чтобы не было скролла/зума */
     var opts = { passive:false };
@@ -95,13 +108,19 @@ EM_JS(void, js_gfx_resize, (int w, int h), {
     if (!Module._canvas) return;
     Module._canvas.width = w; Module._canvas.height = h;
     Module._cw = w; Module._ch = h;
-    /* Вписать канвас во viewport с сохранением соотношения (letterbox),
-     * чтобы не растягивалось на телефонах с другим соотношением. */
-    var vw = window.innerWidth, vh = window.innerHeight;
-    var scale = Math.min(vw/w, vh/h);
-    var cw = w*scale, ch = h*scale;
-    Module._canvas.style.width  = cw+"px";
-    Module._canvas.style.height = ch+"px";
+});
+
+EM_JS(double, js_map_x, (double cx), {
+    var c = Module._canvas; if (!c) return cx;
+    var r = c.getBoundingClientRect();
+    var cw = r.width  || c.clientWidth  || 1;
+    return cx * (c.width  / cw);
+});
+EM_JS(double, js_map_y, (double cy), {
+    var c = Module._canvas; if (!c) return cy;
+    var r = c.getBoundingClientRect();
+    var ch = r.height || c.clientHeight || 1;
+    return cy * (c.height / ch);
 });
 
 EM_JS(void, js_gfx_begin, (), {
@@ -123,9 +142,18 @@ EM_JS(void, js_gfx_rect, (float x, float y, float w, float h, int rgba), {
 
 EM_JS(void, js_gfx_text, (const char *s, float x, float y, float sc, int rgba), {
     var c=Module._ctx; js_gfx_fill(rgba);
-    c.font = Math.floor(16*sc)+"px monospace";
+    var sz = Math.max(1, Math.floor(20*sc));
+    c.font = sz+"px monospace, \"Courier New\", sans-serif";
     c.textBaseline="top";
     c.fillText(UTF8ToString(s), x, y);
+});
+
+/* Измерение ширины строки в пикселях канваса (для text_ink_width и центрирования). */
+EM_JS(int, js_text_width, (const char *s, float sc), {
+    var c=Module._ctx; if(!c||!s) return 0;
+    var sz = Math.max(1, Math.floor(20*sc));
+    c.font = sz+"px monospace, \"Courier New\", sans-serif";
+    return Math.ceil(c.measureText(UTF8ToString(s)).width);
 });
 
 EM_JS(void, js_gfx_end, (), {
@@ -140,26 +168,36 @@ EM_JS(int, js_poll_resize, (), {
     return r;
 });
 
-/* ---- Полноэкранный режим (запускается при первом нажатии) ---- */
+/* ---- Полноэкранный режим по первому нажатию (один раз) ----
+ * Вешаем один слушатель прямо в JS на document (capture), чтобы он сработал
+ * на ЛЮБОЙ первый тап/клик, независимо от того, куда Emscripten повесил
+ * свои callback'и и показан ли alert(). requestFullscreen обязательно
+ * должен вызываться из user-gesture, поэтому прямо в обработчике. */
+EM_JS(void, js_arm_fullscreen_on_first_tap, (), {
+    if (Module._cb4_fs_armed) return;
+    Module._cb4_fs_armed = 1;
+    var done = 0;
+    var go = function(e) {
+        if (done) return;
+        done = 1;
+        document.removeEventListener("pointerdown", go, true);
+        document.removeEventListener("touchstart", go, true);
+        document.removeEventListener("mousedown", go, true);
+        document.removeEventListener("keydown", go, true);
+        var el = document.documentElement;
+        var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+        if (fn) { try { fn.call(el); } catch(ex){} }
+    };
+    document.addEventListener("pointerdown", go, true);
+    document.addEventListener("touchstart", go, true);
+    document.addEventListener("mousedown", go, true);
+    document.addEventListener("keydown", go, true);
+});
+
 EM_JS(void, js_request_fullscreen, (), {
     var el = document.documentElement;
     var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
     if (fn) { try { fn.call(el); } catch(e){} }
-});
-
-/* ---- Преобразование координат нажатия из CSS-пикселей canvas в игровые.
- * Эмулятор отдаёт canvasX/canvasY в координатах DOM-элемента (CSS), а игра
- * работает во внутренних пикселях canvas (900x1600). Масштабируем через
- * getBoundingClientRect(). */
-EM_JS(double, js_map_x, (double cx), {
-    var c = Module._canvas; if (!c) return cx; var r = c.getBoundingClientRect();
-    var cw = r.width || c.clientWidth || 1;
-    return cx * (c.width / cw);
-});
-EM_JS(double, js_map_y, (double cy), {
-    var c = Module._canvas; if (!c) return cy; var r = c.getBoundingClientRect();
-    var ch = r.height || c.clientHeight || 1;
-    return cy * (c.height / ch);
 });
 
 EM_JS(int, js_is_mobile, (), {

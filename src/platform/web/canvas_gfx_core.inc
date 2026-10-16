@@ -208,7 +208,12 @@ void text_scaled(const char *s,float x,float y,uint32_t c,float sc){
 }
 void text(const char *s,float x,float y,uint32_t c){text_scaled(s,x,y,c,1.0f);}
 
-int text_ink_width(const char *s){if(!s)return 0;return (int)strlen(s)*12;}
+int text_ink_width(const char *s){
+    /* Замер реальной ширины в Canvas 2D (через measureText), чтобы
+     * центрирование ctext/ctext_scaled работало и на кириллице. */
+    if(!s)return 0;
+    return js_text_width(s, 1.0f);
+}
 int text_ink_height(const char *s){(void)s;return 20;}
 int text_ink_top(const char *s){(void)s;return 0;}
 
