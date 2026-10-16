@@ -1,7 +1,7 @@
 #ifndef CB_NOTICE_WEB_INC
 #define CB_NOTICE_WEB_INC
-/* Activity hooks for web: ds_set_activity stub + start-page alert.
- * (Android-only notice branches are empty when __ANDROID__ is not defined.) */
+/* Web notice hooks: only ds_set_activity stub + start-page alert.
+ * alpha_notice_show and bye_notice_show are provided as stubs in network_web.inc. */
 #include "platform/web/js_bridge.inc"
 static int web_start_alert_shown = 0;
 void ds_set_activity(void *a) { (void)a; }
