@@ -1,8 +1,7 @@
 /* Аудио на вебе: простая заглушка (без звука, чтобы не тянуть OpenSL/AAudio). */
 #ifndef CB_AUDIO_WEB_INC
 #define CB_AUDIO_WEB_INC
-struct AAssetManager;
-int ds_sound_init(struct AAssetManager *assets) { (void)assets; return 1; }
+int ds_sound_init(AAssetManager *assets) { (void)assets; return 1; }
 void ds_sound_shutdown(void) {}
 void ds_sound_suspend(void) {}
 void ds_sound_pause(void) {}
