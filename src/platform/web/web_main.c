@@ -11,11 +11,14 @@
 #include <math.h>
 
 /* --- Замена Android-заголовков (на вебе нет NDK, никакой Java) --- */
-struct AAssetManager { int web_dummy; };     /* пустышка вместо android/asset_manager.h */
-struct ANativeWindow;                        /* forward declaration — используется как opaque */
+/* AAssetManager и ANativeWindow уже forward-declared в runtime.h; здесь только пустой экземпляр. */
+struct AAssetManager { int web_dummy; };
+struct ANativeWindow { int dummy; };
 #define __android_log_print(...) ((void)0)
-
-#include <pthread.h>
+#ifndef EM_TRUE
+#define EM_TRUE 1
+#define EM_FALSE 0
+#endif
 
 #include "platform/web/js_bridge.inc"
 #include "engine/runtime.h"

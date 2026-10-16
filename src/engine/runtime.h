@@ -7,9 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 #ifdef __EMSCRIPTEN__
-/* Веб/WASM сборка: нет Android NDK. AAssetManager и ANativeWindow — заглушки. */
+/* Веб/WASM сборка: Android NDK нет; AAssetManager и ANativeWindow — заглушки. */
 struct AAssetManager;
+typedef struct AAssetManager AAssetManager;
 struct ANativeWindow;
+typedef struct ANativeWindow ANativeWindow;
 #else
 #include <android/asset_manager.h>
 #include <android/log.h>

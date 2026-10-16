@@ -1,7 +1,17 @@
 #include "engine/runtime.h"
 #include <stdarg.h>
 #include <stdio.h>
+#ifdef __EMSCRIPTEN__
+/* Однопоточный WASM: без pthread, mutex = no-op int. */
+typedef int pthread_mutex_t;
+#define PTHREAD_MUTEX_INITIALIZER 0
+static inline int _cb4_mtx_lock(pthread_mutex_t *m){(void)m;return 0;}
+static inline int _cb4_mtx_unlock(pthread_mutex_t *m){(void)m;return 0;}
+#define pthread_mutex_lock _cb4_mtx_lock
+#define pthread_mutex_unlock _cb4_mtx_unlock
+#else
 #include <pthread.h>
+#endif
 #include <time.h>
 #define DS_ERROR_MESSAGE_SIZE 1024
 #define DS_CONSOLE_MAX 256
