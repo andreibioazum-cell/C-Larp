@@ -1,4 +1,6 @@
 /* JavaScript-аналоги всего, что раньше было на Java (EM_JS мосты). */
+#ifndef CB_JS_BRIDGE_INC
+#define CB_JS_BRIDGE_INC
 #include <emscripten.h>
 #include <emscripten/html5.h>
 
@@ -120,3 +122,5 @@ EM_JS(void, js_request_fullscreen, (), {
 EM_JS(int, js_is_mobile, (), {
     return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 1 : 0;
 });
+
+#endif /* CB_JS_BRIDGE_INC */

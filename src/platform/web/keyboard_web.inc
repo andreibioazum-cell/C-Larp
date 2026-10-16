@@ -1,4 +1,6 @@
 /* Клавиатура — JS-аналог (вместо Java/JNI). */
+#ifndef CB_KEYBOARD_WEB_INC
+#define CB_KEYBOARD_WEB_INC
 #include "platform/web/js_bridge.inc"
 #define KB_BUF_WEB 384
 static char kb_text_web[KB_BUF_WEB] = {0};
@@ -14,3 +16,4 @@ int keyboard_uses_editor(void) { return kb_uses_editor_web; }
 void keyboard_type(const char *text) { js_kb_type(text); }
 void keyboard_backspace(void) { js_kb_backspace(); }
 int keyboard_handle_key(int keycode, int action, int meta) { (void)keycode; (void)action; (void)meta; return 0; }
+#endif

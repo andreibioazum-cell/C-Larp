@@ -2,6 +2,8 @@
  * engine/graphics.c. Минимум кода: текстуры не грузим (рисуем цветные квадраты),
  * шрифт — встроенный monospace Canvas-шрифт, все геометрические примитивы —
  * напрямую через Canvas 2D API через EM_JS. */
+#ifndef CB_CANVAS_GFX_CORE_INC
+#define CB_CANVAS_GFX_CORE_INC
 #include <emscripten.h>
 #include <math.h>
 #include <stdint.h>
@@ -305,3 +307,4 @@ static stbi_uc *stbi_load_from_memory(const unsigned char *b,int l,int *x,int *y
 }
 static void stbi_image_free(void *p){(void)p;}
 static const char *stbi_failure_reason(void){return "web: stub";}
+#endif /* CB_CANVAS_GFX_CORE_INC */

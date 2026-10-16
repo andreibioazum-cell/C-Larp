@@ -1,5 +1,7 @@
 /* Сеть на вебе: полная заглушка (offline-режим, без Java VM, без JNI).
  * Макросы для быстрого определения no-op'ов, чтобы компоновка прошла. */
+#ifndef CB_NETWORK_WEB_INC
+#define CB_NETWORK_WEB_INC
 #include <stdarg.h>
 #include <stddef.h>
 #define W0(name) void name(void){}
@@ -98,3 +100,4 @@ D1(net_player_class) D1(net_player_level) W1(net_set_level) W1(net_set_skin) D1(
 D0(net_load_level) D0(net_load_levels_unlocked)
 D0(net_load_ordinary_level) D0(net_load_ordinary_levels_unlocked)
 D0(net_load_azum) D0(net_load_azum_level) D0(net_load_azum_levels_unlocked)
+#endif
