@@ -17,6 +17,7 @@ void game_reset(void) {
 }
 
 void game_update(void) {
+    update_azum_buff();
     logic_update();
 }
 

@@ -109,6 +109,7 @@ double CLASS_ASTRA;
 double CLASS_CODECRACKER;
 double player_class;
 double azum_revived;
+double azum_buff_active;
 double revive_prot;
 double azum_cost;
 double santa_candy_cost;

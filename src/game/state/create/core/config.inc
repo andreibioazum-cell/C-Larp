@@ -114,6 +114,7 @@ CLASS_ASTRA = 4;
 CLASS_CODECRACKER = 6;
 player_class = 0;
 azum_revived = 0;
+azum_buff_active = 0;
 revive_prot = 0;
 azum_cost = 65;
 santa_candy_cost = 100;

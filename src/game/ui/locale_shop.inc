@@ -20,6 +20,9 @@ static const char *tr_class_ordinary(void) {
 }
 
 static const char *tr_class_azum(void) {
+    if (azum_buff_active == 1) {
+        return "@z&m";
+    }
     if (language == 1) {
         return "Азум";
     }
@@ -31,6 +34,9 @@ static const char *tr_class_ordinary_desc(void) {
 }
 
 static const char *tr_class_azum_desc(void) {
+    if (azum_buff_active == 1) {
+        return language == 1 ? "Суббота-17" : "Saturday-17";
+    }
     return "Lived once, buried twice...";
 }
 

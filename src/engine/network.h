@@ -86,6 +86,8 @@ void net_publish_codecracker_super(double on);
 void net_set_class(double cls);
 double net_status(void);
 double net_slot(void);
+/* Live root AzumBuff flag; defaults to off without a fresh successful read. */
+double net_azum_buff(void);
 double net_event(void);
 void net_event_set(double mode);
 double net_player_online(double slot);

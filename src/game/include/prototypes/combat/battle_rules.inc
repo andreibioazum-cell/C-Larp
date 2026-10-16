@@ -16,3 +16,6 @@ static double ebuc_universe_damage_for(double lv);
 static double santa_poison_time_for(double lv);
 static double santa_poison_damage_for(double lv);
 static double santa_freeze_time_for(double lv);
+static double azum_dash_damage_for(void);
+static void update_azum_buff(void);
+static double enemy_azum_dash_damage_for(void);

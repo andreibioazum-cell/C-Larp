@@ -568,6 +568,8 @@ double net_auth(const char *url, const char *nick, const char *pass) {
     (void)pass;
     return 2;
 }
+static double stub_azum_buff;
+double net_azum_buff(void) { return stub_azum_buff; }
 double net_event(void) { return 0; }
 void net_event_set(double mode) { (void)mode; }
 double net_load_cups(void) { return 0; }
@@ -1023,6 +1025,59 @@ static void test_legal(void) {
     screen_w = saved_w;
     screen_h = saved_h;
     puts("legal: chat filter, sign-in consent, lobby consent ask, documents window, account deletion");
+}
+
+static void test_azum_buff(void) {
+    game_reset();
+    assert(azum_buff_active == 0);
+    assert(strcmp(tr_class_azum(), "Азум") == 0);
+    player_class = CLASS_AZUM;
+    reset_battle();
+    enemy_class = CLASS_AZUM;
+    enemy->max_hp = player_max_hp_for(CLASS_AZUM);
+    enemy->hp = enemy->max_hp / 2;
+    player->hp = player->max_hp / 2;
+    stub_azum_buff = 1;
+    update_azum_buff();
+    assert(fabs(player->max_hp - azum_hp * 1.10) < 1e-9);
+    assert(fabs(player->hp / player->max_hp - 0.5) < 1e-9);
+    assert(fabs(enemy->max_hp - azum_hp * 1.10) < 1e-9);
+    assert(fabs(enemy->hp / enemy->max_hp - 0.5) < 1e-9);
+    assert(fabs(class_punch_damage_for(CLASS_AZUM, 0) - punch_damage * 1.10) < 1e-9);
+    assert(fabs(azum_dash_damage_for() - azum_dash_damage * 1.10) < 1e-9);
+    assert(fabs(enemy_azum_dash_damage_for() - enemy_dash_damage * 1.10) < 1e-9);
+    assert(player_max_hp_for(CLASS_ORDINARY) == 20);
+    assert(class_punch_damage_for(CLASS_SANTA, 0) == santa_damage);
+    assert(strcmp(tr_class_azum(), "@z&m") == 0);
+    assert(strcmp(tr_class_azum_desc(), "Суббота-17") == 0);
+    language = 0;
+    assert(strcmp(tr_class_azum_desc(), "Saturday-17") == 0);
+    for (int i = 0; i < 2; i++) {
+        player->hp = 0;
+        enemy->hp = 0;
+        assert(try_revive() == 1 && enemy_try_revive() == 1);
+        assert(player->hp == player->max_hp && enemy->hp == enemy->max_hp);
+    }
+    player->hp = 0;
+    enemy->hp = 0;
+    assert(try_revive() == 0 && enemy_try_revive() == 0);
+    assert(azum_revived == 2 && enemy_revived == 2);
+    stub_azum_buff = 0;
+    update_azum_buff();
+    assert(fabs(player->max_hp - azum_hp) < 1e-9);
+    assert(fabs(enemy->max_hp - azum_hp) < 1e-9);
+    assert(strcmp(tr_class_azum(), "Azum") == 0);
+    assert(strcmp(tr_class_azum_desc(), "Lived once, buried twice...") == 0);
+    assert(class_punch_damage_for(CLASS_AZUM, 0) == punch_damage);
+    assert(azum_dash_damage_for() == azum_dash_damage);
+    /* Disabling the flag never grants another revive after two were spent. */
+    assert(try_revive() == 0 && enemy_try_revive() == 0);
+    azum_revived = 0;
+    enemy_revived = 0;
+    assert(try_revive() == 1 && enemy_try_revive() == 1);
+    player->hp = 0;
+    enemy->hp = 0;
+    assert(try_revive() == 0 && enemy_try_revive() == 0);
 }
 
 int main(void) {
@@ -2485,6 +2540,7 @@ int main(void) {
     }
 
     test_legal();
+    test_azum_buff();
 
     state_destroy();
     state_ready = 0;

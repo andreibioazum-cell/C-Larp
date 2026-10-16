@@ -133,7 +133,8 @@ static void draw_class_card(double vi) {
      * skin is currently equipped - picking a skin in the Skins screen should
      * not change what the character looks like in the class list. */
     draw_class_render(cls, SKIN_NORMAL, sx, squeeze_y(class_sprite_y(), top, class_card_h, s), sprite);
-    centered_text(class_name_of(cls), bx, bw, squeeze_y(class_title_y(), top, class_card_h, s), tc,
+    centered_text(class_name_of(cls), bx, bw, squeeze_y(class_title_y(), top, class_card_h, s),
+                  cls == CLASS_AZUM && azum_buff_active == 1 ? shade(0xFFFF3030, 1 - PRESS_SHADE * p) : tc,
                   class_title_scale() * s);
     const char *motto = class_desc_of(cls);
     centered_text(motto, bx, bw, squeeze_y(class_desc_y(), top, class_card_h, s), tc,
