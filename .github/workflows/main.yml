@@ -179,7 +179,7 @@ jobs:
           set -euo pipefail
           mkdir -p build/web
           emcc src/platform/web/web_main.c \
-            -Isrc -I. \
+            -Isrc -Isrc/platform/web/sysroot -I. \
             -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=1 \
             -s "EXPORTED_RUNTIME_METHODS=['UTF8ToString','HEAP8','ccall','cwrap']" \
             -s INVOKE_RUN=1 \

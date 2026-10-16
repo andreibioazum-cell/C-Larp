@@ -8,12 +8,13 @@
 #include <string.h>
 #include <time.h>
 #ifdef __EMSCRIPTEN__
-/* pthread/android-log shims предоставлены в runtime/core.inc выше. */
+/* pthread/android-log shims лежат в src/platform/web/sysroot. */
+#include <pthread.h>
 #else
 #include <pthread.h>
 #include <unistd.h>
-#include <android/log.h>
 #endif
+#include <android/log.h>
 #define LOG(...)                                                                                                       \
     do {                                                                                                               \
         __android_log_print(ANDROID_LOG_INFO, "CubicBattleNet", __VA_ARGS__);                                            \

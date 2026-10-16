@@ -2,6 +2,8 @@
 #define NET_H
 #ifdef __ANDROID__
 #include <jni.h>
+#else
+typedef struct _JavaVM JavaVM;     /* web/desktop: заглушка вместо <jni.h> */
 #endif
 
 #define NET_SLOTS 4
