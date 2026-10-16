@@ -1,0 +1,11 @@
+{
+  "name": "Cubic Battle 4",
+  "short_name": "CB4",
+  "description": "Cubic Battle 4 — альфа (WASM/Canvas2D)",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0b0b12",
+  "theme_color": "#0b0b12",
+  "icons": []
+}
