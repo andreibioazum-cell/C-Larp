@@ -176,7 +176,7 @@ jobs:
 
       - name: Build WASM (одна сборка, один index.html — работает и на десктопе, и на телефонах)
         run: |
-          set -euo pipefail
+          set -uo pipefail
           mkdir -p build/web
           emcc src/platform/web/web_main.c \
             -Isrc -Isrc/platform/web/sysroot -I. \
@@ -185,19 +185,19 @@ jobs:
             -s INVOKE_RUN=1 \
             --shell-file build/web/shell.html \
             --preload-file assets@/assets \
-            -o build/web/cb4.html -O2
+            -o build/web/cb4.html -O2 2>&1 | tee build/web/build.log
+          if [ ! -f build/web/cb4.html ]; then
+            echo "::group::build log"; cat build/web/build.log; echo "::endgroup::"; exit 1;
+          fi
           cp build/web/cb4.html build/web/index.html
 
       - name: List outputs
         run: ls -la build/web/
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: Cubic-Battle-4-Web
           path: |
-            build/web/index.html
-            build/web/cb4.js
-            build/web/cb4.wasm
-            build/web/cb4.data
-            build/web/manifest.json
-          if-no-files-found: error
+            build/web/
+          if-no-files-found: ignore
