@@ -153,6 +153,12 @@ double net_chat_is_text_cmd(const char *msg) {
     if (strlen(msg) >= 5 && strncmp(msg, "text ", 5) == 0) {
         const char *t = msg + 5;
         while (*t == ' ' || *t == '\t') t++;
+        if (*t == '"') {
+            /* Quoted form: text "" is not a command, an unterminated quote
+             * is not a command either. */
+            const char *close = strchr(t + 1, '"');
+            return close && close > t + 1;
+        }
         if (*t)
             return 1;
     }
@@ -169,6 +175,32 @@ static void banner_split_cmd(const char *msg, char *text_out, size_t tcap, char 
         return;
     t = msg + 5;
     while (*t == ' ' || *t == '\t') t++;
+
+    if (*t == '"') {
+        /* Canonical form: text "the banner text" [color]. Everything up to
+         * the closing quote is the text (spaces inside are fine); the word
+         * after the quote, if it names a color, is the color. This used to
+         * fall through to the last-word heuristic, which kept the quotes in
+         * the banner and could mistake a word inside the text for a color. */
+        const char *close = strchr(t + 1, '"');
+        if (close) {
+            n = (size_t)(close - (t + 1));
+            if (n >= tcap)
+                n = tcap - 1;
+            memcpy(text_out, t + 1, n);
+            text_out[n] = 0;
+            c = close + 1;
+            while (*c == ' ' || *c == '\t') c++;
+            if (*c) {
+                snprintf(word, sizeof(word), "%s", c);
+                n = strlen(word);
+                while (n > 0 && (word[n - 1] == ' ' || word[n - 1] == '\t')) word[--n] = 0;
+                if (banner_color_known(word))
+                    snprintf(color_out, ccap, "%s", word);
+            }
+            return;
+        }
+    }
 
     for (c = t; *c; c++)
         if ((*c == ' ' || *c == '\t') && c[1] && c[1] != ' ' && c[1] != '\t')

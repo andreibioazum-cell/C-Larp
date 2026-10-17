@@ -86,8 +86,12 @@ void net_publish_codecracker_super(double on);
 void net_set_class(double cls);
 double net_status(void);
 double net_slot(void);
-/* Live root AzumBuff flag; defaults to off without a fresh successful read. */
+/* Live root flags (AzumBuff, FlashSale); each defaults to off without a
+ * fresh successful read of its own Firebase node. */
 double net_azum_buff(void);
+double net_flash_sale(void);
+/* Force an immediate re-read of both live flags (entering the shop). */
+void net_live_flags_refresh(void);
 double net_event(void);
 void net_event_set(double mode);
 double net_player_online(double slot);

@@ -365,7 +365,10 @@ void bye_notice_show(const char *text) {
     bye_calls++;
     snprintf(last_bye, sizeof(last_bye), "%s", text ? text : "");
 }
+static int fx_ring_count;
+static int fx_big_circle_count;
 void ring(float x, float y, float r, float t, uint32_t color) {
+    fx_ring_count++;
     (void)x;
     (void)y;
     (void)r;
@@ -514,6 +517,7 @@ static double candy_x_drawn;
 static double candy_y_drawn;
 static uint32_t candy_circle_color;
 void circle(float x, float y, float r, uint32_t color) {
+    if (r > 20) fx_big_circle_count++;
     candy_circle_color = color;
     candy_x_drawn = x;
     candy_y_drawn = y;
@@ -573,6 +577,10 @@ double net_auth(const char *url, const char *nick, const char *pass) {
 }
 static double stub_azum_buff;
 double net_azum_buff(void) { return stub_azum_buff; }
+static double stub_flash_sale;
+static int stub_live_refreshes;
+double net_flash_sale(void) { return stub_flash_sale; }
+void net_live_flags_refresh(void) { stub_live_refreshes++; }
 double net_event(void) { return 0; }
 void net_event_set(double mode) { (void)mode; }
 double net_load_cups(void) { return 0; }
@@ -616,6 +624,12 @@ void net_save_winter_theme(double on) { (void)on; }
 double net_load_new_theme(void) { return 1; }
 void net_save_new_theme(double on) { (void)on; }
 void settings_mark_legal(void) {}
+/* The game-state harness does not link the runtime pool tick; the promo
+ * test only needs the calls to exist so it can prove the message text is
+ * an owned copy, not a pooled pointer. */
+void ds_string_pool_tick(void) {}
+static double stub_legal_ts;
+double settings_legal_ts(void) { return stub_legal_ts; }
 /* Согласие на обработку ПД и удаление аккаунта: по умолчанию согласие дано,
  * чтобы старые проверки лобби не упирались в окно вопроса. */
 static double stub_pd_ver = LEGAL_DOCS_VERSION;
@@ -899,6 +913,17 @@ static void test_account_screen(void) {
     assert(acct_open == ACCT_MENU && stub_logout_calls == logouts && t_dir == 1);
     finish_transition();
     assert(acct_open == 0 && stub_logout_calls == logouts + 1);
+    /* Sign-out zeroes the local progress: cups, candies, classes, levels. */
+    cups = 500;
+    candies = 90;
+    set_class_owned(CLASS_AZUM, 1);
+    set_class_progress(CLASS_AZUM, 2, 3);
+    player_class = CLASS_AZUM;
+    progress_reset_on_signout();
+    assert(cups == 0 && candies == 0);
+    assert(class_owned_of(CLASS_AZUM) == 0 && player_class == CLASS_ORDINARY);
+    assert(class_level_of(CLASS_AZUM) == 0 && class_unlocked_of(CLASS_AZUM) == 0);
+    assert(achievement_mask == 0 && azum_revive_count == 0);
     /* Без входа «Аккаунт» ведёт на экран входа. */
     stub_login_status = 0;
     logic_touch(menu_x() + menu_btn_w() / 2, menu_row(3) + btn_h / 2, 0, 77);
@@ -975,7 +1000,8 @@ static void test_legal(void) {
     assert(docs_open == 1 && docs_page == LEGAL_PAGE_CONSENT - 2 && str_eq(login_nick, "tester") == 1);
     docs_close();
     login_open();
-    assert(login_consent == 1);
+    /* The checkbox resets on every entry, even after consent was given. */
+    assert(login_consent == 0);
 
     /* Вошедшего до появления согласия спрашивают в лобби, один раз. */
     stub_pd_ver = 0;
@@ -1061,6 +1087,84 @@ static void test_legal(void) {
     puts("legal: chat filter, sign-in consent, lobby consent ask, documents window, account deletion");
 }
 
+/* Стартовый экран: предупреждение об эпилепсии только при первом заходе,
+ * «нажми, чтобы начать» - при каждом, касание плавно уводит в лобби. */
+static void test_start_gate(void) {
+    game_reset();
+    game_state = ST_LOBBY;
+    dt = 0.1;
+
+    /* First launch: no stored acceptance -> warning up, start screen armed. */
+    stub_legal_ts = 0;
+    start_gate_init();
+    assert(warn_open == 1 && start_open == 1 && start_closing == 0);
+    /* The warning owns touches while it is up: no tap-to-start yet. */
+    logic_touch(screen_w / 2, screen_h / 2, 0, 71);
+    assert(start_closing == 0 && start_open == 1);
+    warn_open = 0;
+    warn_a = 0;
+
+    /* Returning player: the warning is shown on EVERY launch again (the
+     * stored acceptance no longer skips it), start screen still up. */
+    stub_legal_ts = 1700000000;
+    start_gate_init();
+    assert(warn_open == 1 && start_open == 1);
+    warn_open = 0;
+    warn_a = 0;
+
+    /* A touch starts the fade but keeps the lobby covered until it ends. */
+    logic_touch(screen_w / 2, screen_h / 2, 0, 72);
+    assert(start_closing == 1 && start_open == 1 && game_state == ST_LOBBY);
+    for (int i = 0; i < 40 && start_open == 1; i++) {
+        update_start_screen();
+    }
+    assert(start_open == 0 && start_a == 0 && game_state == ST_LOBBY);
+
+    /* The lobby has appeared but is not tappable yet: the settle lock
+     * swallows the first taps, Play unlocks only after it runs out. */
+    assert(lobby_lock_t > 0);
+    logic_touch(menu_x() + menu_btn_w() / 2, menu_row(1) + btn_h / 2, 0, 73);
+    assert(t_dir == 0);
+    lobby_lock_t = 0;
+    logic_touch(menu_x() + menu_btn_w() / 2, menu_row(1) + btn_h / 2, 0, 74);
+    assert(t_dir == 1 && t_target == ST_CLASSES);
+    t_dir = 0;
+    t_target = 0;
+    press_new = 0;
+    stub_legal_ts = 0;
+    puts("start gate: epilepsy warning and tap-to-start every launch, lobby unlocks after a settle");
+}
+
+/* Промокод 2027: сообщение об успехе - собственная копия текста, а не
+ * указатель в строковый пул, поэтому после тиков пула оно не превращается
+ * в мусор и знак «?». */
+static void test_promo_message(void) {
+    game_state = ST_PROMO;
+    language = 0;
+    stub_login_status = 2;
+    stub_promo2027_used = 0;
+    promo_focus = 0;
+    promo_input = "2027";
+    double cups_before = cups;
+    promo_submit();
+    assert(cups == cups_before + 27 && stub_promo2027_used == 1);
+    assert(promo_msg_t > 0);
+    for (int i = 0; i < 4; i++) {
+        ds_string_pool_tick();
+        (void)ds_concat("frame noise ", ds_num_to_string((double)i));
+    }
+    assert(str_eq(promo_msg_text, "+27 cups!") == 1);
+    /* Second submit says "already redeemed" and also survives the pool. */
+    promo_submit();
+    for (int i = 0; i < 4; i++)
+        ds_string_pool_tick();
+    assert(str_eq(promo_msg_text, "Promo code already redeemed") == 1);
+    promo_msg_t = 0;
+    stub_login_status = 0;
+    game_state = ST_LOBBY;
+    puts("promo: 2027 message survives the string pool, no garbage or ? glyph");
+}
+
 static void test_azum_buff(void) {
     game_reset();
     assert(azum_buff_active == 0);
@@ -1112,6 +1216,46 @@ static void test_azum_buff(void) {
     player->hp = 0;
     enemy->hp = 0;
     assert(try_revive() == 0 && enemy_try_revive() == 0);
+
+    /* FlashSale: off keeps full prices, on cuts EVERY price by 10%
+     * (rounded to whole units), and buying charges the discounted price. */
+    assert(flash_sale_active == 0);
+    assert(class_cost_of(CLASS_AZUM) == azum_cost);
+    assert(level_cost(1) == level_base_cost);
+    stub_flash_sale = 1;
+    update_flash_sale();
+    assert(flash_sale_active == 1);
+    assert(class_cost_of(CLASS_AZUM) == 59);  /* 65 - 10% -> 58.5 -> 59 */
+    assert(class_cost_of(CLASS_SANTA) == 90); /* 100 candies - 10% */
+    assert(class_cost_of(CLASS_ASTRA) == 122); /* 135 - 10% -> 121.5 -> 122 */
+    assert(level_cost(1) == 27);              /* 30 - 10% */
+    assert(level_cost(3) == 45);              /* 50 - 10% */
+    assert(class_cost_of(CLASS_ORDINARY) == 0);
+    cups = 59;
+    pick_class(CLASS_AZUM);
+    assert(class_owned_of(CLASS_AZUM) == 1 && cups == 0);
+    stub_flash_sale = 0;
+    update_flash_sale();
+    assert(flash_sale_active == 0 && class_cost_of(CLASS_EBUC) == ebuc_cost);
+    assert(level_cost(1) == level_base_cost);
+    puts("flash sale: -10% on all prices and purchase OK");
+}
+
+/* Ульта CodeCracker: без кружка вокруг куба; звёздочки - гладкие. */
+static void test_codecracker_fx(void) {
+    fx_ring_count = 0;
+    fx_big_circle_count = 0;
+    draw_codecracker_fx_at(200, 200, 0.3, 0.7);
+    assert(fx_ring_count == 0);
+    assert(fx_big_circle_count == 0);
+
+    /* A smooth star needs many more strokes than its diameter in pixels:
+     * the old pixel step produced at most ~2*r strokes. */
+    double r = stat_star_r();
+    star_line_count = 0;
+    draw_star(0, 0, r, 0xFFF7C948);
+    assert(star_line_count > (int)(3 * r));
+    puts("codecracker fx: no halo circle in the ult; stars drawn smooth, not pixelated");
 }
 
 /* Drawing the complete UI retains every screen through draw_screen(). */
@@ -1901,8 +2045,8 @@ int main(void) {
     classes_scroll = 0;
     codecracker_refresh();
     assert(codecracker_allowed() == 1 && codecracker_allowed() == astra_ability_allowed());
-    assert(player_max_hp_for(CLASS_CODECRACKER) == 9 && codecracker_hp == 9);
-    assert(codecracker_speed_mult == 3 && codecracker_touch_damage == 1.6 && codecracker_touch_heal == 0.75);
+    assert(player_max_hp_for(CLASS_CODECRACKER) == 12 && codecracker_hp == 12);
+    assert(codecracker_speed_mult == 3 && codecracker_touch_damage == 1.55 && codecracker_touch_heal == 0.63);
     assert(codecracker_super_time == 7 && codecracker_super_absorb == 0.5);
     assert(class_has_super(CLASS_CODECRACKER) == 1 && codecracker_super_active() == 0);
     /* The overclock ultimate: 7 seconds of triple speed and half damage,
@@ -1913,6 +2057,7 @@ int main(void) {
     assert(fabs(player_walk_speed() - joy_speed * codecracker_speed_mult * admin_cheat_speed_mult()) < 1e-6);
     {
         double hp_before = player->hp;
+        player->max_hp = codecracker_hp;
         player->hp = codecracker_hp;
         take_damage(2);
         assert(fabs(player->hp - (codecracker_hp - 1)) < 1e-9); /* half absorbed */
@@ -2728,8 +2873,11 @@ int main(void) {
     }
 
     test_legal();
+    test_start_gate();
+    test_promo_message();
     test_azum_buff();
     test_class_stars();
+    test_codecracker_fx();
     test_overlay_transitions();
 
     state_destroy();

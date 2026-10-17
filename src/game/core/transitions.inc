@@ -50,6 +50,12 @@ static double enter_screen(double state) {
         login_open();
         return 1;
     }
+    if (state == ST_CLASSES) {
+        /* Every visit to the shop re-reads AzumBuff and FlashSale from
+         * Firebase; prices must not come from a stale periodic poll. */
+        net_live_flags_refresh();
+        return 1;
+    }
     if (state == ST_LEADERBOARD) {
         open_leaderboard();
         return 1;
