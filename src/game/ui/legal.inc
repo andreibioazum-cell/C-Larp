@@ -56,6 +56,7 @@ static void docs_agree(void) {
 }
 static void docs_refuse(void) {
     net_logout();
+    progress_reset_on_signout();
     docs_close();
 }
 

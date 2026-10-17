@@ -3,6 +3,7 @@ static void show_achievement_toast(double bit);
 static double grant_achievement(double bit);
 static void check_achievements(void);
 static void save_progress(void);
+static void progress_reset_on_signout(void);
 static double skin_flags(void);
 static void progress_push_to_net(void);
 static void progress_normalize(void);

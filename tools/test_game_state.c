@@ -913,6 +913,17 @@ static void test_account_screen(void) {
     assert(acct_open == ACCT_MENU && stub_logout_calls == logouts && t_dir == 1);
     finish_transition();
     assert(acct_open == 0 && stub_logout_calls == logouts + 1);
+    /* Sign-out zeroes the local progress: cups, candies, classes, levels. */
+    cups = 500;
+    candies = 90;
+    set_class_owned(CLASS_AZUM, 1);
+    set_class_progress(CLASS_AZUM, 2, 3);
+    player_class = CLASS_AZUM;
+    progress_reset_on_signout();
+    assert(cups == 0 && candies == 0);
+    assert(class_owned_of(CLASS_AZUM) == 0 && player_class == CLASS_ORDINARY);
+    assert(class_level_of(CLASS_AZUM) == 0 && class_unlocked_of(CLASS_AZUM) == 0);
+    assert(achievement_mask == 0 && azum_revive_count == 0);
     /* Без входа «Аккаунт» ведёт на экран входа. */
     stub_login_status = 0;
     logic_touch(menu_x() + menu_btn_w() / 2, menu_row(3) + btn_h / 2, 0, 77);
@@ -989,7 +1000,8 @@ static void test_legal(void) {
     assert(docs_open == 1 && docs_page == LEGAL_PAGE_CONSENT - 2 && str_eq(login_nick, "tester") == 1);
     docs_close();
     login_open();
-    assert(login_consent == 1);
+    /* The checkbox resets on every entry, even after consent was given. */
+    assert(login_consent == 0);
 
     /* Вошедшего до появления согласия спрашивают в лобби, один раз. */
     stub_pd_ver = 0;

@@ -128,6 +128,35 @@ static void progress_from_storage(void) {
     check_achievements();
 }
 
+/* Sign-out wipes the local progress back to a fresh guest: cups, candies,
+ * bought classes, levels, skins and achievements all go to zero, and the
+ * zeroed state is saved on the device so a restart does not resurrect the
+ * previous account's numbers. The cloud profile is NOT touched: callers
+ * run this after net_logout(), when save_progress() can only write the
+ * local file, and logging back in restores the account from the cloud. */
+static void progress_reset_on_signout(void) {
+    cups = 0;
+    candies = 0;
+    set_class_owned(CLASS_AZUM, 0);
+    set_class_owned(CLASS_SANTA, 0);
+    set_class_owned(CLASS_EBUC, 0);
+    set_class_owned(CLASS_ASTRA, 0);
+    double i = 0;
+    while (i < class_count) {
+        set_class_progress(class_at_order(i), 0, 0);
+        i = i + 1;
+    }
+    player_class = CLASS_ORDINARY;
+    player_level = 0;
+    levels_unlocked = 0;
+    azum_skin = SKIN_NORMAL;
+    ebuc_skin = SKIN_NORMAL;
+    achievement_mask = 0;
+    azum_revive_count = 0;
+    sync_selected_class();
+    save_progress();
+}
+
 static void settings_from_storage(void) {
     language = net_load_language();
     show_hitboxes = net_load_hitboxes();
