@@ -29,6 +29,7 @@ static void logic_init(void) {
     net_autologin(FIREBASE);
     progress_from_storage();
     settings_from_storage();
+    start_gate_init();
     apply_theme();
     apply_winter_theme();
     start_music();
@@ -64,6 +65,7 @@ static void update_music(void) {
 
 static void logic_update(void) {
     update_warning();
+    update_start_screen();
     docs_tick();
     acct_tick();
     update_studio();
@@ -131,6 +133,9 @@ static void draw_screen(void) {
 static void logic_draw(void) {
     /* The outgoing screen stays alive through the press hold and fade. */
     draw_screen();
+    if (start_open == 1) {
+        draw_start_screen();
+    }
     if (warn_open == 1) {
         draw_warning();
     }
@@ -310,6 +315,16 @@ static void logic_touch(double x, double y, double action, double id) {
         return;
     }
     if (studio_open == 1) {
+        if (action == 0) {
+            press_new = 0;
+        }
+        return;
+    }
+    /* The tap-to-start screen swallows every touch until it fades out;
+     * the warning (first launch) and the documents sit above it and have
+     * already had their chance at the touch by this point. */
+    if (start_open == 1 && warn_open == 0) {
+        touch_start(action);
         if (action == 0) {
             press_new = 0;
         }

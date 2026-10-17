@@ -620,6 +620,8 @@ void net_save_winter_theme(double on) { (void)on; }
 double net_load_new_theme(void) { return 1; }
 void net_save_new_theme(double on) { (void)on; }
 void settings_mark_legal(void) {}
+static double stub_legal_ts;
+double settings_legal_ts(void) { return stub_legal_ts; }
 /* Согласие на обработку ПД и удаление аккаунта: по умолчанию согласие дано,
  * чтобы старые проверки лобби не упирались в окно вопроса. */
 static double stub_pd_ver = LEGAL_DOCS_VERSION;
@@ -1063,6 +1065,46 @@ static void test_legal(void) {
     screen_w = saved_w;
     screen_h = saved_h;
     puts("legal: chat filter, sign-in consent, lobby consent ask, documents window, account deletion");
+}
+
+/* Стартовый экран: предупреждение об эпилепсии только при первом заходе,
+ * «нажми, чтобы начать» - при каждом, касание плавно уводит в лобби. */
+static void test_start_gate(void) {
+    game_reset();
+    game_state = ST_LOBBY;
+    dt = 0.1;
+
+    /* First launch: no stored acceptance -> warning up, start screen armed. */
+    stub_legal_ts = 0;
+    start_gate_init();
+    assert(warn_open == 1 && start_open == 1 && start_closing == 0);
+    /* The warning owns touches while it is up: no tap-to-start yet. */
+    logic_touch(screen_w / 2, screen_h / 2, 0, 71);
+    assert(start_closing == 0 && start_open == 1);
+    warn_open = 0;
+    warn_a = 0;
+
+    /* Returning player: warning skipped entirely, start screen still up. */
+    stub_legal_ts = 1700000000;
+    start_gate_init();
+    assert(warn_open == 0 && start_open == 1);
+
+    /* A touch starts the fade but keeps the lobby covered until it ends. */
+    logic_touch(screen_w / 2, screen_h / 2, 0, 72);
+    assert(start_closing == 1 && start_open == 1 && game_state == ST_LOBBY);
+    for (int i = 0; i < 40 && start_open == 1; i++) {
+        update_start_screen();
+    }
+    assert(start_open == 0 && start_a == 0 && game_state == ST_LOBBY);
+
+    /* Touches pass through to the lobby again once the screen is gone. */
+    logic_touch(menu_x() + menu_btn_w() / 2, menu_row(1) + btn_h / 2, 0, 73);
+    assert(t_dir == 1 && t_target == ST_CLASSES);
+    t_dir = 0;
+    t_target = 0;
+    press_new = 0;
+    stub_legal_ts = 0;
+    puts("start gate: epilepsy warning only on first launch, tap-to-start every launch");
 }
 
 static void test_azum_buff(void) {
@@ -2755,6 +2797,7 @@ int main(void) {
     }
 
     test_legal();
+    test_start_gate();
     test_azum_buff();
     test_class_stars();
     test_overlay_transitions();

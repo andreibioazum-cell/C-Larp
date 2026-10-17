@@ -193,7 +193,8 @@ static void touch_docs(double x, double y, double action) {
 static void docs_tick(void) {
     /* Аккаунт, вошедший до появления согласия, спрашиваем один раз за
      * запуск, когда игрок спокойно стоит в лобби. */
-    if (docs_open == 0 && acct_open == 0 && docs_asked == 0 && warn_open == 0 && studio_open == 0 && t_dir == 0 &&
+    if (docs_open == 0 && acct_open == 0 && docs_asked == 0 && warn_open == 0 && studio_open == 0 && start_open == 0 &&
+        t_dir == 0 &&
         game_state == ST_LOBBY && net_login_status() == 2 && consent_ok() == 0) {
         docs_asked = 1;
         docs_show(LEGAL_PAGE_CONSENT, 1);
@@ -307,6 +308,61 @@ static void draw_warning(void) {
     }
     warn_button(tr_legal_docs(), warn_docs_x(), warn_docs_w());
     warn_button(label, warn_btn_x(), warn_btn_w());
+}
+
+/* --- стартовый экран «нажми, чтобы начать» ------------------------------ */
+
+static double start_rgb(double rgb) { return (1 + floor(start_a * 254)) * 0x1000000 + rgb; }
+
+static const char *tr_tap_to_start(void) {
+    if (language == 1) {
+        return "Нажми, чтобы начать";
+    }
+    return "Tap to start";
+}
+
+/* Launch gate, called once from logic_init(). The epilepsy warning is a
+ * first-launch screen: legal_accept() already stores its timestamp via
+ * settings_mark_legal(), so a returning player (timestamp present) skips
+ * straight past it. The tap-to-start screen, however, opens on EVERY
+ * launch: it covers the lobby until the first tap, then fades out over
+ * start_fade seconds, smoothly revealing the lobby underneath. */
+static void start_gate_init(void) {
+    start_open = 1;
+    start_a = 1;
+    start_t = 0;
+    start_closing = 0;
+    start_close_t = 0;
+    if (settings_legal_ts() > 0) {
+        warn_open = 0;
+        warn_a = 0;
+    } else {
+        warn_open = 1;
+        warn_a = 1;
+        warn_ready = 0;
+        warn_t = 0;
+        warn_closing = 0;
+        warn_close_t = 0;
+    }
+}
+
+static void draw_start_screen(void) {
+    rect(0, 0, screen_w, screen_h, start_rgb(0));
+    uint32_t body = start_rgb(text_color);
+    ctext_scaled("Cubic Battle 4", screen_h / 2 - 90, body, 1.1);
+    /* The hint gently pulses so it reads as "waiting for a tap". */
+    double pulse = 0.75 + 0.25 * sin(start_t * 3);
+    ctext_scaled(tr_tap_to_start(), screen_h / 2 + 30, body, 0.7 * pulse + 0.15);
+    draw_age_mark(screen_w - screen_margin - 96, back_y, 96, body);
+}
+
+static void touch_start(double action) {
+    if (action != 0 || start_closing == 1) {
+        return;
+    }
+    play_button_click();
+    start_close_t = 0;
+    start_closing = 1;
 }
 
 static void legal_accept(void) {
