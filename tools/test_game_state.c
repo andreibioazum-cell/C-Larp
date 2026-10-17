@@ -1117,23 +1117,28 @@ static void test_azum_buff(void) {
     enemy->hp = 0;
     assert(try_revive() == 0 && enemy_try_revive() == 0);
 
-    /* FlashSale: off keeps full prices, on halves them (rounded up), and
-     * buying charges the discounted price, not the full one. */
+    /* FlashSale: off keeps full prices, on cuts EVERY price by 10%
+     * (rounded to whole units), and buying charges the discounted price. */
     assert(flash_sale_active == 0);
     assert(class_cost_of(CLASS_AZUM) == azum_cost);
+    assert(level_cost(1) == level_base_cost);
     stub_flash_sale = 1;
     update_flash_sale();
     assert(flash_sale_active == 1);
-    assert(class_cost_of(CLASS_AZUM) == 33); /* 65 -> 33 */
-    assert(class_cost_of(CLASS_SANTA) == 50); /* 100 candies -> 50 */
+    assert(class_cost_of(CLASS_AZUM) == 59);  /* 65 - 10% -> 58.5 -> 59 */
+    assert(class_cost_of(CLASS_SANTA) == 90); /* 100 candies - 10% */
+    assert(class_cost_of(CLASS_ASTRA) == 122); /* 135 - 10% -> 121.5 -> 122 */
+    assert(level_cost(1) == 27);              /* 30 - 10% */
+    assert(level_cost(3) == 45);              /* 50 - 10% */
     assert(class_cost_of(CLASS_ORDINARY) == 0);
-    cups = 33;
+    cups = 59;
     pick_class(CLASS_AZUM);
     assert(class_owned_of(CLASS_AZUM) == 1 && cups == 0);
     stub_flash_sale = 0;
     update_flash_sale();
     assert(flash_sale_active == 0 && class_cost_of(CLASS_EBUC) == ebuc_cost);
-    puts("flash sale: discounted prices and purchase OK");
+    assert(level_cost(1) == level_base_cost);
+    puts("flash sale: -10% on all prices and purchase OK");
 }
 
 /* Drawing the complete UI retains every screen through draw_screen(). */

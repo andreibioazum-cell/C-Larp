@@ -161,7 +161,7 @@ static void draw_class_stats(void) {
 static void draw_classes(void) {
     screen_fill();
     if (flash_sale_active == 1) {
-        ctext_scaled(language == 1 ? "ФЛЕШ-РАСПРОДАЖА -50%" : "FLASH SALE -50%", classes_top() - 34, 0xFFFF3030, 0.6);
+        ctext_scaled(language == 1 ? "ФЛЕШ-РАСПРОДАЖА -10%" : "FLASH SALE -10%", classes_top() - 34, 0xFFFF3030, 0.6);
     }
     classes_scroll_clamp();
     double vi = 0;
@@ -213,11 +213,19 @@ static void draw_level_row(double n) {
     centered_text(ds_concat(ds_concat(tr_level(), " "), ds_num_to_string((double)(n))), bx, bw,
                   squeeze_y(y + 10, y, level_row_h, s), tc, 0.62 * s);
     centered_text(tr_class_level_effect(player_class, n), bx, bw, squeeze_y(y + 34, y, level_row_h, s), tc, 0.46 * s);
-    centered_text(level_status_of(player_class, n), bx, bw, squeeze_y(y + 52, y, level_row_h, s), tc, 0.42 * s);
+    /* During the flash sale the unlock price is red, like class prices. */
+    uint32_t status_c = tc;
+    if (flash_sale_active == 1 && n == class_unlocked_of(player_class) + 1) {
+        status_c = shade(0xFFFF3030, 1 - PRESS_SHADE * p);
+    }
+    centered_text(level_status_of(player_class, n), bx, bw, squeeze_y(y + 52, y, level_row_h, s), status_c, 0.42 * s);
 }
 
 static void draw_levels(void) {
     screen_fill();
+    if (flash_sale_active == 1) {
+        ctext_scaled(language == 1 ? "ФЛЕШ-РАСПРОДАЖА -10%" : "FLASH SALE -10%", levels_top() - 34, 0xFFFF3030, 0.6);
+    }
     double n = 1;
     while (n <= max_level) {
         draw_level_row(n);
