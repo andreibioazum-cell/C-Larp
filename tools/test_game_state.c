@@ -2033,8 +2033,8 @@ int main(void) {
     classes_scroll = 0;
     codecracker_refresh();
     assert(codecracker_allowed() == 1 && codecracker_allowed() == astra_ability_allowed());
-    assert(player_max_hp_for(CLASS_CODECRACKER) == 9 && codecracker_hp == 9);
-    assert(codecracker_speed_mult == 3 && codecracker_touch_damage == 1.6 && codecracker_touch_heal == 0.75);
+    assert(player_max_hp_for(CLASS_CODECRACKER) == 12 && codecracker_hp == 12);
+    assert(codecracker_speed_mult == 3 && codecracker_touch_damage == 1.55 && codecracker_touch_heal == 0.63);
     assert(codecracker_super_time == 7 && codecracker_super_absorb == 0.5);
     assert(class_has_super(CLASS_CODECRACKER) == 1 && codecracker_super_active() == 0);
     /* The overclock ultimate: 7 seconds of triple speed and half damage,
@@ -2045,6 +2045,7 @@ int main(void) {
     assert(fabs(player_walk_speed() - joy_speed * codecracker_speed_mult * admin_cheat_speed_mult()) < 1e-6);
     {
         double hp_before = player->hp;
+        player->max_hp = codecracker_hp;
         player->hp = codecracker_hp;
         take_damage(2);
         assert(fabs(player->hp - (codecracker_hp - 1)) < 1e-9); /* half absorbed */

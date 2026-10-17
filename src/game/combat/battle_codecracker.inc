@@ -7,7 +7,7 @@
  * class and applies the same rules.
  *
  * CodeCracker looks like an ordinary cube and plays like one - normal
- * speed, normal punch - except for its small codecracker_hp (9) pool. Its
+ * speed, normal punch - except for its small codecracker_hp (12) pool. Its
  * ultimate is a 7-second overclock (codecracker_super_time): about three
  * times the speed (codecracker_speed_mult in player_walk_speed()), half of
  * all incoming damage absorbed (in take_damage()), and a body-check bite:

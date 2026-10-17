@@ -310,16 +310,17 @@ azum_dash_damage = 3.0;
 azum_dash_stun = 0.45;
 azum_hp = 13;
 astra_hp = 18;
-/* CodeCracker (admin-only): an ordinary cube with only 9 HP; its ultimate is a
+/* CodeCracker (admin-only): an ordinary cube with only 12 HP; its ultimate is a
  * 7-second overclock: x3 speed, half incoming damage absorbed, biting touches. */
-codecracker_hp = 9;
+codecracker_hp = 12;
 codecracker_speed_mult = 3;
 codecracker_super_time = 7;
 codecracker_super_cd = 12;
 codecracker_super_absorb = 0.5;
 codecracker_super_t = 0;
-codecracker_touch_damage = 1.6;
-codecracker_touch_heal = 0.75;
+/* Ult bite: 1.6 - 3% = 1.55 damage; self-heal 0.75 : 1.2 = 0.63 (rounded). */
+codecracker_touch_damage = 1.55;
+codecracker_touch_heal = 0.63;
 codecracker_touch_cd = 0.35;
 codecracker_touch_cd_left = 0;
 codecracker_ok = 0;
