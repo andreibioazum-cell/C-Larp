@@ -1,97 +1,3 @@
-static void start_transition(double target) {
-    if (t_dir != 0) {
-        return;
-    }
-    classes_swipe_reset();
-    t_target = target;
-    /* Кнопка нажимается и сжимается, а экран в этот же кадр уже начал гаснуть
-     * - так нажатия не видно. Сначала даём кнопке досжаться, потом гасим. */
-    t_hold = transition_hold;
-    t_dir = 1;
-    ui_nav_gen = ui_nav_gen + 1;
-}
-
-static void leave_screen(double state) {
-    if (state == ST_LOGIN || state == ST_PROMO) {
-        keyboard_hide();
-    }
-    if (state == ST_ONLINE) {
-        chat_set_open(0);
-        net_disconnect();
-        event_mode = 0;
-        event_t = 0;
-    }
-    if (state == ST_SOLO || state == ST_ONLINE) {
-        save_progress();
-    }
-}
-
-static double enter_screen(double state) {
-    if (state == ST_LOBBY && acct_pending == 1) {
-        acct_pending = 0;
-        acct_show(ACCT_MENU);
-        return 1;
-    }
-    if (state == ST_SOLO) {
-        init_game();
-        return 1;
-    }
-    if (state == ST_LOGIN) {
-        login_open();
-        return 1;
-    }
-    if (state == ST_LEADERBOARD) {
-        open_leaderboard();
-        return 1;
-    }
-    if (state == ST_ONLINE) {
-        if (net_is_banned(net_login_nick()) == 1) {
-            banned_msg = tr_banned();
-            game_state = ST_LOBBY;
-            ui_nav_gen = ui_nav_gen + 1;
-            t_dir = -1;
-            t_fade = 1;
-            return 0;
-        }
-        init_online();
-    }
-    return 1;
-}
-
-static void update_transition(void) {
-    if (t_dir == 1) {
-        if (t_hold > 0) {
-            t_hold = t_hold - dt;
-            if (t_hold < 0) {
-                t_hold = 0;
-            }
-            return;
-        }
-        t_fade = t_fade + dt / transition_duration;
-        if (t_fade >= 1) {
-            t_fade = 1;
-            t_dir = 2;
-        }
-        return;
-    }
-    if (t_dir == 2) {
-        leave_screen(game_state);
-        game_state = t_target;
-        ui_nav_gen = ui_nav_gen + 1;
-        if (enter_screen(t_target) == 1) {
-            t_dir = -1;
-        }
-        return;
-    }
-    if (t_dir == -1) {
-        t_fade = t_fade - dt / transition_duration;
-        if (t_fade <= 0) {
-            t_fade = 0;
-            t_dir = 0;
-        }
-    }
-}
-
 static void play_button_click(void) {
     if (button_click_ok == 1) {
         /* The sample is preloaded and starts at frame zero, so touch feedback
@@ -223,19 +129,8 @@ static void draw_screen(void) {
 }
 
 static void logic_draw(void) {
-    if (t_fade >= 1) {
-        rect(0, 0, screen_w, screen_h, 0xFF000000);
-    } else {
-        /* Winter snow is drawn inside screen_fill(), as part of the backdrop,
-         * so it stays under every button and the dialogue. */
-        draw_screen();
-        if (t_fade > 0) {
-            /* Smoothstep the curtain alpha: the fade eases in and out instead
-             * of ramping linearly. */
-            double a = t_fade * t_fade * (3 - 2 * t_fade);
-            rect(0, 0, screen_w, screen_h, (1 + floor(a * 254)) * 0x1000000);
-        }
-    }
+    /* The outgoing screen stays alive through the press hold and fade. */
+    draw_screen();
     if (warn_open == 1) {
         draw_warning();
     }
@@ -254,6 +149,11 @@ static void logic_draw(void) {
         draw_account();
     }
     draw_achievement_toast();
+    /* Account, documents, notices and toast fade together with their screen. */
+    if (t_fade > 0) {
+        double a = t_fade * t_fade * (3 - 2 * t_fade);
+        rect(0, 0, screen_w, screen_h, (1 + floor(a * 254)) * 0x1000000);
+    }
     /* Last of all: the admin orb and its panel are never covered, not by the
      * transition curtain, not by the epilepsy warning or the splash. */
     admin_draw();
@@ -296,21 +196,21 @@ static double logic_back(void) {
         admin_panel_close();
         return 1;
     }
+    if (t_dir != 0) {
+        return 1;
+    }
     if (acct_open != 0) {
-        acct_back();
+        start_action_transition(acct_back);
         return 1;
     }
     if (docs_open == 1) {
-        docs_close();
+        start_action_transition(docs_close);
         return 1;
     }
     if (warn_open == 1) {
         return 0;
     }
     if (studio_open == 1) {
-        return 1;
-    }
-    if (t_dir != 0) {
         return 1;
     }
     if (game_state == ST_ONLINE && chat_open == 1) {

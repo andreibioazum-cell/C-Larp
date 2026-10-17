@@ -60,7 +60,7 @@ static void promo_submit(void) {
 }
 
 static void update_promo(void) {
-    if (promo_focus == 0) {
+    if (promo_focus == 0 || t_dir != 0) {
         return;
     }
     if (keyboard_visible() == 1) {

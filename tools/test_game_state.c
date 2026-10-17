@@ -140,6 +140,7 @@ static uint32_t snowflake_tint_color;
 static double snowflake_centres[64];
 static int snowflake_centre_n;
 static int star_line_count;
+static double star_max_y;
 
 struct DSArray {
     double *data;
@@ -501,6 +502,8 @@ void line(float x1, float y1, float x2, float y2, float thickness, uint32_t colo
     (void)y2;
     (void)thickness;
     star_line_count++;
+    if (y1 > star_max_y) star_max_y = y1;
+    if (y2 > star_max_y) star_max_y = y2;
     adm_record_color(color);
 }
 
@@ -568,6 +571,8 @@ double net_auth(const char *url, const char *nick, const char *pass) {
     (void)pass;
     return 2;
 }
+static double stub_azum_buff;
+double net_azum_buff(void) { return stub_azum_buff; }
 double net_event(void) { return 0; }
 void net_event_set(double mode) { (void)mode; }
 double net_load_cups(void) { return 0; }
@@ -804,6 +809,15 @@ static void test_account_delete(void) {
     assert(acct_busy == 0 && acct_done == 1 && str_eq(acct_msg, tr_delete_done()) == 1);
 }
 
+/* Advance only the transition clock, without polling login or gameplay. */
+static void finish_transition(void) {
+    double saved_dt = dt;
+    dt = 0.05;
+    for (int step = 0; step < 100 && t_dir != 0; step++) update_transition();
+    dt = saved_dt;
+    assert(t_dir == 0 && t_fade == 0 && t_action == NULL);
+}
+
 /* Экран аккаунта из лобби: меню, смена пароля, выход. */
 static void test_account_screen(void) {
     char saved_nick[24];
@@ -829,6 +843,8 @@ static void test_account_screen(void) {
     t_dir = 0;
     logic_touch(acct_x() + acct_w() / 2, acct_menu_y(0) + btn_h / 2, 0, 71);
     press_new = 0;
+    assert(acct_open == ACCT_MENU && t_dir == 1);
+    finish_transition();
     assert(acct_open == ACCT_PASS);
     /* Проверки до сервера: пустые поля, несовпадение, тот же пароль. */
     logic_touch(acct_x() + acct_w() / 2, acct_below_fields() + btn_h / 2, 0, 72);
@@ -873,11 +889,15 @@ static void test_account_screen(void) {
     acct_tick();
     assert(acct_busy == 0 && str_eq(acct_msg, tr_acct_changed()) == 1);
     /* «Назад» - в меню аккаунта, ещё раз - закрыть. */
-    assert(logic_back() == 1 && acct_open == ACCT_MENU);
+    assert(logic_back() == 1 && t_dir == 1 && acct_open == ACCT_PASS);
+    finish_transition();
+    assert(acct_open == ACCT_MENU);
     /* Выход из аккаунта. */
     int logouts = stub_logout_calls;
     logic_touch(acct_x() + acct_w() / 2, acct_menu_y(2) + btn_h / 2, 0, 76);
     press_new = 0;
+    assert(acct_open == ACCT_MENU && stub_logout_calls == logouts && t_dir == 1);
+    finish_transition();
     assert(acct_open == 0 && stub_logout_calls == logouts + 1);
     /* Без входа «Аккаунт» ведёт на экран входа. */
     stub_login_status = 0;
@@ -950,6 +970,8 @@ static void test_legal(void) {
     /* Ссылка под галочкой открывает документы, ник при этом не теряется. */
     logic_touch(center_x(login_more_w()) + login_more_w() / 2, login_more_y() + btn_h * 0.4, 0, 41);
     press_new = 0;
+    assert(docs_open == 0 && t_dir == 1);
+    finish_transition();
     assert(docs_open == 1 && docs_page == LEGAL_PAGE_CONSENT - 2 && str_eq(login_nick, "tester") == 1);
     docs_close();
     login_open();
@@ -964,6 +986,8 @@ static void test_legal(void) {
     assert(docs_open == 1 && docs_ask == 1 && docs_page == LEGAL_PAGE_CONSENT);
     logic_touch(docs_mid_x() + docs_mid_w() / 2, docs_row_y() + btn_h / 2, 0, 42);
     press_new = 0;
+    assert(docs_open == 1 && t_dir == 1);
+    finish_transition();
     assert(docs_open == 0 && stub_pd_ver == LEGAL_DOCS_VERSION);
     docs_tick();
     assert(docs_open == 0);
@@ -972,10 +996,13 @@ static void test_legal(void) {
     docs_show(LEGAL_PAGE_CONSENT, 1);
     logic_touch(docs_mid_x() + docs_mid_w() / 2, docs_refuse_y() + btn_h / 2, 0, 43);
     press_new = 0;
+    finish_transition();
     assert(docs_open == 0 && stub_logout_calls == 1 && stub_login_status == 0);
     /* Онлайн без согласия не открывается - вместо него вопрос. */
     stub_login_status = 2;
     open_online();
+    assert(docs_open == 0 && t_dir == 1);
+    finish_transition();
     assert(docs_open == 1 && docs_ask == 1 && t_dir == 0);
     docs_close();
     stub_pd_ver = LEGAL_DOCS_VERSION;
@@ -985,15 +1012,20 @@ static void test_legal(void) {
     assert(hit_docs_prev(docs_prev_x() + docs_nav_w() / 2, docs_row_y() + btn_h / 2) == 0);
     logic_touch(docs_next_x() + docs_nav_w() / 2, docs_row_y() + btn_h / 2, 0, 44);
     press_new = 0;
+    assert(docs_page == 0 && t_dir == 1);
+    finish_transition();
     assert(docs_page == 1);
     docs_show(LEGAL_PAGE_RIGHTS, 0);
     assert(hit_docs_next(docs_next_x() + docs_nav_w() / 2, docs_row_y() + btn_h / 2) == 0);
     logic_touch(docs_mid_x() + docs_mid_w() / 2, docs_row_y() + btn_h / 2, 0, 45);
     press_new = 0;
+    finish_transition();
     assert(acct_open == ACCT_DELETE && docs_open == 1 && stub_delete_calls == 0);
     test_account_delete();
     /* «Назад» закрывает экран аккаунта и оставляет документы. */
-    assert(logic_back() == 1 && acct_open == 0 && docs_open == 1);
+    assert(logic_back() == 1 && t_dir == 1 && acct_open == ACCT_DELETE);
+    finish_transition();
+    assert(acct_open == 0 && docs_open == 1);
     docs_close();
     /* Без входа кнопки удаления нет. */
     stub_login_status = 0;
@@ -1006,8 +1038,12 @@ static void test_legal(void) {
     warn_closing = 0;
     logic_touch(warn_docs_x() + warn_docs_w() / 2, warn_btn_y() + btn_h / 2, 0, 47);
     press_new = 0;
+    assert(docs_open == 0 && t_dir == 1);
+    finish_transition();
     assert(docs_open == 1 && warn_open == 1);
-    assert(logic_back() == 1 && docs_open == 0);
+    assert(logic_back() == 1 && docs_open == 1);
+    finish_transition();
+    assert(docs_open == 0);
     warn_open = 0;
 
     test_account_screen();
@@ -1023,6 +1059,209 @@ static void test_legal(void) {
     screen_w = saved_w;
     screen_h = saved_h;
     puts("legal: chat filter, sign-in consent, lobby consent ask, documents window, account deletion");
+}
+
+static void test_azum_buff(void) {
+    game_reset();
+    assert(azum_buff_active == 0);
+    assert(strcmp(tr_class_azum(), "Азум") == 0);
+    player_class = CLASS_AZUM;
+    reset_battle();
+    enemy_class = CLASS_AZUM;
+    enemy->max_hp = player_max_hp_for(CLASS_AZUM);
+    enemy->hp = enemy->max_hp / 2;
+    player->hp = player->max_hp / 2;
+    stub_azum_buff = 1;
+    update_azum_buff();
+    assert(fabs(player->max_hp - azum_hp * 1.10) < 1e-9);
+    assert(fabs(player->hp / player->max_hp - 0.5) < 1e-9);
+    assert(fabs(enemy->max_hp - azum_hp * 1.10) < 1e-9);
+    assert(fabs(enemy->hp / enemy->max_hp - 0.5) < 1e-9);
+    assert(fabs(class_punch_damage_for(CLASS_AZUM, 0) - punch_damage * 1.10) < 1e-9);
+    assert(fabs(azum_dash_damage_for() - azum_dash_damage * 1.10) < 1e-9);
+    assert(fabs(enemy_azum_dash_damage_for() - enemy_dash_damage * 1.10) < 1e-9);
+    assert(player_max_hp_for(CLASS_ORDINARY) == 20);
+    assert(class_punch_damage_for(CLASS_SANTA, 0) == santa_damage);
+    assert(strcmp(tr_class_azum(), "@z&m") == 0);
+    assert(strcmp(tr_class_azum_desc(), "Суббота-17") == 0);
+    language = 0;
+    assert(strcmp(tr_class_azum_desc(), "Saturday-17") == 0);
+    for (int i = 0; i < 2; i++) {
+        player->hp = 0;
+        enemy->hp = 0;
+        assert(try_revive() == 1 && enemy_try_revive() == 1);
+        assert(player->hp == player->max_hp && enemy->hp == enemy->max_hp);
+    }
+    player->hp = 0;
+    enemy->hp = 0;
+    assert(try_revive() == 0 && enemy_try_revive() == 0);
+    assert(azum_revived == 2 && enemy_revived == 2);
+    stub_azum_buff = 0;
+    update_azum_buff();
+    assert(fabs(player->max_hp - azum_hp) < 1e-9);
+    assert(fabs(enemy->max_hp - azum_hp) < 1e-9);
+    assert(strcmp(tr_class_azum(), "Azum") == 0);
+    assert(strcmp(tr_class_azum_desc(), "Lived once, buried twice...") == 0);
+    assert(class_punch_damage_for(CLASS_AZUM, 0) == punch_damage);
+    assert(azum_dash_damage_for() == azum_dash_damage);
+    /* Disabling the flag never grants another revive after two were spent. */
+    assert(try_revive() == 0 && enemy_try_revive() == 0);
+    azum_revived = 0;
+    enemy_revived = 0;
+    assert(try_revive() == 1 && enemy_try_revive() == 1);
+    player->hp = 0;
+    enemy->hp = 0;
+    assert(try_revive() == 0 && enemy_try_revive() == 0);
+}
+
+/* Drawing the complete UI retains every screen through draw_screen(). */
+void text(const char *s, float x, float y, uint32_t color) { text_scaled(s, x, y, color, 1); }
+void tex_round(float x, float y, const char *name, float scale, float radius) {
+    (void)radius;
+    tex(x, y, name, 0, scale);
+}
+void rect_rot(float x, float y, float w, float h, float angle, uint32_t color) {
+    (void)angle;
+    rect(x, y, w, h, color);
+}
+double lerp(double a, double b, double t) { return a + (b - a) * t; }
+int str_starts_with(const char *s, const char *pref) { return strncmp(s, pref, strlen(pref)) == 0; }
+double net_chat_count(void) { return 0; }
+const char *net_chat_uid(double idx) { (void)idx; return ""; }
+const char *net_chat_text(double idx) { (void)idx; return ""; }
+double net_leaderboard_status(void) { return 0; }
+double net_leaderboard_count(void) { return 0; }
+const char *net_leaderboard_nick(double idx) { (void)idx; return ""; }
+double net_leaderboard_cups(double idx) { (void)idx; return 0; }
+double net_player_codecracker_super(double slot) { (void)slot; return 0; }
+double net_player_block(double slot) { (void)slot; return 0; }
+const char *net_banner_text(void) { return ""; }
+const char *net_banner_color(void) { return "white"; }
+
+static void test_class_stars(void) {
+    game_reset();
+    screen_w = 1280;
+    screen_h = 720;
+    assert(class_imbalance_of(CLASS_ORDINARY) == 1);
+    assert(class_imbalance_of(CLASS_SANTA) == 2);
+    assert(class_imbalance_of(CLASS_AZUM) == 3);
+    assert(class_imbalance_of(CLASS_EBUC) == 3);
+    assert(class_imbalance_of(CLASS_ASTRA) == 4);
+    assert(class_imbalance_of(CLASS_CODECRACKER) == 5);
+    double r = stat_star_r();
+    star_line_count = 0;
+    draw_star(0, 0, r * 1.1, 0xFFF7C948);
+    int filled = star_line_count;
+    star_line_count = 0;
+    draw_star(0, 0, r, 0xFF0B0B12);
+    int empty = star_line_count;
+    for (int i = 0; i < 6; i++) {
+        player_class = class_at_order(i);
+        int rating = (int)class_imbalance_of(player_class);
+        star_line_count = 0;
+        star_max_y = 0;
+        adm_reset_log();
+        draw_class_stats();
+        assert(star_line_count == rating * filled + (5 - rating) * empty);
+        assert(star_max_y < stat_motto_y());
+        assert(adm_has_text(class_desc_of(player_class)));
+    }
+    puts("classes: all five rating stars restored above the description");
+}
+
+static void assert_curtain_on_top(void) {
+    double fade = t_fade;
+    t_fade = 1;
+    adm_reset_log();
+    logic_draw();
+    assert(adm_color_n > 0 && adm_color_n < ADM_COLOR_MAX);
+    assert(adm_colors[adm_color_n - 1] == 0xFF000000);
+    t_fade = fade;
+}
+
+static void test_overlay_transitions(void) {
+    game_reset();
+    screen_w = 1280;
+    screen_h = 720;
+    stub_login_status = 2;
+    snprintf(stub_login_nick, sizeof(stub_login_nick), "%s", "tester");
+    warn_open = 0;
+    studio_open = 0;
+    /* The account stays behind the curtain, including opening from lobby. */
+    logic_touch(menu_x() + menu_btn_w() / 2, menu_row(3) + btn_h / 2, 0, 90);
+    assert(t_dir == 1 && acct_open == 0);
+    finish_transition();
+    assert(acct_open == ACCT_MENU);
+    logic_touch(acct_x() + acct_w() / 2, acct_menu_y(0) + btn_h / 2, 0, 91);
+    assert(t_dir == 1 && acct_open == ACCT_MENU);
+    double generation = ui_nav_gen;
+    logic_draw();
+    update_button_press();
+    press_overlay = 3;
+    assert(button_press_k(acct_x(), acct_menu_y(0), acct_w(), btn_h) > 0);
+    press_overlay = 0;
+    assert(ui_nav_gen == generation);
+    /* A second tap or Back cannot overwrite a pending navigation action. */
+    assert(logic_back() == 1 && acct_open == ACCT_MENU);
+    logic_touch(acct_x() + acct_w() / 2, acct_menu_y(3) + btn_h / 2, 0, 92);
+    assert(acct_open == ACCT_MENU);
+    assert_curtain_on_top();
+    finish_transition();
+    assert(acct_open == ACCT_PASS);
+    assert(logic_back() == 1 && acct_open == ACCT_PASS);
+    finish_transition();
+    assert(acct_open == ACCT_MENU);
+    logic_touch(acct_x() + acct_w() / 2, acct_menu_y(3) + btn_h / 2, 0, 93);
+    assert(acct_open == ACCT_MENU && t_dir == 1);
+    finish_transition();
+    assert(acct_open == ACCT_DELETE);
+    assert(logic_back() == 1);
+    finish_transition();
+    /* Switch-account used to hide the old window before any fade. */
+    logic_touch(acct_x() + acct_w() / 2, acct_menu_y(1) + btn_h / 2, 0, 94);
+    assert(acct_open == ACCT_MENU && t_dir == 1);
+    assert_curtain_on_top();
+    finish_transition();
+    assert(acct_open == 0 && game_state == ST_LOGIN);
+    /* Opening, paging and closing documents share that very same curtain. */
+    docs_transition(0, 0);
+    assert(docs_open == 0 && t_dir == 1);
+    finish_transition();
+    assert(docs_open == 1 && game_state == ST_LOGIN);
+    touch_docs(docs_next_x() + docs_nav_w() / 2, docs_row_y() + btn_h / 2, 0);
+    assert(docs_page == 0 && t_dir == 1);
+    assert_curtain_on_top();
+    finish_transition();
+    assert(docs_page == 1);
+    touch_docs(docs_prev_x() + docs_nav_w() / 2, docs_row_y() + btn_h / 2, 0);
+    finish_transition();
+    assert(docs_page == 0);
+    assert(logic_back() == 1 && docs_open == 1);
+    finish_transition();
+    assert(docs_open == 0 && game_state == ST_LOGIN);
+    /* A covered documents button may not claim an account's press. */
+    docs_show(0, 0);
+    acct_show(ACCT_MENU);
+    press_new = 1;
+    press_x = acct_x() + acct_w() / 2;
+    press_y = acct_menu_y(0) + btn_h / 2;
+    press_btn_live = 0;
+    press_phase = 0;
+    press_overlay = 2;
+    assert(button_press_k(acct_x(), acct_menu_y(0), acct_w(), btn_h) == 0);
+    assert(press_new == 1);
+    press_overlay = 3;
+    (void)button_press_k(acct_x(), acct_menu_y(0), acct_w(), btn_h);
+    assert(press_new == 0 && press_btn_live == 1);
+    press_overlay = 0;
+    acct_close();
+    docs_close();
+    /* Reset must discard callbacks as well as the transition clock. */
+    docs_transition(0, 0);
+    assert(t_action != NULL);
+    game_reset();
+    assert(t_action == NULL && t_dir == 0);
+    puts("navigation: deferred overlays, outgoing press, topmost curtain and input lock OK");
 }
 
 int main(void) {
@@ -2426,8 +2665,12 @@ int main(void) {
         press_new = 0;
         /* Row 5 opens the legal documents window over the settings. */
         logic_touch(menu_x() + menu_btn_w() / 2, settings_row_y(5) + settings_btn_h() / 2, 0, 22);
-        assert(t_dir == 0 && docs_open == 1 && docs_page == 0 && docs_ask == 0);
-        assert(logic_back() == 1 && docs_open == 0 && game_state == ST_SETTINGS);
+        assert(t_dir == 1 && docs_open == 0);
+        finish_transition();
+        assert(docs_open == 1 && docs_page == 0 && docs_ask == 0);
+        assert(logic_back() == 1 && docs_open == 1);
+        finish_transition();
+        assert(docs_open == 0 && game_state == ST_SETTINGS);
         press_new = 0;
 
         /* The promo code sits in the bottom-right corner of the modes screen
@@ -2485,6 +2728,9 @@ int main(void) {
     }
 
     test_legal();
+    test_azum_buff();
+    test_class_stars();
+    test_overlay_transitions();
 
     state_destroy();
     state_ready = 0;

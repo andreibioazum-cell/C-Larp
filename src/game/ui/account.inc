@@ -223,18 +223,24 @@ static void acct_delete_try(void) {
     acct_clear_fields();
 }
 
+static void acct_password_page(void) { acct_go(ACCT_PASS); }
+static void acct_delete_page(void) { acct_go(ACCT_DELETE); }
+static void acct_delete_window(void) { acct_show(ACCT_DELETE); }
+static void acct_sign_out(void) {
+    net_logout();
+    acct_close();
+}
+
 static void touch_acct_menu(double x, double y) {
     if (hit_acct_menu(x, y, 0) == 1) {
-        acct_go(ACCT_PASS);
+        start_action_transition(acct_password_page);
     } else if (hit_acct_menu(x, y, 1) == 1) {
-        acct_close();
         login_after = ST_LOBBY;
         start_transition(ST_LOGIN);
     } else if (hit_acct_menu(x, y, 2) == 1) {
-        net_logout();
-        acct_close();
+        start_action_transition(acct_sign_out);
     } else if (hit_acct_menu(x, y, 3) == 1) {
-        acct_go(ACCT_DELETE);
+        start_action_transition(acct_delete_page);
     }
 }
 
@@ -258,7 +264,7 @@ static void touch_account(double x, double y, double action, double id) {
         play_button_click();
     }
     if (back_hit(x, y) == 1) {
-        acct_back();
+        start_action_transition(acct_back);
         return;
     }
     if (acct_open == ACCT_MENU) {
@@ -332,7 +338,7 @@ static void acct_tick(void) {
     } else if (acct_busy == 2) {
         acct_poll_password();
     }
-    if (acct_open == 0) {
+    if (acct_open == 0 || t_dir != 0) {
         return;
     }
     if (keyboard_visible() == 1) {
@@ -384,7 +390,7 @@ static void draw_acct_msg(void) {
 
 static void draw_account(void) {
     screen_fill();
-    press_overlay = 1;
+    press_overlay = 3;
     draw_back();
     const char *title = acct_open == ACCT_PASS ? tr_acct_change()
                         : acct_open == ACCT_DELETE ? tr_delete_account()

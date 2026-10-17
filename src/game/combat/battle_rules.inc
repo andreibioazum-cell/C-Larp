@@ -106,6 +106,9 @@ static double class_has_super(double cls) {
 }
 
 static double class_punch_damage_for(double cls, double lv) {
+    if (cls == CLASS_AZUM && azum_buff_active == 1) {
+        return punch_damage * 1.10;
+    }
     if (cls == CLASS_SANTA) {
         return santa_damage;
     }
@@ -126,7 +129,7 @@ static double player_max_hp_for(double cls) {
         return ebuc_hp;
     }
     if (cls == CLASS_AZUM) {
-        return azum_hp;
+        return azum_hp * (azum_buff_active == 1 ? 1.10 : 1);
     }
     if (class_is_astra(cls)) {
         return astra_hp;
@@ -173,4 +176,29 @@ static double santa_freeze_time_for(double lv) {
         t = t + santa_freeze_time_bonus;
     }
     return t * santa_stun_scale;
+}
+
+static double azum_dash_damage_for(void) {
+    return azum_dash_damage * (azum_buff_active == 1 ? 1.10 : 1);
+}
+
+static double enemy_azum_dash_damage_for(void) {
+    return enemy_dash_damage * (azum_buff_active == 1 ? 1.10 : 1);
+}
+
+static void update_azum_buff(void) {
+    double active = net_azum_buff();
+    if (active == azum_buff_active) {
+        return;
+    }
+    double factor = active == 1 ? 1.10 : 1 / 1.10;
+    azum_buff_active = active;
+    if (player_class == CLASS_AZUM) {
+        player->max_hp = player->max_hp * factor;
+        player->hp = player->hp * factor;
+    }
+    if (enemy_class == CLASS_AZUM) {
+        enemy->max_hp = enemy->max_hp * factor;
+        enemy->hp = enemy->hp * factor;
+    }
 }

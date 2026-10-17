@@ -66,7 +66,7 @@ static void tick_enemy_dash(void) {
                 if (strip_hits_turret(enemy_dash_x0, enemy_dash_y0, enemy_dash_dx, enemy_dash_dy, 0, enemy_dash_travel,
                                       dash_hit_radius_solo(), arr_get(turret_x, dti), arr_get(turret_y, dti)) == 1) {
                     enemy_dash_hit = 1;
-                    damage_turret(dti, enemy_dash_damage);
+                    damage_turret(dti, enemy_azum_dash_damage_for());
                     enemy_apply_damage(turret_counter_damage);
                 }
             }
@@ -77,7 +77,7 @@ static void tick_enemy_dash(void) {
         if (strip_hits_player(enemy_dash_x0, enemy_dash_y0, enemy_dash_dx, enemy_dash_dy, 0, enemy_dash_travel,
                               dash_hit_radius_solo()) == 1) {
             enemy_dash_hit = 1;
-            take_damage_at(enemy_dash_damage, enemy->x, enemy->y);
+            take_damage_at(enemy_azum_dash_damage_for(), enemy->x, enemy->y);
             stun_player(azum_dash_stun);
             ds_log("enemy dash hit player");
         }
@@ -100,7 +100,7 @@ static void tick_dash_solo_hit(void) {
             if (strip_hits_turret(dash_x0, dash_y0, dash_dx, dash_dy, 0, dash_travel, dash_hit_radius_solo(),
                                   arr_get(enemy_turret_x, ti), arr_get(enemy_turret_y, ti)) == 1) {
                 dash_hit = 1;
-                enemy_damage_turret(ti, azum_dash_damage);
+                enemy_damage_turret(ti, azum_dash_damage_for());
                 if (revive_prot <= 0) {
                     take_damage(turret_counter_damage);
                     ds_log("dash hit enemy turret");
@@ -119,7 +119,7 @@ static void tick_dash_solo_hit(void) {
         dash_hit = 1;
         stun_enemy(azum_dash_stun);
         ds_log("dash hit enemy, hp %g", enemy->hp);
-        enemy_apply_damage_at(azum_dash_damage, player->x, player->y);
+        enemy_apply_damage_at(azum_dash_damage_for(), player->x, player->y);
     }
 }
 

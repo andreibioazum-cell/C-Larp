@@ -245,10 +245,10 @@ int settings_sync_with_cloud(const char *resp) {
         settings_push_to_cloud();
         return 1;
     }
-    language = (int)num(resp, "lang", -1);
-    hitboxes = (int)num(resp, "hitboxes", -1);
-    musicvol = (int)num(resp, "musicvol", -1);
-    winter = (int)num(resp, "winter", -1);
+    language = num_int(resp, "lang", -1);
+    hitboxes = num_int(resp, "hitboxes", -1);
+    musicvol = num_int(resp, "musicvol", -1);
+    winter = num_int(resp, "winter", -1);
     if (language < 0 && hitboxes < 0 && musicvol < 0 && winter < 0)
         return 0;
     st_lock();

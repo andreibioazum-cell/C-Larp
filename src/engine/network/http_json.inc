@@ -123,11 +123,33 @@ static double num(const char *json, const char *path, double fb) {
         v++;
     return atof(v);
 }
+static int num_int(const char *json, const char *path, int fb_value) {
+    double v = num(json, path, fb_value);
+    if (!isfinite(v) || v < (double)INT_MIN || v > (double)INT_MAX)
+        return fb_value;
+    return (int)v;
+}
+static long long num_ll(const char *json, const char *path, long long fb_value) {
+    double v = num(json, path, (double)fb_value);
+    double limit = ldexp(1.0, (int)(sizeof(long long) * CHAR_BIT - 1));
+    if (!isfinite(v) || v < -limit || v >= limit)
+        return fb_value;
+    return (long long)v;
+}
+static unsigned long num_ulong(const char *json, const char *path, unsigned long fb_value) {
+    double v = num(json, path, (double)fb_value);
+    double limit = ldexp(1.0, (int)(sizeof(unsigned long) * CHAR_BIT));
+    if (!isfinite(v) || v < 0 || v >= limit)
+        return fb_value;
+    return (unsigned long)v;
+}
 static void strv(const char *json, const char *path, char *out, size_t cap) {
-    const char *v = path_val(json, path);
+    const char *v;
     size_t i = 0;
-    if (cap)
-        out[0] = 0;
+    if (!out || !cap)
+        return;
+    out[0] = 0;
+    v = path_val(json, path);
     if (!v || *v != '\"')
         return;
     for (v++; *v && *v != '\"' && i + 1 < cap; v++) {
@@ -206,12 +228,17 @@ static void fb_id_token(char *dst, size_t cap) {
 }
 
 static void fb_store_tokens(const char *id_token, const char *refresh_token, double expires_in_sec) {
+    long long now, lifetime_ms;
     ds_mutex_lock(fb.lock);
     snprintf(fb.id_token, sizeof(fb.id_token), "%s", id_token ? id_token : "");
     snprintf(fb.refresh_token, sizeof(fb.refresh_token), "%s", refresh_token ? refresh_token : "");
+    if (!isfinite(expires_in_sec) || expires_in_sec > 31536000)
+        expires_in_sec = 3600;
     if (expires_in_sec < 60)
         expires_in_sec = 60;
-    fb.expires_at = now_ms() + (long long)(expires_in_sec * 1000.0) - 60000;
+    lifetime_ms = (long long)(expires_in_sec * 1000.0);
+    now = now_ms();
+    fb.expires_at = now > LLONG_MAX - lifetime_ms ? LLONG_MAX : now + lifetime_ms - 60000;
     ds_mutex_unlock(fb.lock);
 }
 

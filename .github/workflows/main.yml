@@ -51,11 +51,14 @@ jobs:
           python3 tools/check_game_file_size.py
           python3 tools/test_resources.py
           python3 tools/test_game_state.py
+          python3 tools/test_azum_buff.py
           python3 tools/test_string_pool.py
           python3 tools/test_settings_storage.py
           python3 tools/test_cloud_progress.py
           python3 tools/test_promo.py
           python3 tools/test_presence.py
+          python3 tools/test_network_memory.py
+          python3 tools/test_font_memory.py
 
       - name: Setup Java for Android build tools
         uses: actions/setup-java@v5

@@ -81,7 +81,7 @@ static void parse_and_store_banner(const char *json, unsigned gen) {
         unlock();
         return;
     }
-    ts = (long long)num(json, "ts", 0);
+    ts = num_ll(json, "ts", 0);
     if (ts <= 0)
         return;
     strv(json, "text", text, sizeof(text));
@@ -130,7 +130,7 @@ static int claim_slot(unsigned gen) {
         strv(resp, "uid", uid, sizeof(uid));
         if (uid[0] && !strcmp(uid, net.uid))
             return slot;
-        seq = (unsigned long)num(resp, "seq", 0);
+        seq = num_ulong(resp, "seq", 0);
         if (!uid[0])
             claim = 1;
         else if (etag[0] && (strcmp(uid, claim_seen_uid[slot]) || seq != claim_seen_seq[slot])) {
@@ -201,7 +201,7 @@ static void read_players(const char *resp, unsigned gen) {
             continue;
         }
         snprintf(p, sizeof(p), "%s/seq", bp);
-        sq = (unsigned long)num(resp, p, 0);
+        sq = num_ulong(resp, p, 0);
         if (sq != rp_lseq[slot]) {
             rp_lseq[slot] = sq;
             rp_lch[slot] = t;

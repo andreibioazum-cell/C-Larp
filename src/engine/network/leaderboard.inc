@@ -1,6 +1,10 @@
 static int parse_leaderboard(const char *json, LeaderboardEntry *out, int max_out) {
-    const char *p = skip_ws(json);
+    const char *p;
+    LeaderboardEntry parsed[64];
     int count = 0;
+    if (!json || !out || max_out <= 0)
+        return 0;
+    p = skip_ws(json);
     if (!p || *p != '{')
         return 0;
     for (p = skip_ws(p + 1); p && *p && *p != '}' && count < 64;) {
@@ -26,11 +30,11 @@ static int parse_leaderboard(const char *json, LeaderboardEntry *out, int max_ou
             strv(obj, "nick", nick, sizeof(nick));
             if (!nick[0])
                 snprintf(nick, sizeof(nick), "%s", key);
-            int cups = (int)num(obj, "cups", 0);
+            int cups = num_int(obj, "cups", 0);
             if (cups < 0)
                 cups = 0;
-            snprintf(out[count].nick, sizeof(out[count].nick), "%s", nick);
-            out[count].cups = cups;
+            snprintf(parsed[count].nick, sizeof(parsed[count].nick), "%s", nick);
+            parsed[count].cups = cups;
             count++;
         }
         p = skip_ws(p);
@@ -39,15 +43,17 @@ static int parse_leaderboard(const char *json, LeaderboardEntry *out, int max_ou
     }
     for (int i = 0; i < count - 1; i++) {
         for (int j = 0; j < count - 1 - i; j++) {
-            if (out[j].cups < out[j + 1].cups) {
-                LeaderboardEntry tmp = out[j];
-                out[j] = out[j + 1];
-                out[j + 1] = tmp;
+            if (parsed[j].cups < parsed[j + 1].cups) {
+                LeaderboardEntry tmp = parsed[j];
+                parsed[j] = parsed[j + 1];
+                parsed[j + 1] = tmp;
             }
         }
     }
     if (count > max_out)
         count = max_out;
+    for (int i = 0; i < count; i++)
+        out[i] = parsed[i];
     return count;
 }
 

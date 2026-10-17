@@ -151,10 +151,10 @@ static double enemy_try_revive(void) {
     if (enemy_class != CLASS_AZUM) {
         return 0;
     }
-    if (enemy_revived == 1) {
+    if (enemy_revived >= (azum_buff_active == 1 ? 2 : 1)) {
         return 0;
     }
-    enemy_revived = 1;
+    enemy_revived = enemy_revived + 1;
     enemy->hp = enemy->max_hp;
     enemy_revive_prot = enemy_revive_prot_time;
     double k = 0;

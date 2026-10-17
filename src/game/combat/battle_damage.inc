@@ -49,7 +49,7 @@ static double take_damage(double dmg) {
     if (player_class == CLASS_EBUC) {
         real = player_shield_absorb(real);
     }
-    if (player_class == CLASS_AZUM && azum_revived == 1 && player_level >= 1) {
+    if (player_class == CLASS_AZUM && azum_revived >= 1 && player_level >= 1) {
         real = real * (1 - clamp(azum_second_life_damage_reduction, 0, 0.9));
     }
     if (real > 0) {
@@ -115,13 +115,13 @@ static double try_revive(void) {
     if (player->hp > 0) {
         return 0;
     }
-    if (player_class != 1) {
+    if (player_class != CLASS_AZUM) {
         return 0;
     }
-    if (azum_revived == 1) {
+    if (azum_revived >= (azum_buff_active == 1 ? 2 : 1)) {
         return 0;
     }
-    azum_revived = 1;
+    azum_revived = azum_revived + 1;
     player->hp = player->max_hp;
     revive_prot = 1.2;
     double k = 0;

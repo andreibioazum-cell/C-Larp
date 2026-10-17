@@ -38,6 +38,27 @@ static void docs_close(void) {
     ui_nav_gen = ui_nav_gen + 1;
 }
 
+static double docs_pending_page, docs_pending_ask;
+static void docs_open_pending(void) { docs_show(docs_pending_page, docs_pending_ask); }
+static void docs_transition(double page, double ask) {
+    if (t_dir != 0) {
+        return;
+    }
+    docs_pending_page = page;
+    docs_pending_ask = ask;
+    start_action_transition(docs_open_pending);
+}
+static void docs_prev_page(void) { docs_page = docs_page - 1; }
+static void docs_next_page(void) { docs_page = docs_page + 1; }
+static void docs_agree(void) {
+    consent_give();
+    docs_close();
+}
+static void docs_refuse(void) {
+    net_logout();
+    docs_close();
+}
+
 /* --- раскладка --------------------------------------------------------- */
 
 static double docs_top(void) { return clamp(screen_h / 2 - 236, back_y + btn_h + 20, screen_h); }
@@ -90,7 +111,7 @@ static const char *docs_mid_label(void) {
 
 static void draw_docs(void) {
     screen_fill();
-    press_overlay = 1;
+    press_overlay = 2;
     button(docs_ask == 1 ? tr_legal_close() : tr_back(), (screen_w - btn_w) / 2, back_y, btn_w, btn_h);
     const char *title = ds_concat(ds_concat(ds_concat(legal_line(docs_page, 0), "  ("),
                                             ds_num_to_string(docs_page + 1)),
@@ -140,32 +161,30 @@ static void touch_docs(double x, double y, double action) {
         play_button_click();
     }
     if (hit_docs_close(x, y) == 1) {
-        docs_close();
+        start_action_transition(docs_close);
         return;
     }
     if (hit_docs_prev(x, y) == 1) {
-        docs_page = docs_page - 1;
+        start_action_transition(docs_prev_page);
         return;
     }
     if (hit_docs_next(x, y) == 1) {
-        docs_page = docs_page + 1;
+        start_action_transition(docs_next_page);
         return;
     }
     if (hit_docs_mid(x, y) == 1) {
         if (docs_ask == 1) {
-            consent_give();
-            docs_close();
+            start_action_transition(docs_agree);
             return;
         }
         /* Удаление - на экране аккаунта: пароль и свайп вправо. */
-        acct_show(ACCT_DELETE);
+        start_action_transition(acct_delete_window);
         return;
     }
     if (hit_docs_refuse(x, y) == 1) {
         /* Без согласия обработка прекращается: игрок выходит из аккаунта и
          * играет дальше без облака. Удалить данные можно на стр. 7. */
-        net_logout();
-        docs_close();
+        start_action_transition(docs_refuse);
     }
 }
 
@@ -306,7 +325,7 @@ static void touch_warn(double x, double y, double action) {
     }
     if (hit_warn_docs(x, y) == 1) {
         play_button_click();
-        docs_show(0, 0);
+        docs_transition(0, 0);
         return;
     }
     if (hit_warn_btn(x, y) == 1) {
