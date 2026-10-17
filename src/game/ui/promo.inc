@@ -16,7 +16,16 @@ static double promo_msg_y(void) {
 static char promo_msg_buf[128];
 
 static void promo_set_msg(const char *text) {
-    snprintf(promo_msg_buf, sizeof(promo_msg_buf), "%s", text ? text : "");
+    /* Manual bounded copy: the game translation unit has no stdio. */
+    double i = 0;
+    if (!text) {
+        text = "";
+    }
+    while (text[(int)i] != 0 && i < (double)(sizeof(promo_msg_buf) - 1)) {
+        promo_msg_buf[(int)i] = text[(int)i];
+        i = i + 1;
+    }
+    promo_msg_buf[(int)i] = 0;
     promo_msg_text = promo_msg_buf;
     promo_msg_t = 4.0;
 }
