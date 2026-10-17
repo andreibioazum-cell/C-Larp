@@ -25,7 +25,11 @@ static struct {
     DSMutex lock;
     LiveFlag azum;
     LiveFlag sale;
-} live_flags = {.lock = DS_MUTEX_INIT, .azum = {"/AzumBuff.json"}, .sale = {"/FlashSale.json"}};
+/* Every field is listed on purpose: clang -Wmissing-field-initializers
+ * (in -Wextra, promoted by -Werror in CI) rejects partial initializers. */
+} live_flags = {.lock = DS_MUTEX_INIT,
+                .azum = {"/AzumBuff.json", 0, 0, 0, 0, 0, 0, 0},
+                .sale = {"/FlashSale.json", 0, 0, 0, 0, 0, 0, 0}};
 
 static int live_flag_value(const char *json) {
     char *end;
