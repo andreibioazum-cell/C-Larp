@@ -34,6 +34,9 @@ static void update_start_screen(void) {
             start_a = 0;
             start_open = 0;
             start_closing = 0;
+            /* The lobby has only just appeared: keep its buttons dead for
+             * a beat so the first real tap lands on a settled screen. */
+            lobby_lock_t = 0.6;
         }
         return;
     }

@@ -50,7 +50,13 @@ static void set_class_progress(double cls, double lv, double un) {
  * node missing, value not 1) prices stay at their normal values. */
 #define FLASH_SALE_FRACTION 0.10
 
-static void update_flash_sale(void) { flash_sale_active = net_flash_sale(); }
+static void update_flash_sale(void) {
+    double active = net_flash_sale();
+    if (active != flash_sale_active) {
+        ds_log("flash sale %s (Firebase FlashSale read)", active == 1 ? "ON: all prices -10%" : "off");
+    }
+    flash_sale_active = active;
+}
 
 static double flash_sale_price(double cost) {
     if (flash_sale_active == 1 && cost > 0) {

@@ -321,29 +321,26 @@ static const char *tr_tap_to_start(void) {
     return "Tap to start";
 }
 
-/* Launch gate, called once from logic_init(). The epilepsy warning is a
- * first-launch screen: legal_accept() already stores its timestamp via
- * settings_mark_legal(), so a returning player (timestamp present) skips
- * straight past it. The tap-to-start screen, however, opens on EVERY
- * launch: it covers the lobby until the first tap, then fades out over
- * start_fade seconds, smoothly revealing the lobby underneath. */
+/* Launch gate, called once from logic_init(). BOTH screens open on every
+ * launch: first the epilepsy warning (its acceptance is still stored via
+ * settings_mark_legal(), but the warning itself is shown every time, as
+ * the operator asked), then the tap-to-start screen, which covers the
+ * lobby until the first tap and fades out over start_fade seconds,
+ * smoothly revealing the lobby underneath. The lobby then stays locked
+ * for a short settle (lobby_lock_t) so Play cannot be hit before the
+ * game has fully appeared. */
 static void start_gate_init(void) {
     start_open = 1;
     start_a = 1;
     start_t = 0;
     start_closing = 0;
     start_close_t = 0;
-    if (settings_legal_ts() > 0) {
-        warn_open = 0;
-        warn_a = 0;
-    } else {
-        warn_open = 1;
-        warn_a = 1;
-        warn_ready = 0;
-        warn_t = 0;
-        warn_closing = 0;
-        warn_close_t = 0;
-    }
+    warn_open = 1;
+    warn_a = 1;
+    warn_ready = 0;
+    warn_t = 0;
+    warn_closing = 0;
+    warn_close_t = 0;
 }
 
 static void draw_start_screen(void) {

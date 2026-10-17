@@ -620,6 +620,10 @@ void net_save_winter_theme(double on) { (void)on; }
 double net_load_new_theme(void) { return 1; }
 void net_save_new_theme(double on) { (void)on; }
 void settings_mark_legal(void) {}
+/* The game-state harness does not link the runtime pool tick; the promo
+ * test only needs the calls to exist so it can prove the message text is
+ * an owned copy, not a pooled pointer. */
+void ds_string_pool_tick(void) {}
 static double stub_legal_ts;
 double settings_legal_ts(void) { return stub_legal_ts; }
 /* Согласие на обработку ПД и удаление аккаунта: по умолчанию согласие дано,
@@ -1084,10 +1088,13 @@ static void test_start_gate(void) {
     warn_open = 0;
     warn_a = 0;
 
-    /* Returning player: warning skipped entirely, start screen still up. */
+    /* Returning player: the warning is shown on EVERY launch again (the
+     * stored acceptance no longer skips it), start screen still up. */
     stub_legal_ts = 1700000000;
     start_gate_init();
-    assert(warn_open == 0 && start_open == 1);
+    assert(warn_open == 1 && start_open == 1);
+    warn_open = 0;
+    warn_a = 0;
 
     /* A touch starts the fade but keeps the lobby covered until it ends. */
     logic_touch(screen_w / 2, screen_h / 2, 0, 72);
@@ -1097,14 +1104,49 @@ static void test_start_gate(void) {
     }
     assert(start_open == 0 && start_a == 0 && game_state == ST_LOBBY);
 
-    /* Touches pass through to the lobby again once the screen is gone. */
+    /* The lobby has appeared but is not tappable yet: the settle lock
+     * swallows the first taps, Play unlocks only after it runs out. */
+    assert(lobby_lock_t > 0);
     logic_touch(menu_x() + menu_btn_w() / 2, menu_row(1) + btn_h / 2, 0, 73);
+    assert(t_dir == 0);
+    lobby_lock_t = 0;
+    logic_touch(menu_x() + menu_btn_w() / 2, menu_row(1) + btn_h / 2, 0, 74);
     assert(t_dir == 1 && t_target == ST_CLASSES);
     t_dir = 0;
     t_target = 0;
     press_new = 0;
     stub_legal_ts = 0;
-    puts("start gate: epilepsy warning only on first launch, tap-to-start every launch");
+    puts("start gate: epilepsy warning and tap-to-start every launch, lobby unlocks after a settle");
+}
+
+/* Промокод 2027: сообщение об успехе - собственная копия текста, а не
+ * указатель в строковый пул, поэтому после тиков пула оно не превращается
+ * в мусор и знак «?». */
+static void test_promo_message(void) {
+    game_state = ST_PROMO;
+    language = 0;
+    stub_login_status = 2;
+    stub_promo2027_used = 0;
+    promo_focus = 0;
+    promo_input = "2027";
+    double cups_before = cups;
+    promo_submit();
+    assert(cups == cups_before + 27 && stub_promo2027_used == 1);
+    assert(promo_msg_t > 0);
+    for (int i = 0; i < 4; i++) {
+        ds_string_pool_tick();
+        (void)ds_concat("frame noise ", ds_num_to_string((double)i));
+    }
+    assert(str_eq(promo_msg_text, "+27 cups!") == 1);
+    /* Second submit says "already redeemed" and also survives the pool. */
+    promo_submit();
+    for (int i = 0; i < 4; i++)
+        ds_string_pool_tick();
+    assert(str_eq(promo_msg_text, "Promo code already redeemed") == 1);
+    promo_msg_t = 0;
+    stub_login_status = 0;
+    game_state = ST_LOBBY;
+    puts("promo: 2027 message survives the string pool, no garbage or ? glyph");
 }
 
 static void test_azum_buff(void) {
@@ -2798,6 +2840,7 @@ int main(void) {
 
     test_legal();
     test_start_gate();
+    test_promo_message();
     test_azum_buff();
     test_class_stars();
     test_overlay_transitions();

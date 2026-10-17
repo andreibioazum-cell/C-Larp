@@ -8,8 +8,16 @@ static double promo_msg_y(void) {
     return promo_btn_y() + btn_h + 16;
 }
 
+/* The message text is COPIED into our own buffer. Storing the caller's
+ * pointer was a bug: tr_promo_success_2027() builds its text with
+ * ds_concat(), and the string pool frees those strings a couple of frames
+ * later - the promo line then read freed memory, flickered through garbage
+ * and ended up drawing the font's "?" fallback glyph after it faded. */
+static char promo_msg_buf[128];
+
 static void promo_set_msg(const char *text) {
-    promo_msg_text = text;
+    snprintf(promo_msg_buf, sizeof(promo_msg_buf), "%s", text ? text : "");
+    promo_msg_text = promo_msg_buf;
     promo_msg_t = 4.0;
 }
 

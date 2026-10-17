@@ -66,6 +66,7 @@ static void update_music(void) {
 static void logic_update(void) {
     update_warning();
     update_start_screen();
+    lobby_lock_t = tick_down(lobby_lock_t);
     docs_tick();
     acct_tick();
     update_studio();
@@ -325,6 +326,14 @@ static void logic_touch(double x, double y, double action, double id) {
      * already had their chance at the touch by this point. */
     if (start_open == 1 && warn_open == 0) {
         touch_start(action);
+        if (action == 0) {
+            press_new = 0;
+        }
+        return;
+    }
+    /* Just after the start screen fades, the lobby is visible but not yet
+     * tappable: Play and friends unlock once the settle beat has passed. */
+    if (lobby_lock_t > 0 && game_state == ST_LOBBY) {
         if (action == 0) {
             press_new = 0;
         }

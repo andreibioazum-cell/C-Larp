@@ -42,6 +42,13 @@ static int live_flag_value(const char *json) {
         return 1;
     if (!strcmp(json, "false") || !strcmp(json, "\"false\"") || !strcmp(json, "null"))
         return 0;
+    if (*json == '{') {
+        /* Tolerate {"FlashSale":1}-shaped values some consoles produce. */
+        json = strchr(json, ':');
+        if (!json)
+            return 0;
+        return live_flag_value(json + 1);
+    }
     if (*json == '"')
         json++;
     value = strtod(json, &end);

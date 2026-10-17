@@ -53,6 +53,7 @@ double start_t;
 double start_closing;
 double start_close_t;
 double start_fade;
+double lobby_lock_t;
 double studio_open;
 double studio_t;
 double studio_a;

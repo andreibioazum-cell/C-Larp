@@ -153,6 +153,29 @@ static int run_admin_ban_guard(const char *dir) {
     return 0;
 }
 
+static int run_text_cmd(const char *dir) {
+    (void)dir;
+    /* Canonical quoted form: text "the banner text" [color]. */
+    assert(net_chat_is_text_cmd("text \"Sale is on\" red") == 1);
+    assert(strcmp(net_chat_text_cmd_text("text \"Sale is on\" red"), "Sale is on") == 0);
+    assert(strcmp(net_chat_text_cmd_color("text \"Sale is on\" red"), "red") == 0);
+    assert(strcmp(net_chat_text_cmd_text("text \"just text\""), "just text") == 0);
+    assert(strcmp(net_chat_text_cmd_color("text \"just text\""), "white") == 0);
+    /* A color word inside the quotes is text, not a color. */
+    assert(strcmp(net_chat_text_cmd_text("text \"red alert\""), "red alert") == 0);
+    assert(strcmp(net_chat_text_cmd_color("text \"red alert\""), "white") == 0);
+    /* Legacy unquoted form still works. */
+    assert(strcmp(net_chat_text_cmd_text("text hello blue"), "hello") == 0);
+    assert(strcmp(net_chat_text_cmd_color("text hello blue"), "blue") == 0);
+    assert(strcmp(net_chat_text_cmd_text("text hello"), "hello") == 0);
+    /* Empty or unterminated quotes are not commands. */
+    assert(net_chat_is_text_cmd("text \"\" red") == 0);
+    assert(net_chat_is_text_cmd("text \"oops") == 0);
+    assert(net_chat_is_text_cmd("text") == 0);
+    puts("text cmd: quoted text, trailing color, legacy form OK");
+    return 0;
+}
+
 int main(int argc, char **argv) {
     if (argc < 3) { fprintf(stderr, "usage: test <mode> <dir>\n"); return 2; }
     if (strcmp(argv[1], "first-save") == 0) return run_first_save(argv[2]);
@@ -162,6 +185,7 @@ int main(int argc, char **argv) {
     if (strcmp(argv[1], "legacy-local") == 0) return run_legacy_local(argv[2]);
     if (strcmp(argv[1], "legacy-profile") == 0) return run_legacy_profile(argv[2]);
     if (strcmp(argv[1], "admin-ban-guard") == 0) return run_admin_ban_guard(argv[2]);
+    if (strcmp(argv[1], "text-cmd") == 0) return run_text_cmd(argv[2]);
     fprintf(stderr, "unknown mode '%s'\n", argv[1]);
     return 2;
 }
@@ -243,6 +267,10 @@ def main():
         bans = temp / "bans"
         bans.mkdir()
         subprocess.run([*run, "admin-ban-guard", str(bans)], check=True)
+
+        textcmd = temp / "textcmd"
+        textcmd.mkdir()
+        subprocess.run([*run, "text-cmd", str(textcmd)], check=True)
     return 0
 
 if __name__ == "__main__":

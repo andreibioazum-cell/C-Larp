@@ -55,6 +55,7 @@ start_t = 0;
 start_closing = 0;
 start_close_t = 0;
 start_fade = 0.8;
+lobby_lock_t = 0;
 studio_open = 0;
 studio_t = 0;
 studio_a = 0;
