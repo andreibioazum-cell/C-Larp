@@ -365,7 +365,10 @@ void bye_notice_show(const char *text) {
     bye_calls++;
     snprintf(last_bye, sizeof(last_bye), "%s", text ? text : "");
 }
+static int fx_ring_count;
+static int fx_big_circle_count;
 void ring(float x, float y, float r, float t, uint32_t color) {
+    fx_ring_count++;
     (void)x;
     (void)y;
     (void)r;
@@ -514,6 +517,7 @@ static double candy_x_drawn;
 static double candy_y_drawn;
 static uint32_t candy_circle_color;
 void circle(float x, float y, float r, uint32_t color) {
+    if (r > 20) fx_big_circle_count++;
     candy_circle_color = color;
     candy_x_drawn = x;
     candy_y_drawn = y;
@@ -1223,6 +1227,23 @@ static void test_azum_buff(void) {
     assert(flash_sale_active == 0 && class_cost_of(CLASS_EBUC) == ebuc_cost);
     assert(level_cost(1) == level_base_cost);
     puts("flash sale: -10% on all prices and purchase OK");
+}
+
+/* Ульта CodeCracker: без кружка вокруг куба; звёздочки - гладкие. */
+static void test_codecracker_fx(void) {
+    fx_ring_count = 0;
+    fx_big_circle_count = 0;
+    draw_codecracker_fx_at(200, 200, 0.3, 0.7);
+    assert(fx_ring_count == 0);
+    assert(fx_big_circle_count == 0);
+
+    /* A smooth star needs many more strokes than its diameter in pixels:
+     * the old pixel step produced at most ~2*r strokes. */
+    double r = stat_star_r();
+    star_line_count = 0;
+    draw_star(0, 0, r, 0xFFF7C948);
+    assert(star_line_count > (int)(3 * r));
+    puts("codecracker fx: no halo circle in the ult; stars drawn smooth, not pixelated");
 }
 
 /* Drawing the complete UI retains every screen through draw_screen(). */
@@ -2843,6 +2864,7 @@ int main(void) {
     test_promo_message();
     test_azum_buff();
     test_class_stars();
+    test_codecracker_fx();
     test_overlay_transitions();
 
     state_destroy();

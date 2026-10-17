@@ -161,11 +161,8 @@ static void draw_codecracker_fx_at(double cx, double cy, double angle, double ph
     double cyan = 0x0000E5FF;
     double ice = 0x00C8F7FF;
 
-    /* Layered halo: the low-alpha circles make the sharp particles glow
-     * without hiding the cube underneath them. */
-    circle(cx, cy, 48 + pulse * 7, codecracker_fx_color(12 + pulse * 10, blue));
-    circle(cx, cy, 37 + pulse * 4, codecracker_fx_color(16 + pulse * 13, cyan));
-    ring(cx, cy, 31 + pulse * 3, 2.2, codecracker_fx_color(70 + pulse * 50, cyan));
+    /* No halo disc or ring around the cube (removed on request): the
+     * rotating arcs, sparks and orbiting motes carry the effect alone. */
     codecracker_fx_arc(cx, cy, 43 + pulse * 4, spin, 1.55, 190, ice);
     codecracker_fx_arc(cx, cy, 43 + pulse * 4, spin + 2.1, 1.0, 145, cyan);
     codecracker_fx_arc(cx, cy, 37 - pulse * 2, 0 - spin * 1.35, 1.2, 125, blue);
