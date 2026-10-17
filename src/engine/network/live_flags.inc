@@ -1,5 +1,7 @@
 /* Live operator flags at the database root: AzumBuff and FlashSale.
- * Temporary and online-only: never persisted to the profile or disk.
+ * Account-independent global events: read by every client, logged in or
+ * not; the rules make the two nodes publicly readable (admins keep the
+ * only write access). Temporary: never persisted to the profile or disk.
  * Each flag is enabled only by a fresh successful read of its own node
  * (number 1; true and "1" are also accepted, since those are what the
  * Firebase console tends to store). One failed read no longer kills a flag
@@ -84,14 +86,6 @@ static void *live_flag_fetch(void *arg) {
     return NULL;
 }
 
-static void live_flag_reset(LiveFlag *flag) {
-    flag->enabled = 0;
-    flag->valid_until = 0;
-    flag->next_poll = 0;
-    flag->busy = 0;
-    flag->epoch++;
-}
-
 /* Caller holds live_flags.lock. Starts a fetch when one is due (or forced). */
 static void live_flag_poll(LiveFlag *flag, long long now, int force) {
     DSThread t;
@@ -119,17 +113,17 @@ static void live_flag_poll(LiveFlag *flag, long long now, int force) {
 static double live_flag_get(LiveFlag *flag, int force) {
     long long now = now_ms();
     double active;
-    int logged_in = net_login_status() == NET_LOGIN_OK;
+    /* Deliberately NOT gated on login: these are global event flags, and
+     * gating them on the session made them silently vanish for guests and
+     * for accounts whose session was not (yet) in NET_LOGIN_OK state -
+     * while admins, who can read the whole database root, always saw
+     * them. The Firebase nodes are publicly readable for the same reason;
+     * only writing them stays admin-only. */
     ds_mutex_lock(live_flags.lock);
-    if (!logged_in) {
-        if (flag->busy || flag->enabled || flag->valid_until)
-            live_flag_reset(flag);
-    } else {
-        if (force)
-            flag->valid_until = 0; /* only the fresh reply may re-enable it */
-        live_flag_poll(flag, now, force);
-    }
-    active = logged_in && flag->enabled && now < flag->valid_until;
+    if (force)
+        flag->valid_until = 0; /* only the fresh reply may re-enable it */
+    live_flag_poll(flag, now, force);
+    active = flag->enabled && now < flag->valid_until;
     ds_mutex_unlock(live_flags.lock);
     return active;
 }

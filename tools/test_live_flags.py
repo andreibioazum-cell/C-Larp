@@ -21,14 +21,13 @@ typedef int DSThread;
 #define NET_LOGIN_OK 2
 #define NET_FIREBASE_URL "https://test.invalid"
 static long long clock_ms = 100;
-static int login = 0, thread_ok = 1, reads;
+static int thread_ok = 1, reads;
 static int azum_code = 200, sale_code = 200;
 static const char *azum_response = "1", *sale_response = "0";
 static void *(*pending[2])(void *);
 static void *pending_arg[2];
 static int pending_n;
 static long long now_ms(void) { return clock_ms; }
-static double net_login_status(void) { return login; }
 static DSThread ds_thread_start(void *(*fn)(void *), void *arg) {
     if (!thread_ok) return 0;
     assert(pending_n < 2);
@@ -69,8 +68,7 @@ static void poll_azum(const char *json, int code) {
     complete_all();
 }
 int main(void) {
-    assert(net_azum_buff() == 0 && net_flash_sale() == 0 && !pending_n && reads == 0);
-    login = NET_LOGIN_OK;
+    /* No account is involved at all: the very first call already fetches. */
     assert(net_azum_buff() == 0 && pending_n == 1);
     /* No parallel jobs and no blocking I/O on the game thread. */
     assert(net_azum_buff() == 0 && reads == 0);
@@ -111,21 +109,13 @@ int main(void) {
     assert(net_flash_sale() == 0 && net_azum_buff() == 0);
     complete_all();
     assert(net_flash_sale() == 0 && net_azum_buff() == 1);
-    /* An old successful reply cannot re-enable a flag after logout. */
-    clock_ms += LIVE_FLAG_POLL_MS;
-    (void)net_azum_buff();
-    login = 0;
-    assert(net_azum_buff() == 0 && net_flash_sale() == 0);
-    complete_all();
-    assert(net_azum_buff() == 0);
-    login = NET_LOGIN_OK;
-    assert(net_azum_buff() == 0);
-    complete_all();
+    /* The flag simply follows the node; there is no account state that
+     * could keep it off for one player and on for another. */
     assert(net_azum_buff() == 1);
     thread_ok = 0;
     clock_ms += LIVE_FLAG_POLL_MS;
     assert(net_azum_buff() == 0 && !pending_n);
-    puts("live flags: async polling, exact values, errors, expiry, logout, shop refresh OK");
+    puts("live flags: async polling, exact values, errors, expiry, account-free, shop refresh OK");
 }
 '''
 
