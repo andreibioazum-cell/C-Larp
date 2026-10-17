@@ -42,7 +42,13 @@ static void set_class_progress(double cls, double lv, double un) {
     arr_set(class_unlocked_tbl, cls, un);
 }
 
-static double class_cost_of(double cls) {
+/* Flash sale: the live Firebase FlashSale flag halves every class price
+ * (rounded up, so a price never drops to 0). Levels keep their own prices. */
+#define FLASH_SALE_FRACTION 0.5
+
+static void update_flash_sale(void) { flash_sale_active = net_flash_sale(); }
+
+static double class_base_cost_of(double cls) {
     if (cls == CLASS_AZUM) {
         return azum_cost;
     }
@@ -56,6 +62,14 @@ static double class_cost_of(double cls) {
         return ebuc_cost;
     }
     return 0;
+}
+
+static double class_cost_of(double cls) {
+    double cost = class_base_cost_of(cls);
+    if (flash_sale_active == 1 && cost > 0) {
+        return floor(cost * (1 - FLASH_SALE_FRACTION) + 0.5);
+    }
+    return cost;
 }
 
 static double class_pays_candies(double cls) {

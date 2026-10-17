@@ -573,6 +573,10 @@ double net_auth(const char *url, const char *nick, const char *pass) {
 }
 static double stub_azum_buff;
 double net_azum_buff(void) { return stub_azum_buff; }
+static double stub_flash_sale;
+static int stub_live_refreshes;
+double net_flash_sale(void) { return stub_flash_sale; }
+void net_live_flags_refresh(void) { stub_live_refreshes++; }
 double net_event(void) { return 0; }
 void net_event_set(double mode) { (void)mode; }
 double net_load_cups(void) { return 0; }
@@ -1112,6 +1116,24 @@ static void test_azum_buff(void) {
     player->hp = 0;
     enemy->hp = 0;
     assert(try_revive() == 0 && enemy_try_revive() == 0);
+
+    /* FlashSale: off keeps full prices, on halves them (rounded up), and
+     * buying charges the discounted price, not the full one. */
+    assert(flash_sale_active == 0);
+    assert(class_cost_of(CLASS_AZUM) == azum_cost);
+    stub_flash_sale = 1;
+    update_flash_sale();
+    assert(flash_sale_active == 1);
+    assert(class_cost_of(CLASS_AZUM) == 33); /* 65 -> 33 */
+    assert(class_cost_of(CLASS_SANTA) == 50); /* 100 candies -> 50 */
+    assert(class_cost_of(CLASS_ORDINARY) == 0);
+    cups = 33;
+    pick_class(CLASS_AZUM);
+    assert(class_owned_of(CLASS_AZUM) == 1 && cups == 0);
+    stub_flash_sale = 0;
+    update_flash_sale();
+    assert(flash_sale_active == 0 && class_cost_of(CLASS_EBUC) == ebuc_cost);
+    puts("flash sale: discounted prices and purchase OK");
 }
 
 /* Drawing the complete UI retains every screen through draw_screen(). */
